@@ -1,0 +1,205 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String     @id @default(dbgenerated("(gen_random_uuid())::text"))
+  clinic_id  String?
+  name       String
+  email      String     @unique
+  password   String
+  role       String     @default("user")
+  status     String     @default("active")
+  created_at DateTime   @default(now()) @db.Timestamp(6)
+  updated_at DateTime   @default(now()) @updatedAt @db.Timestamp(6)
+  clinic     Clinic?    @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+  auditLogs  AuditLog[]
+
+  @@index([email])
+  @@index([clinic_id])
+}
+
+model Clinic {
+  id             String         @id @default(dbgenerated("(gen_random_uuid())::text"))
+  name           String
+  cnpj           String         @unique
+  phone          String
+  email          String
+  address        String?
+  city           String?
+  state          String?
+  business_hours String?
+  z_api_instance String?
+  z_api_token    String?
+  plan           String         @default("basic")
+  status         String         @default("active")
+  created_at     DateTime       @default(now()) @db.Timestamp(6)
+  updated_at     DateTime       @default(now()) @updatedAt @db.Timestamp(6)
+  users          User[]
+  dentists       Dentist[]
+  patients       Patient[]
+  services       Service[]
+  appointments   Appointment[]
+  conversations  Conversation[]
+  auditLogs      AuditLog[]
+  whatsappMessages WhatsAppMessage[]
+
+  @@index([cnpj], map: "idx_clinic_cnpj")
+  @@index([status], map: "idx_clinic_status")
+}
+
+model Dentist {
+  id           String        @id @default(dbgenerated("(gen_random_uuid())::text"))
+  clinic_id    String
+  name         String
+  cro          String
+  specialty    String?
+  phone        String?
+  email        String?
+  status       String        @default("active")
+  created_at   DateTime      @default(now()) @db.Timestamp(6)
+  updated_at   DateTime      @default(now()) @updatedAt @db.Timestamp(6)
+  clinic       Clinic        @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@unique([clinic_id, cro])
+  @@index([clinic_id])
+  @@index([cro])
+}
+
+model Patient {
+  id               String            @id @default(dbgenerated("(gen_random_uuid())::text"))
+  clinic_id        String
+  name             String
+  phone            String
+  cpf              String?
+  email            String?
+  birth_date       DateTime?         @db.Date
+  address          String?
+  notes            String?
+  status           String            @default("active")
+  last_visit       DateTime?         @db.Timestamp(6)
+  created_at       DateTime          @default(now()) @db.Timestamp(6)
+  updated_at       DateTime          @default(now()) @updatedAt @db.Timestamp(6)
+  clinic           Clinic            @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+  appointments     Appointment[]
+  conversations    Conversation[]
+  conversationLogs ConversationLog[]
+  whatsappMessages WhatsAppMessage[]
+
+  @@unique([clinic_id, phone], map: "unique_clinic_phone")
+  @@index([clinic_id], map: "idx_patient_clinic")
+  @@index([phone], map: "idx_patient_phone")
+}
+
+model Service {
+  id           String        @id @default(dbgenerated("(gen_random_uuid())::text"))
+  clinic_id    String
+  name         String
+  description  String?
+  price        Decimal       @db.Decimal(10, 2)
+  duration     Int
+  status       String        @default("active")
+  created_at   DateTime      @default(now()) @db.Timestamp(6)
+  updated_at   DateTime      @default(now()) @updatedAt @db.Timestamp(6)
+  clinic       Clinic        @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@unique([clinic_id, name])
+  @@index([clinic_id])
+}
+
+model Appointment {
+  id            String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  clinic_id     String
+  patient_id    String
+  dentist_id    String?
+  service_id    String
+  date          DateTime  @db.Date
+  time          String
+  duration      Int       @default(30)
+  status        String    @default("scheduled")
+  notes         String?
+  cancel_reason String?
+  cancelled_at  DateTime? @db.Timestamp(6)
+  confirmed_at  DateTime? @db.Timestamp(6)
+  reminder_sent Boolean   @default(false)
+  created_at    DateTime  @default(now()) @db.Timestamp(6)
+  updated_at    DateTime  @default(now()) @updatedAt @db.Timestamp(6)
+  clinic        Clinic    @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+  patient       Patient   @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  dentist       Dentist?  @relation(fields: [dentist_id], references: [id])
+  service       Service   @relation(fields: [service_id], references: [id], onDelete: Cascade)
+
+  @@index([clinic_id], map: "idx_appointment_clinic")
+  @@index([patient_id], map: "idx_appointment_patient")
+  @@index([date], map: "idx_appointment_date")
+  @@index([status], map: "idx_appointment_status")
+}
+
+model Conversation {
+  id         String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  clinic_id  String
+  patient_id String
+  messages   Json?
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  clinic     Clinic   @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+  patient    Patient  @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+}
+
+model ConversationLog {
+  id         String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  patient_id String
+  message    String
+  response   String
+  intent     String?
+  timestamp  DateTime @default(now()) @db.Timestamp(6)
+  patient    Patient  @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+
+  @@index([patient_id], map: "idx_log_patient")
+  @@index([timestamp], map: "idx_log_timestamp")
+}
+
+model AuditLog {
+  id         String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  clinic_id  String?
+  user_id    String?
+  action     String
+  entity     String
+  entity_id  String?
+  old_values Json?
+  new_values Json?
+  ip_address String?
+  user_agent String?
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  clinic     Clinic?  @relation(fields: [clinic_id], references: [id], onDelete: SetNull)
+  user       User?    @relation(fields: [user_id], references: [id], onDelete: SetNull)
+
+  @@index([clinic_id])
+  @@index([entity])
+  @@index([created_at])
+}
+
+model WhatsAppMessage {
+  id           String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  clinic_id    String
+  patient_id   String?
+  phone        String
+  message      String
+  direction    String   // 'incoming' or 'outgoing'
+  status       String   @default("sent")
+  message_id   String?  // Z-API message ID
+  raw_payload  Json?
+  created_at   DateTime @default(now()) @db.Timestamp(6)
+  clinic       Clinic   @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+  patient      Patient? @relation(fields: [patient_id], references: [id], onDelete: SetNull)
+
+  @@index([clinic_id])
+  @@index([phone])
+  @@index([created_at])
+}
