@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, VERSION_NEUTRAL } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import {
   HealthCheck,
@@ -9,7 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SkipThrottle } from '@nestjs/throttler';
 
 @ApiTags('health')
-@Controller('health')
+@Controller({ path: 'health', version: VERSION_NEUTRAL })  // ← MUDANÇA AQUI
 @SkipThrottle()
 export class HealthController {
   constructor(
