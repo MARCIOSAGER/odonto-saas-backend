@@ -161,8 +161,8 @@ export class AppointmentsService {
 
     let serviceDuration = 30;
     if (serviceId) {
-      const service = await this.prisma.service.findUnique({
-        where: { id: serviceId },
+      const service = await this.prisma.service.findFirst({
+        where: { id: serviceId, clinic_id: clinicId },
         select: { duration: true },
       });
       if (service) {

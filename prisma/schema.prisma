@@ -180,6 +180,9 @@ model Conversation {
   created_at DateTime @default(now()) @db.Timestamp(6)
   clinic     Clinic   @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
   patient    Patient  @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+
+  @@index([clinic_id])
+  @@index([patient_id])
 }
 
 model ConversationLog {

@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { TerminusModule } from '@nestjs/terminus';
@@ -36,17 +36,24 @@ import { ConversationsModule } from './conversations/conversations.module';
       },
     }),
 
-    // Rate limiting (10 requests per minute)
-    ThrottlerModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => [
-        {
-          ttl: config.get('THROTTLE_TTL', 60000),
-          limit: config.get('THROTTLE_LIMIT', 10),
-        },
-      ],
-    }),
+    // Rate limiting (multi-tier)
+    ThrottlerModule.forRoot([
+      {
+        name: 'short',
+        ttl: 1000,
+        limit: 3,
+      },
+      {
+        name: 'medium',
+        ttl: 10000,
+        limit: 20,
+      },
+      {
+        name: 'long',
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
 
     // Health check
     TerminusModule,
