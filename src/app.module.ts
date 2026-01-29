@@ -17,6 +17,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { HealthController } from './health/health.controller';
 import { AuditModule } from './audit/audit.module';
+import { ConversationsModule } from './conversations/conversations.module';
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { AuditModule } from './audit/audit.module';
     WebhooksModule,
     IntegrationsModule,
     AuditModule,
+    ConversationsModule,
   ],
   controllers: [HealthController],
   providers: [

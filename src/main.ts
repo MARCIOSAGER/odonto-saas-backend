@@ -88,6 +88,7 @@ async function bootstrap() {
     .addTag('dentists', 'Gerenciamento de dentistas')
     .addTag('services', 'Gerenciamento de serviços')
     .addTag('webhooks', 'Webhooks para integrações')
+    .addTag('conversations', 'Conversas do WhatsApp')
     .addTag('health', 'Health check')
     .build();
 

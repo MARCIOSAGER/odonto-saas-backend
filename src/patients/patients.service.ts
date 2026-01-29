@@ -19,8 +19,10 @@ export class PatientsService {
   ) {}
 
   async findAll(clinicId: string, options: FindAllOptions = {}) {
-    const { page = 1, limit = 10, search, status } = options;
-    const skip = (page - 1) * limit;
+    const page = Number(options.page) || 1;
+    const limit = Number(options.limit) || 10;
+    const skip = Math.max(0, (page - 1) * limit);
+    const { search, status } = options;
 
     const where: Record<string, unknown> = { clinic_id: clinicId };
 
