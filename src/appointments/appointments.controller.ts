@@ -29,7 +29,12 @@ export class AppointmentsController {
   @ApiResponse({ status: 200, description: 'Appointments list' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiQuery({ name: 'date', required: false, type: String, description: 'Filter by date (YYYY-MM-DD)' })
+  @ApiQuery({
+    name: 'date',
+    required: false,
+    type: String,
+    description: 'Filter by date (YYYY-MM-DD)',
+  })
   @ApiQuery({ name: 'status', required: false, type: String })
   @ApiQuery({ name: 'dentist_id', required: false, type: String })
   @ApiQuery({ name: 'patient_id', required: false, type: String })
@@ -89,10 +94,7 @@ export class AppointmentsController {
   @ApiOperation({ summary: 'Get appointment by ID' })
   @ApiResponse({ status: 200, description: 'Appointment found' })
   @ApiResponse({ status: 404, description: 'Appointment not found' })
-  async findOne(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: { clinicId: string },
-  ) {
+  async findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: { clinicId: string }) {
     return this.appointmentsService.findOne(user.clinicId, id);
   }
 

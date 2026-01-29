@@ -28,10 +28,7 @@ export class ServicesController {
   @ApiOperation({ summary: 'List all services of the clinic' })
   @ApiResponse({ status: 200, description: 'Services list' })
   @ApiQuery({ name: 'status', required: false, type: String })
-  async findAll(
-    @CurrentUser() user: { clinicId: string },
-    @Query('status') status?: string,
-  ) {
+  async findAll(@CurrentUser() user: { clinicId: string }, @Query('status') status?: string) {
     return this.servicesService.findAll(user.clinicId, { status });
   }
 
@@ -50,10 +47,7 @@ export class ServicesController {
   @ApiOperation({ summary: 'Get service by ID' })
   @ApiResponse({ status: 200, description: 'Service found' })
   @ApiResponse({ status: 404, description: 'Service not found' })
-  async findOne(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: { clinicId: string },
-  ) {
+  async findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: { clinicId: string }) {
     return this.servicesService.findOne(user.clinicId, id);
   }
 

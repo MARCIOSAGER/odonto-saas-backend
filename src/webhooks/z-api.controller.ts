@@ -1,12 +1,4 @@
-import {
-  Controller,
-  Post,
-  Body,
-  Headers,
-  HttpCode,
-  HttpStatus,
-  Logger,
-} from '@nestjs/common';
+import { Controller, Post, Body, Headers, HttpCode, HttpStatus, Logger } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiHeader } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
 import { ZApiService } from './z-api.service';

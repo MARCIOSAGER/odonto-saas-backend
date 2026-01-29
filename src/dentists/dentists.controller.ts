@@ -28,10 +28,7 @@ export class DentistsController {
   @ApiOperation({ summary: 'List all dentists of the clinic' })
   @ApiResponse({ status: 200, description: 'Dentists list' })
   @ApiQuery({ name: 'status', required: false, type: String })
-  async findAll(
-    @CurrentUser() user: { clinicId: string },
-    @Query('status') status?: string,
-  ) {
+  async findAll(@CurrentUser() user: { clinicId: string }, @Query('status') status?: string) {
     return this.dentistsService.findAll(user.clinicId, { status });
   }
 
@@ -50,10 +47,7 @@ export class DentistsController {
   @ApiOperation({ summary: 'Get dentist by ID' })
   @ApiResponse({ status: 200, description: 'Dentist found' })
   @ApiResponse({ status: 404, description: 'Dentist not found' })
-  async findOne(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: { clinicId: string },
-  ) {
+  async findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: { clinicId: string }) {
     return this.dentistsService.findOne(user.clinicId, id);
   }
 

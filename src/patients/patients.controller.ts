@@ -55,10 +55,7 @@ export class PatientsController {
   @ApiOperation({ summary: 'Find patient by phone number' })
   @ApiResponse({ status: 200, description: 'Patient found' })
   @ApiResponse({ status: 404, description: 'Patient not found' })
-  async findByPhone(
-    @Param('phone') phone: string,
-    @CurrentUser() user: { clinicId: string },
-  ) {
+  async findByPhone(@Param('phone') phone: string, @CurrentUser() user: { clinicId: string }) {
     return this.patientsService.findByPhone(user.clinicId, phone);
   }
 
@@ -66,10 +63,7 @@ export class PatientsController {
   @ApiOperation({ summary: 'Get patient by ID' })
   @ApiResponse({ status: 200, description: 'Patient found' })
   @ApiResponse({ status: 404, description: 'Patient not found' })
-  async findOne(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: { clinicId: string },
-  ) {
+  async findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: { clinicId: string }) {
     return this.patientsService.findOne(user.clinicId, id);
   }
 

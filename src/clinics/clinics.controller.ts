@@ -50,10 +50,7 @@ export class ClinicsController {
   @ApiOperation({ summary: 'Create a new clinic (superadmin only)' })
   @ApiResponse({ status: 201, description: 'Clinic created' })
   @ApiResponse({ status: 409, description: 'CNPJ already exists' })
-  async create(
-    @Body() createClinicDto: CreateClinicDto,
-    @CurrentUser() user: { userId: string },
-  ) {
+  async create(@Body() createClinicDto: CreateClinicDto, @CurrentUser() user: { userId: string }) {
     return this.clinicsService.create(createClinicDto, user.userId);
   }
 
@@ -89,10 +86,7 @@ export class ClinicsController {
   @ApiOperation({ summary: 'Delete clinic (superadmin only)' })
   @ApiResponse({ status: 200, description: 'Clinic deleted' })
   @ApiResponse({ status: 404, description: 'Clinic not found' })
-  async remove(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: { userId: string },
-  ) {
+  async remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: { userId: string }) {
     return this.clinicsService.remove(id, user.userId);
   }
 

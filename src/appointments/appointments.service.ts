@@ -257,11 +257,7 @@ export class AppointmentsService {
   ) {
     const appointment = await this.findOne(clinicId, id);
 
-    if (
-      updateAppointmentDto.date ||
-      updateAppointmentDto.time ||
-      updateAppointmentDto.dentist_id
-    ) {
+    if (updateAppointmentDto.date || updateAppointmentDto.time || updateAppointmentDto.dentist_id) {
       const isAvailable = await this.checkAvailability(
         clinicId,
         updateAppointmentDto.date || appointment.date.toISOString().split('T')[0],
@@ -435,10 +431,7 @@ export class AppointmentsService {
     let currentHour = startHour;
     let currentMin = startMin;
 
-    while (
-      currentHour < endHour ||
-      (currentHour === endHour && currentMin < endMin)
-    ) {
+    while (currentHour < endHour || (currentHour === endHour && currentMin < endMin)) {
       const formattedTime = `${currentHour.toString().padStart(2, '0')}:${currentMin.toString().padStart(2, '0')}`;
       slots.push(formattedTime);
 
