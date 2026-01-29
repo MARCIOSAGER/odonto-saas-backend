@@ -209,6 +209,27 @@ export class PatientsService {
     return updated;
   }
 
+  async remove(clinicId: string, id: string, userId: string) {
+    const patient = await this.findOne(clinicId, id);
+
+    const updated = await this.prisma.patient.update({
+      where: { id },
+      data: { status: 'inactive' },
+    });
+
+    await this.auditService.log({
+      action: 'DELETE',
+      entity: 'Patient',
+      entityId: id,
+      clinicId,
+      userId,
+      oldValues: { status: patient.status },
+      newValues: { status: 'inactive' },
+    });
+
+    return updated;
+  }
+
   async getAppointments(clinicId: string, patientId: string, limit = 10) {
     await this.findOne(clinicId, patientId);
 

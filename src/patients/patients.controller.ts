@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Delete,
   Body,
   Param,
   Query,
@@ -77,6 +78,17 @@ export class PatientsController {
     @CurrentUser() user: { userId: string; clinicId: string },
   ) {
     return this.patientsService.update(user.clinicId, id, updatePatientDto, user.userId);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Deactivate patient' })
+  @ApiResponse({ status: 200, description: 'Patient deactivated' })
+  @ApiResponse({ status: 404, description: 'Patient not found' })
+  async remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: { userId: string; clinicId: string },
+  ) {
+    return this.patientsService.remove(user.clinicId, id, user.userId);
   }
 
   @Get(':id/appointments')
