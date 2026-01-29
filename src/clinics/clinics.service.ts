@@ -164,42 +164,59 @@ export class ClinicsService {
   }
 
   async getStats(clinicId: string) {
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
     const [
       totalPatients,
-      totalAppointments,
-      pendingAppointments,
-      completedAppointments,
-      todayAppointments,
+      appointmentsToday,
+      appointmentsPending,
+      completedAppointmentsThisMonth,
     ] = await Promise.all([
       this.prisma.patient.count({ where: { clinic_id: clinicId, status: 'active' } }),
-      this.prisma.appointment.count({ where: { clinic_id: clinicId } }),
-      this.prisma.appointment.count({
-        where: { clinic_id: clinicId, status: 'scheduled' },
-      }),
-      this.prisma.appointment.count({
-        where: { clinic_id: clinicId, status: 'completed' },
-      }),
       this.prisma.appointment.count({
         where: {
           clinic_id: clinicId,
           date: {
-            gte: new Date(new Date().setHours(0, 0, 0, 0)),
-            lt: new Date(new Date().setHours(23, 59, 59, 999)),
+            gte: startOfDay,
+            lte: endOfDay,
+          },
+        },
+      }),
+      this.prisma.appointment.count({
+        where: { clinic_id: clinicId, status: 'scheduled' },
+      }),
+      this.prisma.appointment.findMany({
+        where: {
+          clinic_id: clinicId,
+          status: 'completed',
+          date: {
+            gte: startOfMonth,
+            lte: endOfMonth,
+          },
+        },
+        include: {
+          service: {
+            select: { price: true },
           },
         },
       }),
     ]);
 
+    // Calcular receita do mês baseado nos agendamentos completados
+    const revenueMonth = completedAppointmentsThisMonth.reduce((total, appointment) => {
+      const price = appointment.service?.price ? Number(appointment.service.price) : 0;
+      return total + price;
+    }, 0);
+
     return {
-      patients: {
-        total: totalPatients,
-      },
-      appointments: {
-        total: totalAppointments,
-        pending: pendingAppointments,
-        completed: completedAppointments,
-        today: todayAppointments,
-      },
+      total_patients: totalPatients,
+      appointments_today: appointmentsToday,
+      appointments_pending: appointmentsPending,
+      revenue_month: revenueMonth,
     };
   }
 }

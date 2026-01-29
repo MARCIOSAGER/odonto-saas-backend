@@ -37,11 +37,26 @@ model Clinic {
   address          String?
   city             String?
   state            String?
-  business_hours   String?
   z_api_instance   String?
   z_api_token      String?
   plan             String              @default("basic")
   status           String              @default("active")
+
+  // Branding
+  logo_url         String?
+  favicon_url      String?
+  primary_color    String?             @default("#0EA5E9")
+  secondary_color  String?             @default("#10B981")
+  slogan           String?
+
+  // Redes Sociais
+  instagram        String?
+  facebook         String?
+  website          String?
+
+  // Horário de Funcionamento
+  business_hours   Json?               // { "monday": { "open": "08:00", "close": "18:00" }, ... }
+
   created_at       DateTime            @default(now()) @db.Timestamp(6)
   updated_at       DateTime            @default(now()) @updatedAt @db.Timestamp(6)
   users            User[]

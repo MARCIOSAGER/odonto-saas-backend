@@ -9,8 +9,12 @@ import {
   Query,
   UseGuards,
   ParseUUIDPipe,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { ClinicsService } from './clinics.service';
 import { CreateClinicDto } from './dto/create-clinic.dto';
 import { UpdateClinicDto } from './dto/update-clinic.dto';
@@ -18,6 +22,25 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { diskStorage } from 'multer';
+import { extname, join } from 'path';
+import { v4 as uuidv4 } from 'uuid';
+
+const imageFileFilter = (req: any, file: Express.Multer.File, callback: (error: Error | null, acceptFile: boolean) => void) => {
+  if (!file.mimetype.match(/\/(jpg|jpeg|png|gif|ico|svg\+xml)$/)) {
+    return callback(new BadRequestException('Only image files are allowed!'), false);
+  }
+  callback(null, true);
+};
+
+const storageConfig = (folder: string) =>
+  diskStorage({
+    destination: join(process.cwd(), 'uploads', folder),
+    filename: (req, file, callback) => {
+      const uniqueName = `${uuidv4()}${extname(file.originalname)}`;
+      callback(null, uniqueName);
+    },
+  });
 
 @ApiTags('clinics')
 @Controller('clinics')
@@ -52,6 +75,92 @@ export class ClinicsController {
   @ApiResponse({ status: 409, description: 'CNPJ already exists' })
   async create(@Body() createClinicDto: CreateClinicDto, @CurrentUser() user: { userId: string }) {
     return this.clinicsService.create(createClinicDto, user.userId);
+  }
+
+  @Get('my/stats')
+  @ApiOperation({ summary: 'Get current clinic statistics from JWT token' })
+  @ApiResponse({ status: 200, description: 'Clinic statistics' })
+  async getMyStats(@CurrentUser() user: { clinicId: string }) {
+    return this.clinicsService.getStats(user.clinicId);
+  }
+
+  @Get('my/profile')
+  @ApiOperation({ summary: 'Get current clinic profile from JWT token' })
+  @ApiResponse({ status: 200, description: 'Clinic profile' })
+  async getMyProfile(@CurrentUser() user: { clinicId: string }) {
+    return this.clinicsService.findOne(user.clinicId);
+  }
+
+  @Put('my/profile')
+  @ApiOperation({ summary: 'Update current clinic profile' })
+  @ApiResponse({ status: 200, description: 'Clinic updated' })
+  async updateMyProfile(
+    @Body() updateClinicDto: UpdateClinicDto,
+    @CurrentUser() user: { userId: string; clinicId: string },
+  ) {
+    return this.clinicsService.update(user.clinicId, updateClinicDto, user.userId);
+  }
+
+  @Post('my/upload-logo')
+  @ApiOperation({ summary: 'Upload clinic logo' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Logo uploaded successfully' })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: storageConfig('logos'),
+      fileFilter: imageFileFilter,
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+    }),
+  )
+  async uploadMyLogo(
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: { userId: string; clinicId: string },
+  ) {
+    if (!file) {
+      throw new BadRequestException('File is required');
+    }
+    const logoUrl = `/uploads/logos/${file.filename}`;
+    await this.clinicsService.update(user.clinicId, { logo_url: logoUrl }, user.userId);
+    return { logo_url: logoUrl };
+  }
+
+  @Post('my/upload-favicon')
+  @ApiOperation({ summary: 'Upload clinic favicon' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Favicon uploaded successfully' })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: storageConfig('favicons'),
+      fileFilter: imageFileFilter,
+      limits: { fileSize: 1 * 1024 * 1024 }, // 1MB
+    }),
+  )
+  async uploadMyFavicon(
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: { userId: string; clinicId: string },
+  ) {
+    if (!file) {
+      throw new BadRequestException('File is required');
+    }
+    const faviconUrl = `/uploads/favicons/${file.filename}`;
+    await this.clinicsService.update(user.clinicId, { favicon_url: faviconUrl }, user.userId);
+    return { favicon_url: faviconUrl };
   }
 
   @Get(':id')
