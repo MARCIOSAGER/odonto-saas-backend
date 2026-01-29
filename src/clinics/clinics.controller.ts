@@ -18,6 +18,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiConsume
 import { ClinicsService } from './clinics.service';
 import { CreateClinicDto } from './dto/create-clinic.dto';
 import { UpdateClinicDto } from './dto/update-clinic.dto';
+import { UpdateAiSettingsDto } from './dto/update-ai-settings.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -161,6 +162,23 @@ export class ClinicsController {
     const faviconUrl = `/uploads/favicons/${file.filename}`;
     await this.clinicsService.update(user.clinicId, { favicon_url: faviconUrl }, user.userId);
     return { favicon_url: faviconUrl };
+  }
+
+  @Get('my/ai-settings')
+  @ApiOperation({ summary: 'Get AI assistant settings for current clinic' })
+  @ApiResponse({ status: 200, description: 'AI settings retrieved' })
+  async getMyAiSettings(@CurrentUser() user: { clinicId: string }) {
+    return this.clinicsService.getAiSettings(user.clinicId);
+  }
+
+  @Put('my/ai-settings')
+  @ApiOperation({ summary: 'Update AI assistant settings for current clinic' })
+  @ApiResponse({ status: 200, description: 'AI settings updated' })
+  async updateMyAiSettings(
+    @Body() updateAiSettingsDto: UpdateAiSettingsDto,
+    @CurrentUser() user: { userId: string; clinicId: string },
+  ) {
+    return this.clinicsService.updateAiSettings(user.clinicId, updateAiSettingsDto, user.userId);
   }
 
   @Get(':id')

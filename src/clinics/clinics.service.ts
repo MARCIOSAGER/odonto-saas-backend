@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { CreateClinicDto } from './dto/create-clinic.dto';
 import { UpdateClinicDto } from './dto/update-clinic.dto';
+import { UpdateAiSettingsDto } from './dto/update-ai-settings.dto';
 
 interface FindAllOptions {
   page?: number;
@@ -218,5 +219,85 @@ export class ClinicsService {
       appointments_pending: appointmentsPending,
       revenue_month: revenueMonth,
     };
+  }
+
+  async getAiSettings(clinicId: string) {
+    const settings = await this.prisma.clinicAiSettings.findUnique({
+      where: { clinic_id: clinicId },
+    });
+
+    if (!settings) {
+      // Retornar valores padrão se não existir
+      return {
+        clinic_id: clinicId,
+        ai_enabled: true,
+        ai_model: 'claude-3-5-haiku-20241022',
+        ai_temperature: 0.7,
+        max_tokens: 800,
+        assistant_name: 'Sofia',
+        assistant_personality: 'Amigável, profissional e prestativa',
+        welcome_message: 'Olá! Sou a Sofia, assistente virtual da clínica. Como posso ajudar você hoje?',
+        fallback_message: 'Desculpe, não consegui entender. Pode reformular sua pergunta?',
+        out_of_hours_message: 'Estamos fora do horário de atendimento. Retornaremos em breve!',
+        transfer_keywords: [],
+        blocked_topics: [],
+        custom_instructions: null,
+        context_messages: 10,
+        auto_schedule: false,
+        auto_confirm: false,
+        auto_cancel: false,
+        notify_on_transfer: true,
+        working_hours_only: false,
+      };
+    }
+
+    return settings;
+  }
+
+  async updateAiSettings(clinicId: string, updateDto: UpdateAiSettingsDto, userId: string) {
+    // Verificar se a clínica existe
+    await this.findOne(clinicId);
+
+    const settings = await this.prisma.clinicAiSettings.upsert({
+      where: { clinic_id: clinicId },
+      update: {
+        ...updateDto,
+        ai_temperature: updateDto.ai_temperature !== undefined
+          ? updateDto.ai_temperature
+          : undefined,
+      },
+      create: {
+        clinic_id: clinicId,
+        ai_enabled: updateDto.ai_enabled ?? true,
+        ai_model: updateDto.ai_model ?? 'claude-3-5-haiku-20241022',
+        ai_temperature: updateDto.ai_temperature ?? 0.7,
+        max_tokens: updateDto.max_tokens ?? 800,
+        assistant_name: updateDto.assistant_name ?? 'Sofia',
+        assistant_personality: updateDto.assistant_personality,
+        welcome_message: updateDto.welcome_message,
+        fallback_message: updateDto.fallback_message,
+        out_of_hours_message: updateDto.out_of_hours_message,
+        transfer_keywords: updateDto.transfer_keywords ?? [],
+        blocked_topics: updateDto.blocked_topics ?? [],
+        custom_instructions: updateDto.custom_instructions,
+        context_messages: updateDto.context_messages ?? 10,
+        auto_schedule: updateDto.auto_schedule ?? false,
+        auto_confirm: updateDto.auto_confirm ?? false,
+        auto_cancel: updateDto.auto_cancel ?? false,
+        notify_on_transfer: updateDto.notify_on_transfer ?? true,
+        working_hours_only: updateDto.working_hours_only ?? false,
+      },
+    });
+
+    await this.auditService.log({
+      action: 'UPDATE',
+      entity: 'ClinicAiSettings',
+      entityId: settings.id,
+      clinicId,
+      userId,
+      newValues: updateDto,
+    });
+
+    return settings;
   }
 }
