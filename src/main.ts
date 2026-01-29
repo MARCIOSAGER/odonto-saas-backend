@@ -15,9 +15,27 @@ async function bootstrap() {
   // Security
   app.use(helmet());
   app.enableCors({
-    origin: configService.get('CORS_ORIGIN', '*'),
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    origin: (origin, callback) => {
+      const allowedOrigins = [
+        'https://odonto.marciosager.com',
+        'http://localhost:3000',
+        'http://localhost:3001',
+      ];
+
+      // Permitir requisições sem origin (mobile apps, Postman, etc)
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, origin); // Retorna APENAS o origin que fez a requisição
+      }
+
+      return callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   });
 
   // Global prefix
