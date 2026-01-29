@@ -1,9 +1,10 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { CreateClinicDto } from './dto/create-clinic.dto';
 import { UpdateClinicDto } from './dto/update-clinic.dto';
 import { UpdateAiSettingsDto } from './dto/update-ai-settings.dto';
+import axios from 'axios';
 
 interface FindAllOptions {
   page?: number;
@@ -13,6 +14,8 @@ interface FindAllOptions {
 
 @Injectable()
 export class ClinicsService {
+  private readonly logger = new Logger(ClinicsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
@@ -299,5 +302,39 @@ export class ClinicsService {
     });
 
     return settings;
+  }
+
+  async testWhatsAppConnection(clinicId: string) {
+    const clinic = await this.prisma.clinic.findUnique({
+      where: { id: clinicId },
+      select: { z_api_instance: true, z_api_token: true },
+    });
+
+    if (!clinic?.z_api_instance || !clinic?.z_api_token) {
+      return {
+        connected: false,
+        message: 'Credenciais Z-API não configuradas',
+      };
+    }
+
+    try {
+      const response = await axios.get(
+        `https://api.z-api.io/instances/${clinic.z_api_instance}/token/${clinic.z_api_token}/status`,
+        { timeout: 10000 },
+      );
+
+      const connected = response.data?.connected === true;
+      return {
+        connected,
+        message: connected ? 'WhatsApp conectado!' : 'WhatsApp desconectado',
+        details: response.data,
+      };
+    } catch (error) {
+      this.logger.error(`Error testing WhatsApp connection: ${error}`);
+      return {
+        connected: false,
+        message: 'Erro ao verificar conexão com WhatsApp',
+      };
+    }
   }
 }

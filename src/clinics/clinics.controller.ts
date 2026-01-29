@@ -181,6 +181,13 @@ export class ClinicsController {
     return this.clinicsService.updateAiSettings(user.clinicId, updateAiSettingsDto, user.userId);
   }
 
+  @Post('my/test-whatsapp')
+  @ApiOperation({ summary: 'Test WhatsApp connection for current clinic' })
+  @ApiResponse({ status: 200, description: 'WhatsApp connection status' })
+  async testWhatsAppConnection(@CurrentUser() user: { clinicId: string }) {
+    return this.clinicsService.testWhatsAppConnection(user.clinicId);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get clinic by ID' })
   @ApiResponse({ status: 200, description: 'Clinic found' })

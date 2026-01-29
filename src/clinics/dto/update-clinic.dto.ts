@@ -47,6 +47,11 @@ export class UpdateClinicDto extends PartialType(CreateClinicDto) {
   @IsOptional()
   slogan?: string;
 
+  @ApiPropertyOptional({ description: 'Clinic tagline (short description)', example: 'Cuidando do seu sorriso desde 2010' })
+  @IsString()
+  @IsOptional()
+  tagline?: string;
+
   // Redes Sociais
   @ApiPropertyOptional({ description: 'Instagram handle or URL', example: '@clinica_odonto' })
   @IsString()

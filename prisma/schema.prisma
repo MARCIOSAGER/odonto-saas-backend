@@ -48,6 +48,7 @@ model Clinic {
   primary_color    String?             @default("#0EA5E9")
   secondary_color  String?             @default("#10B981")
   slogan           String?
+  tagline          String?
 
   // Redes Sociais
   instagram        String?
