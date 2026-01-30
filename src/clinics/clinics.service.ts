@@ -400,6 +400,72 @@ export class ClinicsService {
     }
   }
 
+  async disconnectWhatsApp(clinicId: string) {
+    const clinic = await this.prisma.clinic.findUnique({
+      where: { id: clinicId },
+      select: { z_api_instance: true, z_api_token: true, z_api_client_token: true },
+    });
+
+    if (!clinic?.z_api_instance || !clinic?.z_api_token) {
+      return { success: false, message: 'Credenciais Z-API não configuradas' };
+    }
+
+    try {
+      const response = await axios.get(
+        `https://api.z-api.io/instances/${clinic.z_api_instance}/token/${clinic.z_api_token}/disconnect`,
+        { timeout: 10000, headers: { 'Client-Token': clinic.z_api_client_token || this.zApiClientToken } },
+      );
+      return { success: true, message: 'WhatsApp desconectado com sucesso.', details: response.data };
+    } catch (error: any) {
+      this.logger.error(`Error disconnecting WhatsApp: ${error}`);
+      return { success: false, message: error?.response?.data?.message || 'Erro ao desconectar WhatsApp' };
+    }
+  }
+
+  async restartWhatsApp(clinicId: string) {
+    const clinic = await this.prisma.clinic.findUnique({
+      where: { id: clinicId },
+      select: { z_api_instance: true, z_api_token: true, z_api_client_token: true },
+    });
+
+    if (!clinic?.z_api_instance || !clinic?.z_api_token) {
+      return { success: false, message: 'Credenciais Z-API não configuradas' };
+    }
+
+    try {
+      const response = await axios.get(
+        `https://api.z-api.io/instances/${clinic.z_api_instance}/token/${clinic.z_api_token}/restart`,
+        { timeout: 15000, headers: { 'Client-Token': clinic.z_api_client_token || this.zApiClientToken } },
+      );
+      return { success: true, message: 'Instância reiniciada. Não é necessário escanear QR Code novamente.', details: response.data };
+    } catch (error: any) {
+      this.logger.error(`Error restarting WhatsApp: ${error}`);
+      return { success: false, message: error?.response?.data?.message || 'Erro ao reiniciar instância' };
+    }
+  }
+
+  async restoreWhatsAppSession(clinicId: string) {
+    const clinic = await this.prisma.clinic.findUnique({
+      where: { id: clinicId },
+      select: { z_api_instance: true, z_api_token: true, z_api_client_token: true },
+    });
+
+    if (!clinic?.z_api_instance || !clinic?.z_api_token) {
+      return { success: false, message: 'Credenciais Z-API não configuradas' };
+    }
+
+    try {
+      const response = await axios.get(
+        `https://api.z-api.io/instances/${clinic.z_api_instance}/token/${clinic.z_api_token}/restore-session`,
+        { timeout: 15000, headers: { 'Client-Token': clinic.z_api_client_token || this.zApiClientToken } },
+      );
+      return { success: true, message: 'Sessão restaurada com sucesso.', details: response.data };
+    } catch (error: any) {
+      this.logger.error(`Error restoring WhatsApp session: ${error}`);
+      return { success: false, message: error?.response?.data?.message || 'Erro ao restaurar sessão' };
+    }
+  }
+
   async sendTestWhatsAppMessage(clinicId: string, phone: string) {
     const clinic = await this.prisma.clinic.findUnique({
       where: { id: clinicId },

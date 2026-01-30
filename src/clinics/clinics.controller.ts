@@ -205,6 +205,27 @@ export class ClinicsController {
     return this.clinicsService.sendTestWhatsAppMessage(user.clinicId, body.phone);
   }
 
+  @Post('my/whatsapp-disconnect')
+  @ApiOperation({ summary: 'Disconnect WhatsApp instance' })
+  @ApiResponse({ status: 200, description: 'WhatsApp disconnected' })
+  async disconnectWhatsApp(@CurrentUser() user: { clinicId: string }) {
+    return this.clinicsService.disconnectWhatsApp(user.clinicId);
+  }
+
+  @Post('my/whatsapp-restart')
+  @ApiOperation({ summary: 'Restart WhatsApp instance (no QR needed)' })
+  @ApiResponse({ status: 200, description: 'WhatsApp restarted' })
+  async restartWhatsApp(@CurrentUser() user: { clinicId: string }) {
+    return this.clinicsService.restartWhatsApp(user.clinicId);
+  }
+
+  @Post('my/whatsapp-restore')
+  @ApiOperation({ summary: 'Restore WhatsApp session from saved data' })
+  @ApiResponse({ status: 200, description: 'Session restored' })
+  async restoreWhatsAppSession(@CurrentUser() user: { clinicId: string }) {
+    return this.clinicsService.restoreWhatsAppSession(user.clinicId);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get clinic by ID' })
   @ApiResponse({ status: 200, description: 'Clinic found' })
