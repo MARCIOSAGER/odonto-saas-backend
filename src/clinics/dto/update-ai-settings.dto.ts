@@ -157,4 +157,32 @@ export class UpdateAiSettingsDto {
   @IsBoolean()
   @IsOptional()
   dentist_ai_enabled?: boolean;
+
+  // Reminders
+  @ApiPropertyOptional({ description: 'Enable automatic appointment reminders', default: true })
+  @IsBoolean()
+  @IsOptional()
+  reminder_enabled?: boolean;
+
+  @ApiPropertyOptional({ description: 'Send reminder 24h before appointment', default: true })
+  @IsBoolean()
+  @IsOptional()
+  reminder_24h?: boolean;
+
+  @ApiPropertyOptional({ description: 'Send reminder 1h before appointment', default: true })
+  @IsBoolean()
+  @IsOptional()
+  reminder_1h?: boolean;
+
+  @ApiPropertyOptional({ description: 'Custom 24h reminder message. Variables: {patientName}, {date}, {time}, {service}, {dentist}, {clinicName}' })
+  @IsString()
+  @IsOptional()
+  @MaxLength(500)
+  reminder_message_24h?: string;
+
+  @ApiPropertyOptional({ description: 'Custom 1h reminder message. Variables: {patientName}, {date}, {time}, {service}, {dentist}, {clinicName}' })
+  @IsString()
+  @IsOptional()
+  @MaxLength(500)
+  reminder_message_1h?: string;
 }

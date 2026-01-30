@@ -18,6 +18,7 @@ import { IntegrationsModule } from './integrations/integrations.module';
 import { HealthController } from './health/health.controller';
 import { AuditModule } from './audit/audit.module';
 import { ConversationsModule } from './conversations/conversations.module';
+import { ReminderModule } from './reminders/reminder.module';
 
 @Module({
   imports: [
@@ -72,6 +73,7 @@ import { ConversationsModule } from './conversations/conversations.module';
     IntegrationsModule,
     AuditModule,
     ConversationsModule,
+    ReminderModule,
   ],
   controllers: [HealthController],
   providers: [

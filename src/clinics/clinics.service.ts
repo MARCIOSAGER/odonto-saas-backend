@@ -264,6 +264,11 @@ export class ClinicsService {
         use_satisfaction_poll: false,
         use_send_location: false,
         dentist_ai_enabled: false,
+        reminder_enabled: true,
+        reminder_24h: true,
+        reminder_1h: true,
+        reminder_message_24h: null,
+        reminder_message_1h: null,
       };
     }
 
@@ -335,6 +340,11 @@ export class ClinicsService {
         use_satisfaction_poll: updateDto.use_satisfaction_poll ?? false,
         use_send_location: updateDto.use_send_location ?? false,
         dentist_ai_enabled: updateDto.dentist_ai_enabled ?? false,
+        reminder_enabled: updateDto.reminder_enabled ?? true,
+        reminder_24h: updateDto.reminder_24h ?? true,
+        reminder_1h: updateDto.reminder_1h ?? true,
+        reminder_message_24h: updateDto.reminder_message_24h,
+        reminder_message_1h: updateDto.reminder_message_1h,
       },
     });
 

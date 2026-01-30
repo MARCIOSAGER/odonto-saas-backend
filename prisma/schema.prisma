@@ -160,8 +160,9 @@ model Appointment {
   cancel_reason String?
   cancelled_at  DateTime? @db.Timestamp(6)
   confirmed_at  DateTime? @db.Timestamp(6)
-  reminder_sent Boolean   @default(false)
-  created_at    DateTime  @default(now()) @db.Timestamp(6)
+  reminder_sent    Boolean   @default(false)
+  reminder_1h_sent Boolean   @default(false)
+  created_at       DateTime  @default(now()) @db.Timestamp(6)
   updated_at    DateTime  @default(now()) @updatedAt @db.Timestamp(6)
   clinic        Clinic    @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
   patient       Patient   @relation(fields: [patient_id], references: [id], onDelete: Cascade)
@@ -373,6 +374,13 @@ model ClinicAiSettings {
 
   // Dentista via WhatsApp
   dentist_ai_enabled        Boolean @default(false)  // Dentistas podem interagir com IA via WhatsApp
+
+  // Lembretes automáticos
+  reminder_enabled          Boolean @default(true)   // Ativar lembretes automáticos
+  reminder_24h              Boolean @default(true)    // Lembrete 24h antes
+  reminder_1h               Boolean @default(true)    // Lembrete 1h antes
+  reminder_message_24h      String?                   // Mensagem personalizada 24h
+  reminder_message_1h       String?                   // Mensagem personalizada 1h
 
   created_at            DateTime @default(now()) @db.Timestamp(6)
   updated_at            DateTime @default(now()) @updatedAt @db.Timestamp(6)
