@@ -188,6 +188,23 @@ export class ClinicsController {
     return this.clinicsService.testWhatsAppConnection(user.clinicId);
   }
 
+  @Get('my/whatsapp-qrcode')
+  @ApiOperation({ summary: 'Get WhatsApp QR Code for current clinic instance' })
+  @ApiResponse({ status: 200, description: 'QR Code image data' })
+  async getWhatsAppQrCode(@CurrentUser() user: { clinicId: string }) {
+    return this.clinicsService.getWhatsAppQrCode(user.clinicId);
+  }
+
+  @Post('my/send-test-whatsapp')
+  @ApiOperation({ summary: 'Send a test WhatsApp message to a phone number' })
+  @ApiResponse({ status: 200, description: 'Test message sent' })
+  async sendTestWhatsAppMessage(
+    @Body() body: { phone: string },
+    @CurrentUser() user: { clinicId: string },
+  ) {
+    return this.clinicsService.sendTestWhatsAppMessage(user.clinicId, body.phone);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get clinic by ID' })
   @ApiResponse({ status: 200, description: 'Clinic found' })

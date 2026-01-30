@@ -56,7 +56,7 @@ export class WhatsAppService {
         headers: { 'Client-Token': clientToken },
       });
 
-      if (response.data?.zapiMessageId) {
+      if (response.data?.zaapId || response.data?.messageId) {
         this.logger.log(`Message sent successfully to ${formattedPhone}`);
         return true;
       }

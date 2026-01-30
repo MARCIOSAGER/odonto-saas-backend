@@ -349,4 +349,103 @@ export class ClinicsService {
       };
     }
   }
+
+  async getWhatsAppQrCode(clinicId: string) {
+    const clinic = await this.prisma.clinic.findUnique({
+      where: { id: clinicId },
+      select: { z_api_instance: true, z_api_token: true, z_api_client_token: true },
+    });
+
+    if (!clinic?.z_api_instance || !clinic?.z_api_token) {
+      return {
+        success: false,
+        message: 'Credenciais Z-API não configuradas',
+      };
+    }
+
+    const clientToken = clinic.z_api_client_token || this.zApiClientToken;
+
+    try {
+      const response = await axios.get(
+        `https://api.z-api.io/instances/${clinic.z_api_instance}/token/${clinic.z_api_token}/qr-code/image`,
+        {
+          timeout: 15000,
+          headers: {
+            'Client-Token': clientToken,
+          },
+        },
+      );
+
+      return {
+        success: true,
+        qrcode: response.data?.value || response.data,
+        message: 'QR Code gerado. Escaneie com seu WhatsApp.',
+      };
+    } catch (error: any) {
+      const errorMsg = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+      this.logger.error(`Error getting WhatsApp QR Code: ${errorMsg}`);
+      return {
+        success: false,
+        message: `Erro ao gerar QR Code: ${errorMsg}`,
+      };
+    }
+  }
+
+  async sendTestWhatsAppMessage(clinicId: string, phone: string) {
+    const clinic = await this.prisma.clinic.findUnique({
+      where: { id: clinicId },
+      select: { z_api_instance: true, z_api_token: true, z_api_client_token: true, name: true },
+    });
+
+    if (!clinic?.z_api_instance || !clinic?.z_api_token) {
+      return {
+        success: false,
+        message: 'Credenciais Z-API não configuradas',
+      };
+    }
+
+    const clientToken = clinic.z_api_client_token || this.zApiClientToken;
+
+    // Formatar telefone
+    let formattedPhone = phone.replace(/\D/g, '');
+    if (!formattedPhone.startsWith('55')) {
+      formattedPhone = '55' + formattedPhone;
+    }
+
+    try {
+      const response = await axios.post(
+        `https://api.z-api.io/instances/${clinic.z_api_instance}/token/${clinic.z_api_token}/send-text`,
+        {
+          phone: formattedPhone,
+          message: `✅ Mensagem de teste do sistema ${clinic.name || 'Odonto SaaS'}. Sua integração com WhatsApp está funcionando corretamente!`,
+          delayTyping: 2,
+        },
+        {
+          timeout: 15000,
+          headers: {
+            'Client-Token': clientToken,
+          },
+        },
+      );
+
+      if (response.data?.zaapId || response.data?.messageId) {
+        return {
+          success: true,
+          message: `Mensagem de teste enviada para ${phone}!`,
+        };
+      }
+
+      return {
+        success: false,
+        message: 'Resposta inesperada da Z-API',
+      };
+    } catch (error: any) {
+      const errorMsg = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+      this.logger.error(`Error sending test WhatsApp message: ${errorMsg}`);
+      return {
+        success: false,
+        message: `Erro ao enviar mensagem: ${errorMsg}`,
+      };
+    }
+  }
 }

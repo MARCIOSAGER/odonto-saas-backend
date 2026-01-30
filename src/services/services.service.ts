@@ -18,9 +18,8 @@ export class ServicesService {
   async findAll(clinicId: string, options: FindAllOptions = {}) {
     const where: Record<string, unknown> = { clinic_id: clinicId };
 
-    if (options.status) {
-      where.status = options.status;
-    }
+    // Filtrar por status: por padrão, só retorna ativos (exclui soft-deleted)
+    where.status = options.status || 'active';
 
     return this.prisma.service.findMany({
       where,
