@@ -149,7 +149,9 @@ export class PatientsService {
         phone: normalizedPhone,
         cpf: createPatientDto.cpf,
         email: createPatientDto.email,
-        birth_date: createPatientDto.birth_date,
+        birth_date: createPatientDto.birth_date
+          ? new Date(createPatientDto.birth_date + 'T00:00:00.000Z')
+          : undefined,
         address: createPatientDto.address,
         notes: createPatientDto.notes,
         status: 'active',
@@ -191,9 +193,14 @@ export class PatientsService {
       }
     }
 
+    const updateData: any = { ...updatePatientDto };
+    if (updateData.birth_date && typeof updateData.birth_date === 'string') {
+      updateData.birth_date = new Date(updateData.birth_date + 'T00:00:00.000Z');
+    }
+
     const updated = await this.prisma.patient.update({
       where: { id },
-      data: updatePatientDto,
+      data: updateData,
     });
 
     await this.auditService.log({

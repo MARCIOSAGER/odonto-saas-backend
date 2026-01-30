@@ -338,11 +338,20 @@ export class ClinicsService {
       const connected = response.data?.connected === true;
       return {
         connected,
-        message: connected ? 'WhatsApp conectado!' : 'WhatsApp desconectado',
+        message: connected ? 'WhatsApp conectado!' : 'WhatsApp desconectado. Conecte via QR Code.',
         details: response.data,
       };
-    } catch (error) {
-      this.logger.error(`Error testing WhatsApp connection: ${error}`);
+    } catch (error: any) {
+      const status = error?.response?.status;
+      this.logger.error(`Error testing WhatsApp connection (${status}): ${error}`);
+
+      if (status === 403) {
+        return {
+          connected: false,
+          message: 'Client-Token inválido (403). Verifique no painel Z-API.',
+        };
+      }
+
       return {
         connected: false,
         message: 'Erro ao verificar conexão com WhatsApp',
@@ -406,9 +415,26 @@ export class ClinicsService {
 
     const clientToken = clinic.z_api_client_token || this.zApiClientToken;
 
-    // Formatar telefone
+    if (!clientToken) {
+      return {
+        success: false,
+        message: 'Client-Token não configurado. Verifique suas credenciais Z-API.',
+      };
+    }
+
+    // Z-API exige formato DDI+DDD+NUMERO (ex: 5521999999999)
     let formattedPhone = phone.replace(/\D/g, '');
-    if (!formattedPhone.startsWith('55')) {
+
+    if (formattedPhone.length < 10) {
+      return {
+        success: false,
+        message: 'Número inválido. Informe com código do país + DDD + número. Ex: 5521999999999',
+      };
+    }
+
+    // Se tem 10-11 dígitos, é brasileiro sem DDI → adiciona 55
+    // Se tem 12+ dígitos, assume que já tem código do país
+    if (formattedPhone.length <= 11 && !formattedPhone.startsWith('55')) {
       formattedPhone = '55' + formattedPhone;
     }
 
@@ -418,11 +444,11 @@ export class ClinicsService {
         {
           phone: formattedPhone,
           message: `✅ Mensagem de teste do sistema ${clinic.name || 'Odonto SaaS'}. Sua integração com WhatsApp está funcionando corretamente!`,
-          delayTyping: 2,
         },
         {
           timeout: 15000,
           headers: {
+            'Content-Type': 'application/json',
             'Client-Token': clientToken,
           },
         },
@@ -437,11 +463,27 @@ export class ClinicsService {
 
       return {
         success: false,
-        message: 'Resposta inesperada da Z-API',
+        message: 'Resposta inesperada da Z-API. Verifique se a instância está conectada.',
       };
     } catch (error: any) {
+      const status = error?.response?.status;
       const errorMsg = error?.response?.data?.message || error?.message || 'Erro desconhecido';
-      this.logger.error(`Error sending test WhatsApp message: ${errorMsg}`);
+      this.logger.error(`Error sending test WhatsApp message (${status}): ${errorMsg}`);
+
+      if (status === 403) {
+        return {
+          success: false,
+          message: 'Acesso negado (403). Verifique se o Client-Token está correto no painel Z-API.',
+        };
+      }
+
+      if (status === 404) {
+        return {
+          success: false,
+          message: 'Instância não encontrada (404). Verifique o Instance ID e Token.',
+        };
+      }
+
       return {
         success: false,
         message: `Erro ao enviar mensagem: ${errorMsg}`,

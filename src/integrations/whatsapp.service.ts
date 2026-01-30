@@ -156,7 +156,9 @@ export class WhatsAppService {
   private formatPhone(phone: string): string {
     let formatted = phone.replace(/\D/g, '');
 
-    if (!formatted.startsWith('55')) {
+    // Se tem 10-11 dígitos, é brasileiro sem DDI → adiciona 55
+    // Se tem 12+ dígitos, assume que já tem código do país
+    if (formatted.length <= 11 && !formatted.startsWith('55')) {
       formatted = '55' + formatted;
     }
 

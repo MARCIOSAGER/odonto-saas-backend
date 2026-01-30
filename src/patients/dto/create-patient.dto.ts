@@ -4,7 +4,6 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
-  IsDateString,
   Matches,
   MaxLength,
   MinLength,
@@ -36,9 +35,10 @@ export class CreatePatientDto {
   email?: string;
 
   @ApiPropertyOptional({ example: '1990-05-15' })
-  @IsDateString()
+  @IsString()
   @IsOptional()
-  birth_date?: Date;
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'birth_date must be in YYYY-MM-DD format' })
+  birth_date?: string;
 
   @ApiPropertyOptional({ example: 'Rua das Palmeiras, 456' })
   @IsString()

@@ -13,7 +13,9 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
 
   // Security
-  app.use(helmet());
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  }));
   app.enableCors({
     origin: (origin, callback) => {
       const allowedOrigins = [
