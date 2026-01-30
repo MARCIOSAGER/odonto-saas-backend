@@ -11,6 +11,15 @@ interface AiSettings {
   auto_schedule: boolean;
   auto_confirm: boolean;
   auto_cancel: boolean;
+  // Interactive messages
+  use_welcome_menu: boolean;
+  use_confirmation_buttons: boolean;
+  use_timeslot_list: boolean;
+  use_satisfaction_poll: boolean;
+  use_send_location: boolean;
+  // Clinic location (for send_location)
+  clinic_latitude?: string;
+  clinic_longitude?: string;
 }
 
 // ============================================
@@ -36,6 +45,7 @@ export function buildDentalAssistantPrompt(context: PatientContext, settings: Ai
   sections.push(buildToolInstructionsSection(settings));
   sections.push(buildSchedulingFlowSection(settings));
   sections.push(buildInteractionExamplesSection(settings.assistant_name || 'Sofia', context));
+  sections.push(buildInteractiveMessagesSection(settings, context));
   sections.push(buildCustomInstructionsSection(settings.custom_instructions));
   sections.push(buildResponseFormatSection());
 
@@ -300,6 +310,124 @@ function buildCustomInstructionsSection(instructions: string | null): string {
   if (!instructions) return '';
   return `# INSTRUCOES ESPECIFICAS DA CLINICA
 ${instructions}`;
+}
+
+function buildInteractiveMessagesSection(settings: AiSettings, context: PatientContext): string {
+  const hasAny =
+    settings.use_welcome_menu ||
+    settings.use_confirmation_buttons ||
+    settings.use_timeslot_list ||
+    settings.use_satisfaction_poll ||
+    settings.use_send_location;
+
+  if (!hasAny) return '';
+
+  let section = `# MENSAGENS INTERATIVAS
+Voce pode usar mensagens interativas do WhatsApp quando apropriado.
+Para isso, responda SOMENTE com o JSON (sem texto antes ou depois).
+Se nao precisar de interacao especial, responda com texto normal (sem JSON).`;
+
+  if (settings.use_welcome_menu) {
+    section += `
+
+## Menu de Opcoes (primeiro contato ou duvida geral)
+Quando o paciente enviar uma saudacao simples (oi, ola, bom dia) ou pedir ajuda geral, use:
+\`\`\`json
+{
+  "type": "list",
+  "message": "Ola! Como posso ajudar?",
+  "title": "Menu Principal",
+  "buttonLabel": "Ver opcoes",
+  "sections": [{
+    "title": "O que voce precisa?",
+    "rows": [
+      {"id": "agendar", "title": "Agendar consulta", "description": "Marcar nova consulta"},
+      {"id": "precos", "title": "Ver precos", "description": "Consultar valores"},
+      {"id": "remarcar", "title": "Remarcar", "description": "Alterar consulta existente"},
+      {"id": "cancelar", "title": "Cancelar", "description": "Cancelar consulta"},
+      {"id": "duvidas", "title": "Outras duvidas", "description": "Falar com atendente"}
+    ]
+  }]
+}
+\`\`\``;
+  }
+
+  if (settings.use_confirmation_buttons) {
+    section += `
+
+## Botoes de Confirmacao
+Quando o paciente tiver uma consulta agendada e voce quiser confirmar, use:
+\`\`\`json
+{
+  "type": "buttons",
+  "message": "Confirma sua consulta de [SERVICO] no dia [DATA] as [HORA]?",
+  "buttons": [
+    {"id": "confirmar", "label": "Confirmar"},
+    {"id": "remarcar", "label": "Remarcar"},
+    {"id": "cancelar", "label": "Cancelar"}
+  ]
+}
+\`\`\``;
+  }
+
+  if (settings.use_timeslot_list) {
+    section += `
+
+## Lista de Horarios
+Quando o paciente quiser agendar e voce mostrar horarios disponiveis, use:
+\`\`\`json
+{
+  "type": "list",
+  "message": "Qual horario prefere?",
+  "title": "Horarios Disponiveis",
+  "buttonLabel": "Ver horarios",
+  "sections": [{
+    "title": "[DATA - DIA DA SEMANA]",
+    "rows": [
+      {"id": "[YYYY-MM-DD-HH:MM]", "title": "[HH:MM]"}
+    ]
+  }]
+}
+\`\`\`
+Preencha com os horarios reais disponiveis do contexto.`;
+  }
+
+  if (settings.use_satisfaction_poll) {
+    section += `
+
+## Pesquisa de Satisfacao
+Apos o paciente mencionar que ja fez uma consulta recente, envie:
+\`\`\`json
+{
+  "type": "poll",
+  "question": "Como foi seu atendimento na ${context.clinicName}?",
+  "options": ["Excelente", "Bom", "Regular", "Ruim"]
+}
+\`\`\``;
+  }
+
+  if (settings.use_send_location && settings.clinic_latitude && settings.clinic_longitude) {
+    const addressParts = [context.clinicAddress].filter(Boolean);
+    section += `
+
+## Localizacao da Clinica
+Quando o paciente perguntar sobre endereco ou como chegar, envie:
+\`\`\`json
+{
+  "type": "location",
+  "latitude": ${settings.clinic_latitude},
+  "longitude": ${settings.clinic_longitude},
+  "name": "${context.clinicName}",
+  "address": "${addressParts[0] || ''}"
+}
+\`\`\``;
+  }
+
+  section += `
+
+IMPORTANTE: O JSON deve ser a unica coisa na resposta. Nao adicione texto antes ou depois do JSON.`;
+
+  return section;
 }
 
 function buildResponseFormatSection(): string {

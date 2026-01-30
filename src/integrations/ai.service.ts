@@ -67,6 +67,16 @@ interface AiSettings {
   auto_schedule: boolean;
   auto_confirm: boolean;
   auto_cancel: boolean;
+  // Interactive messages
+  use_welcome_menu: boolean;
+  use_confirmation_buttons: boolean;
+  use_timeslot_list: boolean;
+  use_satisfaction_poll: boolean;
+  use_send_location: boolean;
+  clinic_latitude?: string;
+  clinic_longitude?: string;
+  // Dentist AI
+  dentist_ai_enabled: boolean;
 }
 
 // ============================================
@@ -859,6 +869,12 @@ export class AiService {
       where: { clinic_id: clinicId },
     });
 
+    // Busca lat/lng da clínica para envio de localização
+    const clinic = await this.prisma.clinic.findUnique({
+      where: { id: clinicId },
+      select: { latitude: true, longitude: true },
+    });
+
     return {
       ai_provider: settings?.ai_provider || 'anthropic',
       ai_api_key: settings?.ai_api_key || null,
@@ -876,6 +892,16 @@ export class AiService {
       auto_schedule: settings?.auto_schedule ?? false,
       auto_confirm: settings?.auto_confirm ?? false,
       auto_cancel: settings?.auto_cancel ?? false,
+      // Interactive messages
+      use_welcome_menu: settings?.use_welcome_menu ?? false,
+      use_confirmation_buttons: settings?.use_confirmation_buttons ?? false,
+      use_timeslot_list: settings?.use_timeslot_list ?? false,
+      use_satisfaction_poll: settings?.use_satisfaction_poll ?? false,
+      use_send_location: settings?.use_send_location ?? false,
+      clinic_latitude: clinic?.latitude || undefined,
+      clinic_longitude: clinic?.longitude || undefined,
+      // Dentist AI
+      dentist_ai_enabled: settings?.dentist_ai_enabled ?? false,
     };
   }
 

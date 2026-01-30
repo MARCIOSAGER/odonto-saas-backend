@@ -258,6 +258,12 @@ export class ClinicsService {
         auto_cancel: false,
         notify_on_transfer: true,
         working_hours_only: false,
+        use_welcome_menu: false,
+        use_confirmation_buttons: false,
+        use_timeslot_list: false,
+        use_satisfaction_poll: false,
+        use_send_location: false,
+        dentist_ai_enabled: false,
       };
     }
 
@@ -323,6 +329,12 @@ export class ClinicsService {
         auto_cancel: updateDto.auto_cancel ?? false,
         notify_on_transfer: updateDto.notify_on_transfer ?? true,
         working_hours_only: updateDto.working_hours_only ?? false,
+        use_welcome_menu: updateDto.use_welcome_menu ?? false,
+        use_confirmation_buttons: updateDto.use_confirmation_buttons ?? false,
+        use_timeslot_list: updateDto.use_timeslot_list ?? false,
+        use_satisfaction_poll: updateDto.use_satisfaction_poll ?? false,
+        use_send_location: updateDto.use_send_location ?? false,
+        dentist_ai_enabled: updateDto.dentist_ai_enabled ?? false,
       },
     });
 

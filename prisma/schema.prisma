@@ -60,6 +60,10 @@ model Clinic {
   // Horário de Funcionamento
   business_hours   Json?               // { "monday": { "open": "08:00", "close": "18:00" }, ... }
 
+  // Geolocalização
+  latitude         String?
+  longitude        String?
+
   created_at       DateTime            @default(now()) @db.Timestamp(6)
   updated_at       DateTime            @default(now()) @updatedAt @db.Timestamp(6)
   users            User[]
@@ -359,6 +363,17 @@ model ClinicAiSettings {
   auto_cancel           Boolean  @default(false) // IA pode cancelar automaticamente
   notify_on_transfer    Boolean  @default(true)
   working_hours_only    Boolean  @default(false) // IA só responde no horário comercial
+
+  // Mensagens Interativas
+  use_welcome_menu          Boolean @default(false)  // Lista de opções no primeiro contato
+  use_confirmation_buttons  Boolean @default(false)  // Botões para confirmar consulta
+  use_timeslot_list         Boolean @default(false)  // Lista de horários selecionável
+  use_satisfaction_poll     Boolean @default(false)  // Pesquisa de satisfação pós-consulta
+  use_send_location         Boolean @default(false)  // Enviar localização da clínica
+
+  // Dentista via WhatsApp
+  dentist_ai_enabled        Boolean @default(false)  // Dentistas podem interagir com IA via WhatsApp
+
   created_at            DateTime @default(now()) @db.Timestamp(6)
   updated_at            DateTime @default(now()) @updatedAt @db.Timestamp(6)
   clinic                Clinic   @relation(fields: [clinic_id], references: [id], onDelete: Cascade)

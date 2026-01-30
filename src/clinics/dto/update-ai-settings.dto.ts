@@ -125,4 +125,36 @@ export class UpdateAiSettingsDto {
   @IsBoolean()
   @IsOptional()
   working_hours_only?: boolean;
+
+  // Interactive messages
+  @ApiPropertyOptional({ description: 'Show options list on first contact', default: false })
+  @IsBoolean()
+  @IsOptional()
+  use_welcome_menu?: boolean;
+
+  @ApiPropertyOptional({ description: 'Use interactive buttons for appointment confirmation', default: false })
+  @IsBoolean()
+  @IsOptional()
+  use_confirmation_buttons?: boolean;
+
+  @ApiPropertyOptional({ description: 'Show time slots as selectable list', default: false })
+  @IsBoolean()
+  @IsOptional()
+  use_timeslot_list?: boolean;
+
+  @ApiPropertyOptional({ description: 'Send satisfaction poll after appointment', default: false })
+  @IsBoolean()
+  @IsOptional()
+  use_satisfaction_poll?: boolean;
+
+  @ApiPropertyOptional({ description: 'Send clinic location when asked', default: false })
+  @IsBoolean()
+  @IsOptional()
+  use_send_location?: boolean;
+
+  // Dentist AI interaction
+  @ApiPropertyOptional({ description: 'Dentists can interact with AI via WhatsApp', default: false })
+  @IsBoolean()
+  @IsOptional()
+  dentist_ai_enabled?: boolean;
 }

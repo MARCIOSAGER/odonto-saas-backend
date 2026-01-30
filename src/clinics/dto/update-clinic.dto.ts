@@ -89,4 +89,15 @@ export class UpdateClinicDto extends PartialType(CreateClinicDto) {
   @IsObject()
   @IsOptional()
   business_hours?: Record<string, { open: string; close: string } | null>;
+
+  // Geolocalização
+  @ApiPropertyOptional({ description: 'Clinic latitude', example: '-23.550520' })
+  @IsString()
+  @IsOptional()
+  latitude?: string;
+
+  @ApiPropertyOptional({ description: 'Clinic longitude', example: '-46.633308' })
+  @IsString()
+  @IsOptional()
+  longitude?: string;
 }
