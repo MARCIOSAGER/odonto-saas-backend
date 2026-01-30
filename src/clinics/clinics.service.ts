@@ -705,4 +705,88 @@ export class ClinicsService {
       };
     }
   }
+
+  async getWhatsAppWebhooks(clinicId: string) {
+    const clinic = await this.prisma.clinic.findUnique({
+      where: { id: clinicId },
+      select: { z_api_instance: true, z_api_token: true, z_api_client_token: true },
+    });
+
+    if (!clinic?.z_api_instance || !clinic?.z_api_token) {
+      return { success: false, message: 'Credenciais Z-API não configuradas' };
+    }
+
+    const clientToken = clinic.z_api_client_token || this.zApiClientToken;
+
+    try {
+      const response = await axios.get(
+        `https://api.z-api.io/instances/${clinic.z_api_instance}/token/${clinic.z_api_token}/webhooks`,
+        { timeout: 10000, headers: { 'Client-Token': clientToken } },
+      );
+
+      return {
+        success: true,
+        webhooks: response.data,
+      };
+    } catch (error: any) {
+      this.logger.error(`Error getting Z-API webhooks: ${error}`);
+      return {
+        success: false,
+        message: error?.response?.data?.message || 'Erro ao buscar webhooks',
+      };
+    }
+  }
+
+  async configureWhatsAppWebhook(clinicId: string, backendUrl: string) {
+    const clinic = await this.prisma.clinic.findUnique({
+      where: { id: clinicId },
+      select: { z_api_instance: true, z_api_token: true, z_api_client_token: true },
+    });
+
+    if (!clinic?.z_api_instance || !clinic?.z_api_token) {
+      return { success: false, message: 'Credenciais Z-API não configuradas' };
+    }
+
+    const clientToken = clinic.z_api_client_token || this.zApiClientToken;
+    const baseUrl = `https://api.z-api.io/instances/${clinic.z_api_instance}/token/${clinic.z_api_token}`;
+
+    // URL do webhook para mensagens recebidas
+    const webhookReceivedUrl = `${backendUrl}/webhooks/z-api`;
+    const webhookStatusUrl = `${backendUrl}/webhooks/z-api/status`;
+
+    const results: string[] = [];
+
+    try {
+      // Configurar webhook de mensagens recebidas
+      await axios.put(
+        `${baseUrl}/update-webhook-received`,
+        { value: webhookReceivedUrl },
+        { timeout: 10000, headers: { 'Client-Token': clientToken } },
+      );
+      results.push(`Webhook recebimento: ${webhookReceivedUrl}`);
+    } catch (error: any) {
+      this.logger.error(`Error setting received webhook: ${error}`);
+      results.push(`Erro webhook recebimento: ${error?.response?.data?.message || error.message}`);
+    }
+
+    try {
+      // Configurar webhook de status de mensagens
+      await axios.put(
+        `${baseUrl}/update-webhook-message-status`,
+        { value: webhookStatusUrl },
+        { timeout: 10000, headers: { 'Client-Token': clientToken } },
+      );
+      results.push(`Webhook status: ${webhookStatusUrl}`);
+    } catch (error: any) {
+      this.logger.error(`Error setting status webhook: ${error}`);
+      results.push(`Erro webhook status: ${error?.response?.data?.message || error.message}`);
+    }
+
+    return {
+      success: true,
+      message: 'Webhooks configurados!',
+      details: results,
+      webhookUrl: webhookReceivedUrl,
+    };
+  }
 }

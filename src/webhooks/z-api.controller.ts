@@ -36,7 +36,7 @@ export class ZApiController {
 
   constructor(private readonly zApiService: ZApiService) {}
 
-  @Post('z-api')
+  @Post('zapi')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Z-API WhatsApp webhook receiver' })
   @ApiResponse({ status: 200, description: 'Webhook processed' })
@@ -49,6 +49,12 @@ export class ZApiController {
     this.logger.debug(`Payload: ${JSON.stringify(payload)}`);
 
     try {
+      // Ignorar webhooks que não são mensagens de texto recebidas
+      if (!payload.phone || !payload.text?.message) {
+        this.logger.debug('Ignoring non-text webhook');
+        return { status: 'ignored', reason: 'Not a text message' };
+      }
+
       if (payload.fromMe) {
         return { status: 'ignored', reason: 'Message from self' };
       }
@@ -60,7 +66,7 @@ export class ZApiController {
       const result = await this.zApiService.processMessage(
         payload.instanceId || instanceId,
         payload.phone,
-        payload.text?.message || '',
+        payload.text.message,
         {
           messageId: payload.messageId,
           chatName: payload.chatName,
@@ -74,7 +80,7 @@ export class ZApiController {
     }
   }
 
-  @Post('z-api/status')
+  @Post('zapi/status')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Z-API status webhook' })
   @ApiResponse({ status: 200, description: 'Status received' })
