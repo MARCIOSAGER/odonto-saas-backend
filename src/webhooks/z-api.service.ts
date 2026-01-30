@@ -83,10 +83,16 @@ export class ZApiService {
     // Busca histórico da conversa (últimas mensagens)
     const conversationHistory = await this.getConversationHistory(patient.id);
 
+    // Monta endereço completo se disponível
+    const addressParts = [clinic.address, clinic.city, clinic.state].filter(Boolean);
+    const clinicAddress = addressParts.length > 0 ? addressParts.join(', ') : undefined;
+
     return {
       // Clínica
       clinicName: clinic.name,
       clinicPhone: clinic.phone,
+      clinicAddress,
+      clinicWebsite: clinic.website || undefined,
       businessHours: clinic.business_hours,
 
       // Paciente

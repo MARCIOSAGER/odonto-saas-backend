@@ -1,15 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
+import { buildDentalAssistantPrompt } from '../ai/prompts/dental-assistant.prompt';
 import axios from 'axios';
 
-interface ServiceInfo {
+export interface ServiceInfo {
   name: string;
   price: number;
   duration: number;
 }
 
-interface AppointmentInfo {
+export interface AppointmentInfo {
   date: string;
   time: string;
   service: string;
@@ -17,7 +18,7 @@ interface AppointmentInfo {
   status: string;
 }
 
-interface ConversationMessage {
+export interface ConversationMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp?: Date;
@@ -26,6 +27,8 @@ interface ConversationMessage {
 export interface PatientContext {
   clinicName: string;
   clinicPhone?: string;
+  clinicAddress?: string;
+  clinicWebsite?: string;
   businessHours?: string;
   patientName: string;
   patientPhone: string;
@@ -730,131 +733,7 @@ export class AiService {
   // ============================================
 
   private buildSystemPrompt(context: PatientContext, settings: AiSettings): string {
-    const now = new Date();
-    const today = now.toLocaleDateString('pt-BR', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    });
-
-    const name = settings.assistant_name || 'Sofia';
-    const personality = settings.assistant_personality || 'educada, profissional e acolhedora';
-
-    let prompt = `Você é uma assistente virtual da ${context.clinicName}, uma clínica odontológica.
-Seu nome é ${name} e sua personalidade é: ${personality}.
-
-## DATA E HORA ATUAL
-Hoje é ${today}, ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.
-
-## SUAS RESPONSABILIDADES
-- Agendar consultas verificando disponibilidade
-- Informar preços dos serviços
-- Confirmar, remarcar ou cancelar consultas
-- Responder dúvidas sobre procedimentos
-- Enviar lembretes e orientações
-
-## REGRAS IMPORTANTES
-1. Seja ${personality}
-2. Use linguagem clara e acessível
-3. SEMPRE verifique os horários disponíveis antes de sugerir agendamento
-4. Para emergências, oriente a ligar: ${context.clinicPhone || 'para a clínica'}
-5. Mantenha respostas concisas (máximo 3 parágrafos)
-6. NUNCA forneça diagnósticos ou prescrições médicas
-7. Use emojis com moderação para ser amigável 😊
-8. Se não souber algo, ofereça transferir para atendente humano`;
-
-    if (settings.blocked_topics.length > 0) {
-      prompt += `\n9. NUNCA fale sobre: ${settings.blocked_topics.join(', ')}`;
-    }
-
-    if (settings.transfer_keywords.length > 0) {
-      prompt += `\n10. Se o paciente mencionar: ${settings.transfer_keywords.join(', ')} → transfira para atendente humano`;
-    }
-
-    // Instruções de tools
-    if (settings.auto_schedule || settings.auto_confirm || settings.auto_cancel) {
-      prompt += `\n\n## FERRAMENTAS DISPONÍVEIS
-Você tem acesso a ferramentas para executar ações automaticamente:`;
-      if (settings.auto_schedule) {
-        prompt += `\n- **create_appointment**: Use quando o paciente CONFIRMAR que quer agendar (data + horário + serviço definidos). Antes de usar, confirme todos os dados com o paciente.`;
-      }
-      if (settings.auto_confirm) {
-        prompt += `\n- **confirm_appointment**: Use quando o paciente disser que quer confirmar uma consulta agendada.`;
-      }
-      if (settings.auto_cancel) {
-        prompt += `\n- **cancel_appointment**: Use quando o paciente pedir para cancelar uma consulta.`;
-      }
-      prompt += `\n\n**IMPORTANTE**: Use as datas no formato YYYY-MM-DD e horários no formato HH:MM. Sempre confirme os dados com o paciente ANTES de executar a ferramenta.`;
-    }
-
-    prompt += `
-
-## INFORMAÇÕES DA CLÍNICA
-- Nome: ${context.clinicName}
-${context.clinicPhone ? `- Telefone: ${context.clinicPhone}` : ''}
-${context.businessHours ? `- Horário de funcionamento: ${context.businessHours}` : '- Horário: Segunda a Sexta 8h-18h, Sábado 8h-12h'}
-
-## PACIENTE ATUAL
-- Nome: ${context.patientName}
-- Telefone: ${context.patientPhone}
-- Total de consultas anteriores: ${context.patientHistory.totalAppointments}`;
-
-    if (context.patientHistory.upcomingAppointments.length > 0) {
-      prompt += `\n\n## CONSULTAS AGENDADAS DO PACIENTE`;
-      context.patientHistory.upcomingAppointments.forEach((apt) => {
-        prompt += `\n- ${apt.date} às ${apt.time} - ${apt.service}${apt.dentist ? ` com ${apt.dentist}` : ''} (${apt.status})`;
-      });
-    } else {
-      prompt += `\n\n## CONSULTAS AGENDADAS DO PACIENTE\nNenhuma consulta agendada.`;
-    }
-
-    if (context.patientHistory.lastAppointment) {
-      prompt += `\n\n## ÚLTIMA CONSULTA\n${context.patientHistory.lastAppointment.date} - ${context.patientHistory.lastAppointment.service}`;
-    }
-
-    if (context.services.length > 0) {
-      prompt += `\n\n## SERVIÇOS E PREÇOS`;
-      context.services.forEach((service) => {
-        prompt += `\n- ${service.name}: R$ ${service.price.toFixed(2)} (duração: ${service.duration} min)`;
-      });
-    }
-
-    if (context.dentists.length > 0) {
-      prompt += `\n\n## DENTISTAS DISPONÍVEIS`;
-      context.dentists.forEach((dentist) => {
-        prompt += `\n- ${dentist.name}${dentist.specialty ? ` - ${dentist.specialty}` : ''}`;
-      });
-    }
-
-    if (context.availableSlots.length > 0) {
-      prompt += `\n\n## HORÁRIOS DISPONÍVEIS (próximos dias)`;
-      context.availableSlots.forEach((day) => {
-        if (day.slots.length > 0) {
-          prompt += `\n- ${day.date}: ${day.slots.join(', ')}`;
-        } else {
-          prompt += `\n- ${day.date}: Sem horários disponíveis`;
-        }
-      });
-    }
-
-    if (settings.custom_instructions) {
-      prompt += `\n\n## INSTRUÇÕES ESPECÍFICAS DA CLÍNICA\n${settings.custom_instructions}`;
-    }
-
-    prompt += `\n\n## INSTRUÇÕES PARA AGENDAMENTO
-Quando o paciente quiser agendar:
-1. Pergunte qual serviço deseja
-2. Mostre os horários disponíveis
-3. Confirme data, horário e serviço com o paciente
-4. ${settings.auto_schedule ? 'Use a ferramenta create_appointment para criar o agendamento' : 'Informe que a consulta será confirmada pela recepção'}
-
-## FORMATO DE RESPOSTA
-- Seja direta e objetiva
-- Use listas quando apropriado
-- Sempre termine oferecendo mais ajuda`;
-
-    return prompt;
+    return buildDentalAssistantPrompt(context, settings);
   }
 
   // ============================================
