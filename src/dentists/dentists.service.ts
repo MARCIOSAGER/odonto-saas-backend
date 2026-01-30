@@ -18,9 +18,7 @@ export class DentistsService {
   async findAll(clinicId: string, options: FindAllOptions = {}) {
     const where: Record<string, unknown> = { clinic_id: clinicId };
 
-    if (options.status) {
-      where.status = options.status;
-    }
+    where.status = options.status || 'active';
 
     return this.prisma.dentist.findMany({
       where,
