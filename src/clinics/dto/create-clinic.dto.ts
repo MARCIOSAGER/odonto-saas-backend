@@ -52,6 +52,12 @@ export class CreateClinicDto {
   @MaxLength(2)
   state?: string;
 
+  @ApiPropertyOptional({ example: '12345-678', description: 'CEP (formato 12345-678 ou 12345678)' })
+  @IsString()
+  @IsOptional()
+  @Matches(/^\d{5}-?\d{3}$/, { message: 'CEP deve ter formato válido (12345-678 ou 12345678)' })
+  cep?: string;
+
   @ApiPropertyOptional({ example: 'premium', enum: ['basic', 'standard', 'premium'] })
   @IsString()
   @IsOptional()

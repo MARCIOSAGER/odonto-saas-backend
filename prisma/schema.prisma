@@ -37,6 +37,7 @@ model Clinic {
   address          String?
   city             String?
   state            String?
+  cep              String?             @db.VarChar(9)
   z_api_instance   String?
   z_api_token      String?
   plan             String              @default("basic")
