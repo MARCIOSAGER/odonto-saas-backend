@@ -41,6 +41,9 @@ RUN npx prisma generate
 # Copy built application
 COPY --from=builder /app/dist ./dist
 
+# Create uploads directory with subdirectories
+RUN mkdir -p uploads/logos uploads/favicons
+
 # Copy start script
 COPY start.sh ./start.sh
 RUN chmod +x ./start.sh
