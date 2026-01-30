@@ -30,10 +30,13 @@ async function bootstrap() {
       }
 
       if (allowedOrigins.includes(origin)) {
-        return callback(null, origin); // Retorna APENAS o origin que fez a requisição
+        return callback(null, origin);
       }
 
-      return callback(new Error('Not allowed by CORS'));
+      // Não lançar erro - apenas não enviar headers CORS.
+      // Isso permite webhooks server-to-server (Z-API) que enviam Origin header,
+      // enquanto browsers ainda bloqueiam cross-origin não autorizado.
+      return callback(null, false);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
