@@ -12,6 +12,7 @@ export class WhatsAppService {
   private readonly logger = new Logger(WhatsAppService.name);
   private readonly defaultApiUrl: string;
   private readonly defaultToken: string;
+  private readonly clientToken: string;
 
   constructor(
     private readonly configService: ConfigService,
@@ -19,6 +20,7 @@ export class WhatsAppService {
   ) {
     this.defaultApiUrl = this.configService.get('Z_API_URL', '');
     this.defaultToken = this.configService.get('Z_API_TOKEN', '');
+    this.clientToken = this.configService.get('z_api_client_token', '');
   }
 
   async sendMessage(
@@ -30,11 +32,12 @@ export class WhatsAppService {
     try {
       const clinic = await this.prisma.clinic.findUnique({
         where: { id: clinicId },
-        select: { z_api_instance: true, z_api_token: true },
+        select: { z_api_instance: true, z_api_token: true, z_api_client_token: true },
       });
 
       const instanceId = clinic?.z_api_instance;
       const token = clinic?.z_api_token || this.defaultToken;
+      const clientToken = clinic?.z_api_client_token || this.clientToken;
 
       if (!instanceId || !token) {
         this.logger.warn(`WhatsApp not configured for clinic ${clinicId}`);
@@ -49,6 +52,8 @@ export class WhatsAppService {
         phone: formattedPhone,
         message,
         delayTyping: options.delayTyping || 2,
+      }, {
+        headers: { 'Client-Token': clientToken },
       });
 
       if (response.data?.zapiMessageId) {
@@ -128,15 +133,18 @@ export class WhatsAppService {
     try {
       const clinic = await this.prisma.clinic.findUnique({
         where: { id: clinicId },
-        select: { z_api_instance: true, z_api_token: true },
+        select: { z_api_instance: true, z_api_token: true, z_api_client_token: true },
       });
 
       if (!clinic?.z_api_instance || !clinic?.z_api_token) {
         return false;
       }
 
+      const clientToken = clinic.z_api_client_token || this.clientToken;
       const url = `${this.defaultApiUrl}/instances/${clinic.z_api_instance}/token/${clinic.z_api_token}/status`;
-      const response = await axios.get(url);
+      const response = await axios.get(url, {
+        headers: { 'Client-Token': clientToken },
+      });
 
       return response.data?.connected === true;
     } catch (error) {

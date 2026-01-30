@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, ConflictException, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { CreateClinicDto } from './dto/create-clinic.dto';
@@ -15,11 +16,15 @@ interface FindAllOptions {
 @Injectable()
 export class ClinicsService {
   private readonly logger = new Logger(ClinicsService.name);
+  private readonly zApiClientToken: string;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.zApiClientToken = this.configService.get('z_api_client_token', '');
+  }
 
   async findAll(options: FindAllOptions = {}) {
     const { page = 1, limit = 10, status } = options;
@@ -307,7 +312,7 @@ export class ClinicsService {
   async testWhatsAppConnection(clinicId: string) {
     const clinic = await this.prisma.clinic.findUnique({
       where: { id: clinicId },
-      select: { z_api_instance: true, z_api_token: true },
+      select: { z_api_instance: true, z_api_token: true, z_api_client_token: true },
     });
 
     if (!clinic?.z_api_instance || !clinic?.z_api_token) {
@@ -317,10 +322,17 @@ export class ClinicsService {
       };
     }
 
+    const clientToken = clinic.z_api_client_token || this.zApiClientToken;
+
     try {
       const response = await axios.get(
         `https://api.z-api.io/instances/${clinic.z_api_instance}/token/${clinic.z_api_token}/status`,
-        { timeout: 10000 },
+        {
+          timeout: 10000,
+          headers: {
+            'Client-Token': clientToken,
+          },
+        },
       );
 
       const connected = response.data?.connected === true;

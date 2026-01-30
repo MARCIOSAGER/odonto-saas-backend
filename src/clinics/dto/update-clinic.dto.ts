@@ -19,6 +19,11 @@ export class UpdateClinicDto extends PartialType(CreateClinicDto) {
   @IsOptional()
   z_api_token?: string;
 
+  @ApiPropertyOptional({ description: 'Z-API Client-Token (security token from Z-API account)' })
+  @IsString()
+  @IsOptional()
+  z_api_client_token?: string;
+
   // Branding
   @ApiPropertyOptional({ description: 'Logo URL', example: 'https://example.com/logo.png' })
   @IsString()
