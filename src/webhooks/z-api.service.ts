@@ -185,24 +185,48 @@ export class ZApiService {
   }
 
   private async getAvailableSlots(clinicId: string) {
-    // Gera próximos 3 dias úteis
+    // Gera hoje + próximos 3 dias úteis
     const slots: { date: string; slots: string[] }[] = [];
     const businessSlots = ['08:00', '09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00'];
 
-    const today = new Date();
-    let daysAdded = 0;
-    const currentDate = new Date(today);
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
 
-    while (daysAdded < 3) {
-      currentDate.setDate(currentDate.getDate() + 1);
+    // Começa pelo dia de hoje
+    const currentDate = new Date(now);
+    let daysAdded = 0;
+    let isFirstIteration = true;
+
+    while (daysAdded < 4) {
+      if (!isFirstIteration) {
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      isFirstIteration = false;
+
       const dayOfWeek = currentDate.getDay();
 
       // Pula domingo (0)
       if (dayOfWeek === 0) continue;
 
       // Sábado tem horário reduzido
-      const availableSlots =
+      const daySlots =
         dayOfWeek === 6 ? ['08:00', '09:00', '10:00', '11:00'] : [...businessSlots];
+
+      // Para hoje: filtra horários que já passaram (mínimo 1h de antecedência)
+      const isToday = currentDate.toDateString() === now.toDateString();
+      const availableSlots = isToday
+        ? daySlots.filter((slot) => {
+            const [h, m] = slot.split(':').map(Number);
+            return h > currentHour + 1 || (h === currentHour + 1 && m > currentMinute);
+          })
+        : daySlots;
+
+      // Se hoje e não sobrou nenhum horário, pula
+      if (isToday && availableSlots.length === 0) {
+        daysAdded++;
+        continue;
+      }
 
       // Busca agendamentos existentes neste dia
       const dateStr = currentDate.toISOString().split('T')[0];
@@ -218,12 +242,14 @@ export class ZApiService {
       const bookedTimes = existingAppointments.map((a) => a.time);
       const freeSlots = availableSlots.filter((slot) => !bookedTimes.includes(slot));
 
+      const label = isToday ? 'hoje' : currentDate.toLocaleDateString('pt-BR', {
+        weekday: 'long',
+        day: '2-digit',
+        month: '2-digit',
+      });
+
       slots.push({
-        date: currentDate.toLocaleDateString('pt-BR', {
-          weekday: 'long',
-          day: '2-digit',
-          month: '2-digit',
-        }),
+        date: label,
         slots: freeSlots,
       });
 

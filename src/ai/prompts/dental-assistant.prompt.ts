@@ -224,12 +224,10 @@ function buildAvailableSlotsSection(
 }
 
 function buildToolInstructionsSection(settings: AiSettings): string {
-  if (!settings.auto_schedule && !settings.auto_confirm && !settings.auto_cancel) {
-    return '';
-  }
-
   let section = `# FERRAMENTAS DISPONIVEIS
 Voce tem acesso a ferramentas para executar acoes automaticamente no sistema:`;
+
+  section += `\n- update_patient: Use quando o paciente informar seu nome completo, email ou data de nascimento. Atualize o cadastro automaticamente.`;
 
   if (settings.auto_schedule) {
     section += `\n- create_appointment: Use quando o paciente CONFIRMAR que quer agendar (data + horario + servico definidos). ANTES de usar, confirme TODOS os dados com o paciente.`;

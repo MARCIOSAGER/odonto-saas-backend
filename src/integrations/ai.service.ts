@@ -142,6 +142,30 @@ const TOOL_CANCEL_APPOINTMENT = {
   },
 };
 
+const TOOL_UPDATE_PATIENT = {
+  name: 'update_patient',
+  description:
+    'Atualiza os dados cadastrais do paciente. Use quando o paciente informar seu nome completo, email ou data de nascimento.',
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      name: {
+        type: 'string',
+        description: 'Nome completo do paciente',
+      },
+      email: {
+        type: 'string',
+        description: 'Email do paciente',
+      },
+      birth_date: {
+        type: 'string',
+        description: 'Data de nascimento no formato YYYY-MM-DD',
+      },
+    },
+    required: [] as string[],
+  },
+};
+
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
@@ -215,7 +239,7 @@ export class AiService {
   // ============================================
 
   private getEnabledTools(settings: AiSettings): any[] {
-    const tools: any[] = [];
+    const tools: any[] = [TOOL_UPDATE_PATIENT];
     if (settings.auto_schedule) tools.push(TOOL_CREATE_APPOINTMENT);
     if (settings.auto_confirm) tools.push(TOOL_CONFIRM_APPOINTMENT);
     if (settings.auto_cancel) tools.push(TOOL_CANCEL_APPOINTMENT);
@@ -480,6 +504,8 @@ export class AiService {
           return await this.toolConfirmAppointment(clinicId, patientId, input);
         case 'cancel_appointment':
           return await this.toolCancelAppointment(clinicId, patientId, input);
+        case 'update_patient':
+          return await this.toolUpdatePatient(clinicId, patientId, input);
         default:
           return { success: false, message: `Ferramenta desconhecida: ${toolName}` };
       }
@@ -696,6 +722,45 @@ export class AiService {
         time: appointment.time,
         service: appointment.service.name,
       },
+    };
+  }
+
+  private async toolUpdatePatient(
+    clinicId: string,
+    patientId: string | undefined,
+    input: { name?: string; email?: string; birth_date?: string },
+  ): Promise<{ success: boolean; message: string; data?: any }> {
+    if (!patientId) {
+      return { success: false, message: 'Paciente não identificado.' };
+    }
+
+    const updateData: any = {};
+    if (input.name) updateData.name = input.name;
+    if (input.email) updateData.email = input.email;
+    if (input.birth_date) updateData.birth_date = new Date(input.birth_date + 'T00:00:00');
+
+    if (Object.keys(updateData).length === 0) {
+      return { success: false, message: 'Nenhum dado para atualizar.' };
+    }
+
+    await this.prisma.patient.update({
+      where: { id: patientId },
+      data: updateData,
+    });
+
+    const updatedFields = Object.keys(updateData).map((k) => {
+      const labels: Record<string, string> = {
+        name: 'Nome',
+        email: 'Email',
+        birth_date: 'Data de nascimento',
+      };
+      return labels[k] || k;
+    });
+
+    return {
+      success: true,
+      message: `Dados atualizados: ${updatedFields.join(', ')}.`,
+      data: updateData,
     };
   }
 
