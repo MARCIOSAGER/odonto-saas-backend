@@ -35,6 +35,11 @@ export class UpdateClinicDto extends PartialType(CreateClinicDto) {
   @IsOptional()
   favicon_url?: string;
 
+  @ApiPropertyOptional({ description: 'Logo display mode in sidebar', example: 'logo_name', enum: ['logo_name', 'logo_only', 'name_only'] })
+  @IsString()
+  @IsOptional()
+  logo_display_mode?: string;
+
   @ApiPropertyOptional({ description: 'Primary brand color (hex)', example: '#0EA5E9' })
   @IsString()
   @IsOptional()

@@ -45,12 +45,13 @@ model Clinic {
   status           String              @default("active")
 
   // Branding
-  logo_url         String?
-  favicon_url      String?
-  primary_color    String?             @default("#0EA5E9")
-  secondary_color  String?             @default("#10B981")
-  slogan           String?
-  tagline          String?
+  logo_url            String?
+  favicon_url         String?
+  logo_display_mode   String?             @default("logo_name") // logo_name, logo_only, name_only
+  primary_color       String?             @default("#0EA5E9")
+  secondary_color     String?             @default("#10B981")
+  slogan              String?
+  tagline             String?
 
   // Redes Sociais
   instagram        String?
