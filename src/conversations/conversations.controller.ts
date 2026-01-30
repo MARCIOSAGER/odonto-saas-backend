@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Param, Query, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { ConversationsService } from './conversations.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -47,5 +47,17 @@ export class ConversationsController {
     @CurrentUser() user: { clinicId: string },
   ) {
     return this.conversationsService.markAsRead(user.clinicId, phone);
+  }
+
+  @Post(':phone/send')
+  @ApiOperation({ summary: 'Send a manual WhatsApp message to a conversation' })
+  @ApiResponse({ status: 201, description: 'Message sent successfully' })
+  @ApiResponse({ status: 400, description: 'Failed to send message' })
+  async sendMessage(
+    @Param('phone') phone: string,
+    @Body() body: { message: string },
+    @CurrentUser() user: { clinicId: string },
+  ) {
+    return this.conversationsService.sendMessage(user.clinicId, phone, body.message);
   }
 }

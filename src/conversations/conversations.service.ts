@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { WhatsAppService } from '../integrations/whatsapp.service';
 
 interface FindAllOptions {
   page?: number;
@@ -8,7 +9,10 @@ interface FindAllOptions {
 
 @Injectable()
 export class ConversationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly whatsAppService: WhatsAppService,
+  ) {}
 
   async findAll(clinicId: string, options: FindAllOptions = {}) {
     const page = Number(options.page) || 1;
@@ -156,5 +160,43 @@ export class ConversationsService {
     });
 
     return { success: true };
+  }
+
+  async sendMessage(clinicId: string, phone: string, message: string) {
+    if (!message || !message.trim()) {
+      throw new BadRequestException('Message is required');
+    }
+
+    const normalizedPhone = phone.replace(/\D/g, '');
+
+    // Enviar via WhatsApp
+    const sent = await this.whatsAppService.sendMessage(clinicId, normalizedPhone, message.trim());
+
+    if (!sent) {
+      throw new BadRequestException('Falha ao enviar mensagem. Verifique a conexão do WhatsApp.');
+    }
+
+    // Buscar patient_id pelo telefone (se existir)
+    const patient = await this.prisma.patient.findFirst({
+      where: {
+        clinic_id: clinicId,
+        phone: { contains: normalizedPhone },
+      },
+      select: { id: true },
+    });
+
+    // Registrar a mensagem enviada no banco
+    const record = await this.prisma.whatsAppMessage.create({
+      data: {
+        clinic_id: clinicId,
+        patient_id: patient?.id || null,
+        phone: normalizedPhone,
+        message: message.trim(),
+        direction: 'outgoing',
+        status: 'sent',
+      },
+    });
+
+    return record;
   }
 }
