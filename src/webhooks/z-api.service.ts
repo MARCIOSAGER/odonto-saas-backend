@@ -46,7 +46,7 @@ export class ZApiService {
     const fullContext = await this.buildFullContext(clinic, patient, normalizedPhone);
 
     // Processa com IA (multi-provedor: usa configurações da clínica)
-    const aiResponse = await this.aiService.processMessage(clinic.id, message, fullContext);
+    const aiResponse = await this.aiService.processMessage(clinic.id, message, fullContext, patient.id);
 
     if (aiResponse) {
       // Envia resposta via WhatsApp
