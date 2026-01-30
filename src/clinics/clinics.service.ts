@@ -235,10 +235,12 @@ export class ClinicsService {
     });
 
     if (!settings) {
-      // Retornar valores padrão se não existir
       return {
         clinic_id: clinicId,
         ai_enabled: true,
+        ai_provider: 'anthropic',
+        ai_api_key_masked: null,
+        ai_api_key_set: false,
         ai_model: 'claude-3-5-haiku-20241022',
         ai_temperature: 0.7,
         max_tokens: 800,
@@ -259,24 +261,51 @@ export class ClinicsService {
       };
     }
 
-    return settings;
+    // Mascarar a API key na resposta (nunca enviar a chave real ao frontend)
+    const result = { ...settings } as any;
+    if (result.ai_api_key) {
+      const key = result.ai_api_key;
+      result.ai_api_key_masked = key.length > 8
+        ? key.substring(0, 4) + '****' + key.substring(key.length - 4)
+        : '****';
+      result.ai_api_key_set = true;
+    } else {
+      result.ai_api_key_masked = null;
+      result.ai_api_key_set = false;
+    }
+    delete result.ai_api_key;
+
+    return result;
+  }
+
+  async getAiSettingsRaw(clinicId: string) {
+    // Versão interna - retorna a API key real (para uso pelo serviço de IA)
+    return this.prisma.clinicAiSettings.findUnique({
+      where: { clinic_id: clinicId },
+    });
   }
 
   async updateAiSettings(clinicId: string, updateDto: UpdateAiSettingsDto, userId: string) {
     // Verificar se a clínica existe
     await this.findOne(clinicId);
 
+    // Se ai_api_key está vazio ou undefined, não atualizar (manter a existente)
+    const updateData: any = { ...updateDto };
+    if (updateDto.ai_temperature !== undefined) {
+      updateData.ai_temperature = updateDto.ai_temperature;
+    }
+    if (!updateDto.ai_api_key) {
+      delete updateData.ai_api_key;
+    }
+
     const settings = await this.prisma.clinicAiSettings.upsert({
       where: { clinic_id: clinicId },
-      update: {
-        ...updateDto,
-        ai_temperature: updateDto.ai_temperature !== undefined
-          ? updateDto.ai_temperature
-          : undefined,
-      },
+      update: updateData,
       create: {
         clinic_id: clinicId,
         ai_enabled: updateDto.ai_enabled ?? true,
+        ai_provider: updateDto.ai_provider ?? 'anthropic',
+        ai_api_key: updateDto.ai_api_key || null,
         ai_model: updateDto.ai_model ?? 'claude-3-5-haiku-20241022',
         ai_temperature: updateDto.ai_temperature ?? 0.7,
         max_tokens: updateDto.max_tokens ?? 800,
@@ -463,6 +492,126 @@ export class ClinicsService {
     } catch (error: any) {
       this.logger.error(`Error restoring WhatsApp session: ${error}`);
       return { success: false, message: error?.response?.data?.message || 'Erro ao restaurar sessão' };
+    }
+  }
+
+  async testAiConnection(clinicId: string) {
+    const settings = await this.prisma.clinicAiSettings.findUnique({
+      where: { clinic_id: clinicId },
+    });
+
+    const provider = settings?.ai_provider || 'anthropic';
+    const apiKey = settings?.ai_api_key || this.configService.get('ANTHROPIC_API_KEY', '');
+    const model = settings?.ai_model || 'claude-3-5-haiku-20241022';
+
+    if (!apiKey) {
+      return {
+        success: false,
+        message: 'Nenhuma API Key configurada. Adicione sua chave na configuração.',
+        provider,
+      };
+    }
+
+    try {
+      if (provider === 'anthropic') {
+        const response = await axios.post(
+          'https://api.anthropic.com/v1/messages',
+          {
+            model,
+            max_tokens: 50,
+            messages: [{ role: 'user', content: 'Diga apenas "OK"' }],
+          },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': apiKey,
+              'anthropic-version': '2023-06-01',
+            },
+            timeout: 15000,
+          },
+        );
+        return {
+          success: true,
+          message: `Conexão com Anthropic (${model}) funcionando!`,
+          provider,
+          model,
+          response: response.data?.content?.[0]?.text || 'OK',
+        };
+      }
+
+      if (provider === 'openai') {
+        const response = await axios.post(
+          'https://api.openai.com/v1/chat/completions',
+          {
+            model,
+            max_tokens: 50,
+            messages: [{ role: 'user', content: 'Diga apenas "OK"' }],
+          },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${apiKey}`,
+            },
+            timeout: 15000,
+          },
+        );
+        return {
+          success: true,
+          message: `Conexão com OpenAI (${model}) funcionando!`,
+          provider,
+          model,
+          response: response.data?.choices?.[0]?.message?.content || 'OK',
+        };
+      }
+
+      if (provider === 'google') {
+        const response = await axios.post(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+          {
+            contents: [{ parts: [{ text: 'Diga apenas "OK"' }] }],
+            generationConfig: { maxOutputTokens: 50 },
+          },
+          {
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 15000,
+          },
+        );
+        return {
+          success: true,
+          message: `Conexão com Google Gemini (${model}) funcionando!`,
+          provider,
+          model,
+          response: response.data?.candidates?.[0]?.content?.parts?.[0]?.text || 'OK',
+        };
+      }
+
+      return { success: false, message: `Provedor desconhecido: ${provider}`, provider };
+    } catch (error: any) {
+      const status = error?.response?.status;
+      const errorMsg = error?.response?.data?.error?.message || error?.message || 'Erro desconhecido';
+      this.logger.error(`AI test failed for ${provider} (${status}): ${errorMsg}`);
+
+      if (status === 401 || status === 403) {
+        return {
+          success: false,
+          message: 'API Key inválida ou sem permissão. Verifique sua chave.',
+          provider,
+        };
+      }
+
+      if (status === 404) {
+        return {
+          success: false,
+          message: `Modelo "${model}" não encontrado. Verifique o modelo selecionado.`,
+          provider,
+        };
+      }
+
+      return {
+        success: false,
+        message: `Erro ao testar conexão: ${errorMsg}`,
+        provider,
+      };
     }
   }
 

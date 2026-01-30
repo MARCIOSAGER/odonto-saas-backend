@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { ClaudeService } from './claude.service';
+import { AiService } from './ai.service';
 import { WhatsAppService } from './whatsapp.service';
 
 @Module({
@@ -10,7 +11,7 @@ import { WhatsAppService } from './whatsapp.service';
       maxRedirects: 5,
     }),
   ],
-  providers: [ClaudeService, WhatsAppService],
-  exports: [ClaudeService, WhatsAppService],
+  providers: [ClaudeService, AiService, WhatsAppService],
+  exports: [ClaudeService, AiService, WhatsAppService],
 })
 export class IntegrationsModule {}

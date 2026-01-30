@@ -181,6 +181,13 @@ export class ClinicsController {
     return this.clinicsService.updateAiSettings(user.clinicId, updateAiSettingsDto, user.userId);
   }
 
+  @Post('my/test-ai')
+  @ApiOperation({ summary: 'Test AI provider connection for current clinic' })
+  @ApiResponse({ status: 200, description: 'AI connection test result' })
+  async testAiConnection(@CurrentUser() user: { clinicId: string }) {
+    return this.clinicsService.testAiConnection(user.clinicId);
+  }
+
   @Post('my/test-whatsapp')
   @ApiOperation({ summary: 'Test WhatsApp connection for current clinic' })
   @ApiResponse({ status: 200, description: 'WhatsApp connection status' })

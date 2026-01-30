@@ -110,10 +110,6 @@ export class ConversationsService {
       }),
     ]);
 
-    if (messages.length === 0) {
-      throw new NotFoundException('Conversation not found');
-    }
-
     // Buscar informações do paciente se existir
     const patient = await this.prisma.patient.findFirst({
       where: {

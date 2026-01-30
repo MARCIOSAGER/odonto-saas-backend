@@ -340,6 +340,8 @@ model ClinicAiSettings {
   id                    String   @id @default(dbgenerated("(gen_random_uuid())::text"))
   clinic_id             String   @unique
   ai_enabled            Boolean  @default(true)
+  ai_provider           String   @default("anthropic") // anthropic, openai, google
+  ai_api_key            String?  // Chave API do provedor (encriptada)
   ai_model              String   @default("claude-3-5-haiku-20241022")
   ai_temperature        Decimal  @default(0.7) @db.Decimal(2, 1)
   max_tokens            Int      @default(800)

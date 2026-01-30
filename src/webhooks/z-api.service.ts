@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { ClaudeService } from '../integrations/claude.service';
+import { AiService } from '../integrations/ai.service';
 import { WhatsAppService } from '../integrations/whatsapp.service';
 
 interface MessageContext {
@@ -14,7 +14,7 @@ export class ZApiService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly claudeService: ClaudeService,
+    private readonly aiService: AiService,
     private readonly whatsappService: WhatsAppService,
   ) {}
 
@@ -45,8 +45,8 @@ export class ZApiService {
     // Carrega contexto completo para a IA
     const fullContext = await this.buildFullContext(clinic, patient, normalizedPhone);
 
-    // Processa com IA
-    const aiResponse = await this.claudeService.processMessage(message, fullContext);
+    // Processa com IA (multi-provedor: usa configurações da clínica)
+    const aiResponse = await this.aiService.processMessage(clinic.id, message, fullContext);
 
     if (aiResponse) {
       // Envia resposta via WhatsApp

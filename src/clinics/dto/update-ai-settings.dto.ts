@@ -17,6 +17,16 @@ export class UpdateAiSettingsDto {
   @IsOptional()
   ai_enabled?: boolean;
 
+  @ApiPropertyOptional({ description: 'AI provider (anthropic, openai, google)', example: 'anthropic' })
+  @IsString()
+  @IsOptional()
+  ai_provider?: string;
+
+  @ApiPropertyOptional({ description: 'API key for the AI provider' })
+  @IsString()
+  @IsOptional()
+  ai_api_key?: string;
+
   @ApiPropertyOptional({ description: 'AI model to use', example: 'claude-3-5-haiku-20241022' })
   @IsString()
   @IsOptional()
