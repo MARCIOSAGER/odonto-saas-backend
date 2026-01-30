@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
+import { WhatsAppService } from './whatsapp.service';
 import { buildDentalAssistantPrompt } from '../ai/prompts/dental-assistant.prompt';
 import axios from 'axios';
 
@@ -174,6 +175,8 @@ export class AiService {
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => WhatsAppService))
+    private readonly whatsappService: WhatsAppService,
   ) {
     this.defaultApiKey = this.configService.get('ANTHROPIC_API_KEY', '');
   }
@@ -597,8 +600,20 @@ export class AiService {
       },
       include: {
         service: { select: { name: true, price: true } },
-        dentist: { select: { name: true } },
+        dentist: { select: { name: true, phone: true } },
+        patient: { select: { name: true } },
+        clinic: { select: { name: true } },
       },
+    });
+
+    // Notificar dentista via WhatsApp
+    await this.notifyDentist(clinicId, appointment.dentist, {
+      type: 'new_appointment',
+      patientName: appointment.patient.name,
+      date: appointmentDate.toLocaleDateString('pt-BR'),
+      time: input.time,
+      service: appointment.service.name,
+      clinicName: appointment.clinic.name,
     });
 
     return {
@@ -641,6 +656,9 @@ export class AiService {
       where,
       include: {
         service: { select: { name: true } },
+        dentist: { select: { name: true, phone: true } },
+        patient: { select: { name: true } },
+        clinic: { select: { name: true } },
       },
     });
 
@@ -657,6 +675,16 @@ export class AiService {
         status: 'confirmed',
         confirmed_at: new Date(),
       },
+    });
+
+    // Notificar dentista via WhatsApp
+    await this.notifyDentist(clinicId, appointment.dentist, {
+      type: 'confirmed_appointment',
+      patientName: appointment.patient.name,
+      date: appointmentDate.toLocaleDateString('pt-BR'),
+      time: appointment.time,
+      service: appointment.service.name,
+      clinicName: appointment.clinic.name,
     });
 
     return {
@@ -762,6 +790,64 @@ export class AiService {
       message: `Dados atualizados: ${updatedFields.join(', ')}.`,
       data: updateData,
     };
+  }
+
+  // ============================================
+  // DENTIST NOTIFICATIONS
+  // ============================================
+
+  private async notifyDentist(
+    clinicId: string,
+    dentist: { name: string; phone: string | null } | null,
+    details: {
+      type: 'new_appointment' | 'confirmed_appointment';
+      patientName: string;
+      date: string;
+      time: string;
+      service: string;
+      clinicName: string;
+    },
+  ): Promise<void> {
+    try {
+      if (!dentist || !dentist.phone) {
+        this.logger.debug('Dentist has no phone number, skipping WhatsApp notification');
+        return;
+      }
+
+      const phone = dentist.phone;
+      const dentistName = dentist.name;
+
+      let message: string;
+
+      if (details.type === 'new_appointment') {
+        message =
+          `Ola Dr(a). ${dentistName}!\n\n` +
+          `Novo agendamento na ${details.clinicName}:\n\n` +
+          `Paciente: ${details.patientName}\n` +
+          `Data: ${details.date}\n` +
+          `Horario: ${details.time}\n` +
+          `Servico: ${details.service}\n\n` +
+          `O paciente agendou via WhatsApp.`;
+      } else {
+        message =
+          `Ola Dr(a). ${dentistName}!\n\n` +
+          `Consulta confirmada na ${details.clinicName}:\n\n` +
+          `Paciente: ${details.patientName}\n` +
+          `Data: ${details.date}\n` +
+          `Horario: ${details.time}\n` +
+          `Servico: ${details.service}\n\n` +
+          `O paciente confirmou presenca via WhatsApp.`;
+      }
+
+      const sent = await this.whatsappService.sendMessage(clinicId, phone, message);
+      if (sent) {
+        this.logger.log(`Dentist ${dentistName} notified via WhatsApp (${details.type})`);
+      } else {
+        this.logger.warn(`Failed to notify dentist ${dentistName} via WhatsApp`);
+      }
+    } catch (error: any) {
+      this.logger.error(`Error notifying dentist: ${error.message}`);
+    }
   }
 
   // ============================================
