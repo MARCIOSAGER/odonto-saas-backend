@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../prisma/prisma.service';
 import * as nodemailer from 'nodemailer';
 import { passwordResetTemplate } from './templates/password-reset.template';
 import { welcomeTemplate } from './templates/welcome.template';
@@ -10,7 +11,10 @@ export class EmailService {
   private readonly logger = new Logger(EmailService.name);
   private transporter: nodemailer.Transporter;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly prisma: PrismaService,
+  ) {
     this.transporter = nodemailer.createTransport({
       host: this.configService.get('SMTP_HOST', 'smtp.hostinger.com'),
       port: parseInt(this.configService.get('SMTP_PORT', '465'), 10),
@@ -20,6 +24,27 @@ export class EmailService {
         pass: this.configService.get('SMTP_PASS'),
       },
     });
+  }
+
+  private async getTransporterForClinic(clinicId: string): Promise<{ transporter: nodemailer.Transporter; from: string }> {
+    const clinic = await this.prisma.clinic.findUnique({
+      where: { id: clinicId },
+      select: { smtp_host: true, smtp_port: true, smtp_user: true, smtp_pass: true, smtp_from: true, smtp_secure: true },
+    });
+
+    if (clinic?.smtp_host && clinic?.smtp_user && clinic?.smtp_pass) {
+      const transporter = nodemailer.createTransport({
+        host: clinic.smtp_host,
+        port: clinic.smtp_port || 465,
+        secure: clinic.smtp_secure ?? true,
+        auth: { user: clinic.smtp_user, pass: clinic.smtp_pass },
+      });
+      const from = clinic.smtp_from || clinic.smtp_user;
+      return { transporter, from };
+    }
+
+    const from = this.configService.get('SMTP_FROM', this.configService.get('SMTP_USER'));
+    return { transporter: this.transporter, from };
   }
 
   async sendMail(to: string, subject: string, html: string): Promise<boolean> {
@@ -34,18 +59,39 @@ export class EmailService {
     }
   }
 
-  async sendPasswordResetEmail(to: string, name: string, resetLink: string): Promise<boolean> {
+  async sendMailForClinic(clinicId: string, to: string, subject: string, html: string): Promise<boolean> {
+    try {
+      const { transporter, from } = await this.getTransporterForClinic(clinicId);
+      await transporter.sendMail({ from, to, subject, html });
+      this.logger.log(`Email sent to ${to} (clinic ${clinicId}): ${subject}`);
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to send email to ${to} (clinic ${clinicId}): ${error}`);
+      return false;
+    }
+  }
+
+  async sendPasswordResetEmail(to: string, name: string, resetLink: string, clinicId?: string): Promise<boolean> {
     const html = passwordResetTemplate(name, resetLink);
+    if (clinicId) {
+      return this.sendMailForClinic(clinicId, to, 'Redefinir sua senha', html);
+    }
     return this.sendMail(to, 'Redefinir sua senha', html);
   }
 
-  async sendWelcomeEmail(to: string, name: string, clinicName: string): Promise<boolean> {
+  async sendWelcomeEmail(to: string, name: string, clinicName: string, clinicId?: string): Promise<boolean> {
     const html = welcomeTemplate(name, clinicName);
+    if (clinicId) {
+      return this.sendMailForClinic(clinicId, to, 'Bem-vindo ao Odonto SaaS!', html);
+    }
     return this.sendMail(to, 'Bem-vindo ao Odonto SaaS!', html);
   }
 
-  async sendTwoFactorCode(to: string, name: string, code: string): Promise<boolean> {
+  async sendTwoFactorCode(to: string, name: string, code: string, clinicId?: string): Promise<boolean> {
     const html = twoFactorCodeTemplate(name, code);
+    if (clinicId) {
+      return this.sendMailForClinic(clinicId, to, 'Seu código de verificação', html);
+    }
     return this.sendMail(to, 'Seu código de verificação', html);
   }
 }

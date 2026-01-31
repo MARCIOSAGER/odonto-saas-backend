@@ -19,6 +19,7 @@ import { ClinicsService } from './clinics.service';
 import { CreateClinicDto } from './dto/create-clinic.dto';
 import { UpdateClinicDto } from './dto/update-clinic.dto';
 import { UpdateAiSettingsDto } from './dto/update-ai-settings.dto';
+import { UpdateEmailSettingsDto } from './dto/update-email-settings.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -231,6 +232,30 @@ export class ClinicsController {
   @ApiResponse({ status: 200, description: 'Session restored' })
   async restoreWhatsAppSession(@CurrentUser() user: { clinicId: string }) {
     return this.clinicsService.restoreWhatsAppSession(user.clinicId);
+  }
+
+  @Get('my/email-settings')
+  @ApiOperation({ summary: 'Get email/SMTP settings for current clinic' })
+  @ApiResponse({ status: 200, description: 'Email settings retrieved' })
+  async getMyEmailSettings(@CurrentUser() user: { clinicId: string }) {
+    return this.clinicsService.getEmailSettings(user.clinicId);
+  }
+
+  @Put('my/email-settings')
+  @ApiOperation({ summary: 'Update email/SMTP settings for current clinic' })
+  @ApiResponse({ status: 200, description: 'Email settings updated' })
+  async updateMyEmailSettings(
+    @Body() updateEmailSettingsDto: UpdateEmailSettingsDto,
+    @CurrentUser() user: { userId: string; clinicId: string },
+  ) {
+    return this.clinicsService.updateEmailSettings(user.clinicId, updateEmailSettingsDto, user.userId);
+  }
+
+  @Post('my/test-email')
+  @ApiOperation({ summary: 'Send a test email to the current user' })
+  @ApiResponse({ status: 200, description: 'Test email result' })
+  async testEmailConnection(@CurrentUser() user: { userId: string; clinicId: string }) {
+    return this.clinicsService.testEmailConnection(user.clinicId, user.userId);
   }
 
   @Get(':id')

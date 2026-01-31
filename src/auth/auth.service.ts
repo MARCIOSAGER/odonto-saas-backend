@@ -93,11 +93,12 @@ export class AuthService {
       userAgent: meta?.userAgent,
     });
 
-    // Send welcome email (fire and forget)
+    // Send welcome email (fire and forget, uses clinic SMTP if configured)
     this.emailService.sendWelcomeEmail(
       result.user.email,
       result.user.name,
       result.clinic.name,
+      result.clinic.id,
     ).catch(() => {});
 
     // Generate tokens
@@ -297,8 +298,8 @@ export class AuthService {
     const frontendUrl = this.configService.get('FRONTEND_URL', 'http://localhost:3001');
     const resetLink = `${frontendUrl}/forgot-password/reset?token=${rawToken}`;
 
-    // Send email
-    await this.emailService.sendPasswordResetEmail(user.email, user.name, resetLink);
+    // Send email (uses clinic SMTP if configured, otherwise global)
+    await this.emailService.sendPasswordResetEmail(user.email, user.name, resetLink, user.clinic_id ?? undefined);
 
     return { message: 'Se o email existir, enviaremos um link de redefinição' };
   }

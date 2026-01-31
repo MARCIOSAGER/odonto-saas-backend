@@ -5,7 +5,9 @@ import { AuditService } from '../audit/audit.service';
 import { CreateClinicDto } from './dto/create-clinic.dto';
 import { UpdateClinicDto } from './dto/update-clinic.dto';
 import { UpdateAiSettingsDto } from './dto/update-ai-settings.dto';
+import { UpdateEmailSettingsDto } from './dto/update-email-settings.dto';
 import axios from 'axios';
+import * as nodemailer from 'nodemailer';
 
 interface FindAllOptions {
   page?: number;
@@ -810,5 +812,139 @@ export class ClinicsService {
       details: results,
       webhookUrl: webhookReceivedUrl,
     };
+  }
+
+  // ==========================================
+  // Email / SMTP Settings
+  // ==========================================
+
+  async getEmailSettings(clinicId: string) {
+    const clinic = await this.prisma.clinic.findUnique({
+      where: { id: clinicId },
+      select: {
+        smtp_host: true,
+        smtp_port: true,
+        smtp_user: true,
+        smtp_pass: true,
+        smtp_from: true,
+        smtp_secure: true,
+      },
+    });
+
+    if (!clinic) {
+      throw new NotFoundException('Clinic not found');
+    }
+
+    const result: any = { ...clinic };
+    if (result.smtp_pass) {
+      result.smtp_pass_set = true;
+      result.smtp_pass_masked = '********';
+    } else {
+      result.smtp_pass_set = false;
+      result.smtp_pass_masked = null;
+    }
+    delete result.smtp_pass;
+
+    return result;
+  }
+
+  async updateEmailSettings(clinicId: string, updateDto: UpdateEmailSettingsDto, userId: string) {
+    await this.findOne(clinicId);
+
+    const updateData: any = { ...updateDto };
+
+    // If smtp_pass is empty or undefined, don't update (keep existing)
+    if (!updateDto.smtp_pass) {
+      delete updateData.smtp_pass;
+    }
+
+    await this.prisma.clinic.update({
+      where: { id: clinicId },
+      data: updateData,
+    });
+
+    await this.auditService.log({
+      action: 'UPDATE',
+      entity: 'ClinicEmailSettings',
+      entityId: clinicId,
+      clinicId,
+      userId,
+      newValues: { ...updateDto, smtp_pass: updateDto.smtp_pass ? '***' : undefined },
+    });
+
+    return this.getEmailSettings(clinicId);
+  }
+
+  async testEmailConnection(clinicId: string, userId: string) {
+    const clinic = await this.prisma.clinic.findUnique({
+      where: { id: clinicId },
+      select: { smtp_host: true, smtp_port: true, smtp_user: true, smtp_pass: true, smtp_from: true, smtp_secure: true },
+    });
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, name: true },
+    });
+
+    if (!user) {
+      return { success: false, message: 'Usuário não encontrado' };
+    }
+
+    const host = clinic?.smtp_host || this.configService.get('SMTP_HOST', 'smtp.hostinger.com');
+    const port = clinic?.smtp_port || parseInt(this.configService.get('SMTP_PORT', '465'), 10);
+    const secure = clinic?.smtp_secure ?? (this.configService.get('SMTP_SECURE', 'true') === 'true');
+    const smtpUser = clinic?.smtp_user || this.configService.get('SMTP_USER') || '';
+    const smtpPass = clinic?.smtp_pass || this.configService.get('SMTP_PASS') || '';
+    const from = clinic?.smtp_from || this.configService.get('SMTP_FROM') || smtpUser;
+
+    if (!host || !smtpUser || !smtpPass) {
+      return {
+        success: false,
+        message: 'Configuração SMTP incompleta. Preencha host, usuário e senha.',
+      };
+    }
+
+    try {
+      const transporter = nodemailer.createTransport({
+        host,
+        port,
+        secure,
+        auth: { user: smtpUser, pass: smtpPass },
+      });
+
+      await transporter.verify();
+
+      await transporter.sendMail({
+        from,
+        to: user.email,
+        subject: 'Teste de E-mail - Odonto SaaS',
+        html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+          <h2 style="color:#0EA5E9;">Teste de E-mail</h2>
+          <p>Olá <strong>${user.name}</strong>,</p>
+          <p>Este é um e-mail de teste. Sua configuração SMTP está funcionando corretamente!</p>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;" />
+          <p style="color:#9ca3af;font-size:12px;">Odonto SaaS</p>
+        </div>`,
+      });
+
+      return {
+        success: true,
+        message: `E-mail de teste enviado para ${user.email}`,
+      };
+    } catch (error: any) {
+      this.logger.error(`SMTP test failed: ${error.message}`);
+
+      if (error.code === 'EAUTH') {
+        return { success: false, message: 'Autenticação falhou. Verifique usuário e senha SMTP.' };
+      }
+      if (error.code === 'ECONNREFUSED') {
+        return { success: false, message: `Conexão recusada em ${host}:${port}. Verifique host e porta.` };
+      }
+      if (error.code === 'ESOCKET') {
+        return { success: false, message: `Erro de conexão. Verifique se SSL/TLS está correto para a porta ${port}.` };
+      }
+
+      return { success: false, message: `Erro: ${error.message}` };
+    }
   }
 }

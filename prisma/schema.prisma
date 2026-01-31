@@ -57,6 +57,15 @@ model Clinic {
   z_api_instance     String?
   z_api_token        String?
   z_api_client_token String?
+
+  // SMTP / E-mail
+  smtp_host          String?
+  smtp_port          Int?                @default(465)
+  smtp_user          String?
+  smtp_pass          String?
+  smtp_from          String?
+  smtp_secure        Boolean?            @default(true)
+
   plan             String              @default("basic")
   status           String              @default("active")
 
