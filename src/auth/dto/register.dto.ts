@@ -28,10 +28,10 @@ export class RegisterDto {
   @MaxLength(150)
   clinic_name: string;
 
-  @ApiProperty({ example: '12345678000199', description: 'Clinic CNPJ (14 digits)' })
+  @ApiProperty({ example: '12345678000199', description: 'CPF (11 digits) or CNPJ (14 digits)' })
   @IsString()
   @IsNotEmpty()
-  @Matches(/^\d{14}$/, { message: 'CNPJ must have 14 digits' })
+  @Matches(/^(\d{11}|\d{14})$/, { message: 'Documento deve ser CPF (11 dígitos) ou CNPJ (14 dígitos)' })
   cnpj: string;
 
   @ApiProperty({ example: '11999999999', description: 'Phone number' })

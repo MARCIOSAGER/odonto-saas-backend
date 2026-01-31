@@ -47,7 +47,7 @@ model User {
 model Clinic {
   id               String              @id @default(dbgenerated("(gen_random_uuid())::text"))
   name             String
-  cnpj             String              @unique
+  cnpj             String              @unique   // CPF (11 digitos) ou CNPJ (14 digitos)
   phone            String
   email            String
   address          String?
