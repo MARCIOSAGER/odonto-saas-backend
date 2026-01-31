@@ -2,7 +2,7 @@ import { Injectable, Logger, UnauthorizedException, BadRequestException } from '
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
-import * as otplib from 'otplib';
+import { TOTP, Secret } from 'otpauth';
 import * as QRCode from 'qrcode';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WhatsAppService } from '../../integrations/whatsapp.service';
@@ -144,17 +144,29 @@ export class TwoFactorService {
 
     if (!user) throw new BadRequestException('Usuário não encontrado');
 
-    const secret = otplib.generateSecret();
-    const otpAuthUrl = otplib.generateURI({ issuer: 'Odonto SaaS', label: user.email, secret });
+    const secret = new Secret();
+    const totp = new TOTP({
+      issuer: 'Odonto SaaS',
+      label: user.email,
+      secret,
+    });
+
+    const otpAuthUrl = totp.toString();
     const qrCode = await QRCode.toDataURL(otpAuthUrl);
 
-    return { secret, qrCode };
+    return { secret: secret.base32, qrCode };
   }
 
   // Verify TOTP code
   verifyTotp(secret: string, token: string): boolean {
-    const result = otplib.verifySync({ token, secret });
-    return result.valid;
+    const totp = new TOTP({
+      issuer: 'Odonto SaaS',
+      label: 'user',
+      secret: Secret.fromBase32(secret),
+    });
+
+    const delta = totp.validate({ token, window: 1 });
+    return delta !== null;
   }
 
   // Generate short-lived 2FA pending token
