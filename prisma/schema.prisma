@@ -19,10 +19,26 @@ model User {
   password   String
   role       String     @default("user")
   status     String     @default("active")
+
+  // Google OAuth
+  google_id  String?    @unique
+  avatar_url String?
+
+  // 2FA
+  phone                 String?
+  two_factor_enabled    Boolean    @default(false)
+  two_factor_method     String?    // 'whatsapp' | 'totp'
+  totp_secret           String?
+
+  // Password Reset
+  reset_token           String?    @unique
+  reset_token_expires   DateTime?  @db.Timestamp(6)
+
   created_at DateTime   @default(now()) @db.Timestamp(6)
   updated_at DateTime   @default(now()) @updatedAt @db.Timestamp(6)
   clinic     Clinic?    @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
   auditLogs  AuditLog[]
+  twoFactorCodes TwoFactorCode[]
 
   @@index([email])
   @@index([clinic_id])
@@ -43,6 +59,9 @@ model Clinic {
   z_api_client_token String?
   plan             String              @default("basic")
   status           String              @default("active")
+
+  // 2FA Policy
+  two_factor_policy   String     @default("disabled") // 'disabled' | 'optional' | 'required'
 
   // Branding
   logo_url            String?
@@ -481,4 +500,23 @@ model SystemConfig {
   @@index([key])
   @@index([category])
   @@index([is_public])
+}
+
+// ============================================
+// TABELAS DE AUTENTICAÇÃO 2FA
+// ============================================
+
+model TwoFactorCode {
+  id          String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  user_id     String
+  code        String
+  method      String   // 'whatsapp' | 'email'
+  expires_at  DateTime @db.Timestamp(6)
+  used        Boolean  @default(false)
+  attempts    Int      @default(0)
+  created_at  DateTime @default(now()) @db.Timestamp(6)
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([expires_at])
 }
