@@ -1,0 +1,101 @@
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+
+export interface CreateNotificationParams {
+  user_id: string;
+  clinic_id?: string;
+  type: string;
+  title: string;
+  body: string;
+  data?: Record<string, unknown>;
+}
+
+@Injectable()
+export class NotificationsService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async create(params: CreateNotificationParams) {
+    return this.prisma.notification.create({
+      data: {
+        user_id: params.user_id,
+        clinic_id: params.clinic_id || null,
+        type: params.type,
+        title: params.title,
+        body: params.body,
+        data: params.data ? (params.data as any) : null,
+      },
+    });
+  }
+
+  async findAll(userId: string, page = 1, limit = 20) {
+    const skip = (page - 1) * limit;
+    const take = Math.min(limit, 100);
+
+    const [notifications, total] = await Promise.all([
+      this.prisma.notification.findMany({
+        where: { user_id: userId },
+        orderBy: { created_at: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.notification.count({ where: { user_id: userId } }),
+    ]);
+
+    return {
+      data: notifications,
+      meta: { total, page, limit: take, totalPages: Math.ceil(total / take) },
+    };
+  }
+
+  async getUnreadCount(userId: string) {
+    const count = await this.prisma.notification.count({
+      where: { user_id: userId, read: false },
+    });
+    return { count };
+  }
+
+  async markAsRead(userId: string, notificationId: string) {
+    return this.prisma.notification.updateMany({
+      where: { id: notificationId, user_id: userId },
+      data: { read: true },
+    });
+  }
+
+  async markAllAsRead(userId: string) {
+    return this.prisma.notification.updateMany({
+      where: { user_id: userId, read: false },
+      data: { read: true },
+    });
+  }
+
+  /**
+   * Send notification to all users of a clinic
+   */
+  async notifyClinic(
+    clinicId: string,
+    type: string,
+    title: string,
+    body: string,
+    data?: Record<string, unknown>,
+  ) {
+    const users = await this.prisma.user.findMany({
+      where: { clinic_id: clinicId, status: 'active' },
+      select: { id: true },
+    });
+
+    const notifications = await Promise.all(
+      users.map((user) =>
+        this.create({
+          user_id: user.id,
+          clinic_id: clinicId,
+          type,
+          title,
+          body,
+          data,
+        }),
+      ),
+    );
+
+    return notifications;
+  }
+}

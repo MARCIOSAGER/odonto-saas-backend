@@ -17,6 +17,17 @@ import { HealthController } from './health/health.controller';
 import { AuditModule } from './audit/audit.module';
 import { ConversationsModule } from './conversations/conversations.module';
 import { ReminderModule } from './reminders/reminder.module';
+import { PlansModule } from './plans/plans.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { BillingModule } from './billing/billing.module';
+import { OdontogramModule } from './odontogram/odontogram.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { AutomationsModule } from './automations/automations.module';
+import { AiClinicalModule } from './ai-clinical/ai-clinical.module';
+import { PrescriptionsModule } from './prescriptions/prescriptions.module';
+import { PatientPortalModule } from './patient-portal/patient-portal.module';
+import { NpsModule } from './nps/nps.module';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -63,6 +74,17 @@ import { ReminderModule } from './reminders/reminder.module';
     AuditModule,
     ConversationsModule,
     ReminderModule,
+    PlansModule,
+    SubscriptionsModule,
+    BillingModule,
+    OdontogramModule,
+    NotificationsModule,
+    AutomationsModule,
+    AiClinicalModule,
+    PrescriptionsModule,
+    PatientPortalModule,
+    NpsModule,
+    ReportsModule,
   ],
   controllers: [HealthController],
   providers: [

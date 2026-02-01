@@ -12,89 +12,91 @@ datasource db {
 // ============================================
 
 model User {
-  id         String     @id @default(dbgenerated("(gen_random_uuid())::text"))
-  clinic_id  String?
-  name       String
-  email      String     @unique
-  password   String
-  role       String     @default("user")
-  status     String     @default("active")
+  id        String  @id @default(dbgenerated("(gen_random_uuid())::text"))
+  clinic_id String?
+  name      String
+  email     String  @unique
+  password  String
+  role      String  @default("user")
+  status    String  @default("active")
 
   // Google OAuth
-  google_id  String?    @unique
+  google_id  String? @unique
   avatar_url String?
 
   // 2FA
-  phone                 String?
-  two_factor_enabled    Boolean    @default(false)
-  two_factor_method     String?    // 'whatsapp' | 'totp'
-  totp_secret           String?
+  phone              String?
+  two_factor_enabled Boolean @default(false)
+  two_factor_method  String? // 'whatsapp' | 'totp'
+  totp_secret        String?
 
   // Password Reset
-  reset_token           String?    @unique
-  reset_token_expires   DateTime?  @db.Timestamp(6)
+  reset_token         String?   @unique
+  reset_token_expires DateTime? @db.Timestamp(6)
 
-  created_at DateTime   @default(now()) @db.Timestamp(6)
-  updated_at DateTime   @default(now()) @updatedAt @db.Timestamp(6)
-  clinic     Clinic?    @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
-  auditLogs  AuditLog[]
+  created_at     DateTime        @default(now()) @db.Timestamp(6)
+  updated_at     DateTime        @default(now()) @updatedAt @db.Timestamp(6)
+  clinic         Clinic?         @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+  auditLogs      AuditLog[]
   twoFactorCodes TwoFactorCode[]
+  notifications  Notification[]
 
   @@index([email])
   @@index([clinic_id])
 }
 
 model Clinic {
-  id               String              @id @default(dbgenerated("(gen_random_uuid())::text"))
-  name             String
-  cnpj             String              @unique   // CPF (11 digitos) ou CNPJ (14 digitos)
-  phone            String
-  email            String
-  address          String?
-  city             String?
-  state            String?
-  cep              String?             @db.VarChar(9)
+  id                 String  @id @default(dbgenerated("(gen_random_uuid())::text"))
+  name               String
+  cnpj               String  @unique // CPF (11 digitos) ou CNPJ (14 digitos)
+  phone              String
+  email              String
+  address            String?
+  city               String?
+  state              String?
+  cep                String? @db.VarChar(9)
   z_api_instance     String?
   z_api_token        String?
   z_api_client_token String?
 
   // SMTP / E-mail
-  smtp_host          String?
-  smtp_port          Int?                @default(465)
-  smtp_user          String?
-  smtp_pass          String?
-  smtp_from          String?
-  smtp_secure        Boolean?            @default(true)
+  smtp_host   String?
+  smtp_port   Int?     @default(465)
+  smtp_user   String?
+  smtp_pass   String?
+  smtp_from   String?
+  smtp_secure Boolean? @default(true)
 
-  plan             String              @default("basic")
-  status           String              @default("active")
+  plan                 String  @default("basic")
+  status               String  @default("active")
+  onboarding_completed Boolean @default(false)
 
   // 2FA Policy
-  two_factor_policy   String     @default("disabled") // 'disabled' | 'optional' | 'required'
+  two_factor_policy String @default("disabled") // 'disabled' | 'optional' | 'required'
 
   // Branding
-  logo_url            String?
-  favicon_url         String?
-  logo_display_mode   String?             @default("logo_name") // logo_name, logo_only, name_only
-  primary_color       String?             @default("#0EA5E9")
-  secondary_color     String?             @default("#10B981")
-  slogan              String?
-  tagline             String?
+  logo_url          String?
+  favicon_url       String?
+  logo_display_mode String? @default("logo_name") // logo_name, logo_only, name_only
+  primary_color     String? @default("#0EA5E9")
+  secondary_color   String? @default("#10B981")
+  slogan            String?
+  tagline           String?
 
   // Redes Sociais
-  instagram        String?
-  facebook         String?
-  website          String?
+  instagram String?
+  facebook  String?
+  website   String?
 
   // Horário de Funcionamento
-  business_hours   Json?               // { "monday": { "open": "08:00", "close": "18:00" }, ... }
+  business_hours Json? // { "monday": { "open": "08:00", "close": "18:00" }, ... }
 
   // Geolocalização
-  latitude         String?
-  longitude        String?
+  latitude  String?
+  longitude String?
 
-  created_at       DateTime            @default(now()) @db.Timestamp(6)
-  updated_at       DateTime            @default(now()) @updatedAt @db.Timestamp(6)
+  created_at       DateTime                @default(now()) @db.Timestamp(6)
+  updated_at       DateTime                @default(now()) @updatedAt @db.Timestamp(6)
   users            User[]
   dentists         Dentist[]
   patients         Patient[]
@@ -114,19 +116,21 @@ model Clinic {
 }
 
 model Dentist {
-  id           String            @id @default(dbgenerated("(gen_random_uuid())::text"))
-  clinic_id    String
-  name         String
-  cro          String
-  specialty    String?
-  phone        String?
-  email        String?
-  status       String            @default("active")
-  created_at   DateTime          @default(now()) @db.Timestamp(6)
-  updated_at   DateTime          @default(now()) @updatedAt @db.Timestamp(6)
-  clinic       Clinic            @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
-  appointments Appointment[]
-  schedules    DentistSchedule[]
+  id            String            @id @default(dbgenerated("(gen_random_uuid())::text"))
+  clinic_id     String
+  name          String
+  cro           String
+  specialty     String?
+  phone         String?
+  email         String?
+  commission_rate Decimal?        @default(0) @db.Decimal(5, 2)
+  status          String          @default("active")
+  created_at      DateTime        @default(now()) @db.Timestamp(6)
+  updated_at      DateTime        @default(now()) @updatedAt @db.Timestamp(6)
+  clinic          Clinic          @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+  appointments    Appointment[]
+  schedules       DentistSchedule[]
+  prescriptions   Prescription[]
 
   @@unique([clinic_id, cro])
   @@index([clinic_id])
@@ -144,6 +148,7 @@ model Patient {
   address          String?
   notes            String?
   status           String            @default("active")
+  portal_token     String?           @unique @default(dbgenerated("(gen_random_uuid())::text"))
   last_visit       DateTime?         @db.Timestamp(6)
   created_at       DateTime          @default(now()) @db.Timestamp(6)
   updated_at       DateTime          @default(now()) @updatedAt @db.Timestamp(6)
@@ -152,6 +157,9 @@ model Patient {
   conversations    Conversation[]
   conversationLogs ConversationLog[]
   whatsappMessages WhatsAppMessage[]
+  odontograms      Odontogram[]
+  prescriptions    Prescription[]
+  npsSurveys       NpsSurvey[]
 
   @@unique([clinic_id, phone], map: "unique_clinic_phone")
   @@index([clinic_id], map: "idx_patient_clinic")
@@ -176,27 +184,28 @@ model Service {
 }
 
 model Appointment {
-  id            String    @id @default(dbgenerated("(gen_random_uuid())::text"))
-  clinic_id     String
-  patient_id    String
-  dentist_id    String?
-  service_id    String
-  date          DateTime  @db.Date
-  time          String
-  duration      Int       @default(30)
-  status        String    @default("scheduled")
-  notes         String?
-  cancel_reason String?
-  cancelled_at  DateTime? @db.Timestamp(6)
-  confirmed_at  DateTime? @db.Timestamp(6)
+  id               String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  clinic_id        String
+  patient_id       String
+  dentist_id       String?
+  service_id       String
+  date             DateTime  @db.Date
+  time             String
+  duration         Int       @default(30)
+  status           String    @default("scheduled")
+  notes            String?
+  cancel_reason    String?
+  cancelled_at     DateTime? @db.Timestamp(6)
+  confirmed_at     DateTime? @db.Timestamp(6)
   reminder_sent    Boolean   @default(false)
   reminder_1h_sent Boolean   @default(false)
   created_at       DateTime  @default(now()) @db.Timestamp(6)
-  updated_at    DateTime  @default(now()) @updatedAt @db.Timestamp(6)
-  clinic        Clinic    @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
-  patient       Patient   @relation(fields: [patient_id], references: [id], onDelete: Cascade)
-  dentist       Dentist?  @relation(fields: [dentist_id], references: [id])
-  service       Service   @relation(fields: [service_id], references: [id], onDelete: Cascade)
+  updated_at       DateTime  @default(now()) @updatedAt @db.Timestamp(6)
+  clinic           Clinic      @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+  patient          Patient     @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  dentist          Dentist?    @relation(fields: [dentist_id], references: [id])
+  service          Service     @relation(fields: [service_id], references: [id], onDelete: Cascade)
+  npsSurveys       NpsSurvey[]
 
   @@index([clinic_id], map: "idx_appointment_clinic")
   @@index([patient_id], map: "idx_appointment_patient")
@@ -282,52 +291,53 @@ model AuditLog {
 // ============================================
 
 model Plan {
-  id                    String         @id @default(dbgenerated("(gen_random_uuid())::text"))
-  name                  String         @unique
-  description           String?
-  price_monthly         Decimal        @db.Decimal(10, 2)
-  price_yearly          Decimal?       @db.Decimal(10, 2)
-  max_patients          Int?           // null = ilimitado
-  max_dentists          Int?           // null = ilimitado
-  max_appointments_month Int?          // null = ilimitado
-  max_whatsapp_messages Int?           // null = ilimitado
-  features              Json?          // Lista de features habilitadas
-  ai_enabled            Boolean        @default(false)
-  ai_messages_limit     Int?           // Limite de mensagens de IA por mês
-  priority_support      Boolean        @default(false)
-  custom_branding       Boolean        @default(false)
-  api_access            Boolean        @default(false)
-  status                String         @default("active")
-  sort_order            Int            @default(0)
-  created_at            DateTime       @default(now()) @db.Timestamp(6)
-  updated_at            DateTime       @default(now()) @updatedAt @db.Timestamp(6)
-  subscriptions         Subscription[]
+  id                     String         @id @default(dbgenerated("(gen_random_uuid())::text"))
+  name                   String         @unique
+  display_name           String         @default("")
+  description            String?
+  price_monthly          Decimal        @db.Decimal(10, 2)
+  price_yearly           Decimal?       @db.Decimal(10, 2)
+  max_patients           Int? // null = ilimitado
+  max_dentists           Int? // null = ilimitado
+  max_appointments_month Int? // null = ilimitado
+  max_whatsapp_messages  Int? // null = ilimitado
+  features               Json? // Lista de features habilitadas
+  ai_enabled             Boolean        @default(false)
+  ai_messages_limit      Int? // Limite de mensagens de IA por mês
+  priority_support       Boolean        @default(false)
+  custom_branding        Boolean        @default(false)
+  api_access             Boolean        @default(false)
+  status                 String         @default("active")
+  sort_order             Int            @default(0)
+  created_at             DateTime       @default(now()) @db.Timestamp(6)
+  updated_at             DateTime       @default(now()) @updatedAt @db.Timestamp(6)
+  subscriptions          Subscription[]
 
   @@index([status])
   @@index([sort_order])
 }
 
 model Subscription {
-  id                 String    @id @default(dbgenerated("(gen_random_uuid())::text"))
-  clinic_id          String
-  plan_id            String
-  billing_cycle      String    @default("monthly") // 'monthly' or 'yearly'
-  status             String    @default("active") // 'active', 'cancelled', 'past_due', 'trialing', 'paused'
-  current_period_start DateTime @db.Timestamp(6)
-  current_period_end   DateTime @db.Timestamp(6)
-  cancel_at_period_end Boolean  @default(false)
-  cancelled_at       DateTime? @db.Timestamp(6)
-  trial_start        DateTime? @db.Timestamp(6)
-  trial_end          DateTime? @db.Timestamp(6)
-  payment_method     String?   // 'credit_card', 'pix', 'boleto'
-  payment_gateway    String?   // 'stripe', 'pagarme', 'asaas'
-  external_id        String?   // ID na gateway de pagamento
-  metadata           Json?
-  created_at         DateTime  @default(now()) @db.Timestamp(6)
-  updated_at         DateTime  @default(now()) @updatedAt @db.Timestamp(6)
-  clinic             Clinic    @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
-  plan               Plan      @relation(fields: [plan_id], references: [id])
-  invoices           Invoice[]
+  id                   String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  clinic_id            String
+  plan_id              String
+  billing_cycle        String    @default("monthly") // 'monthly' or 'yearly'
+  status               String    @default("active") // 'active', 'cancelled', 'past_due', 'trialing', 'paused'
+  current_period_start DateTime  @db.Timestamp(6)
+  current_period_end   DateTime  @db.Timestamp(6)
+  cancel_at_period_end Boolean   @default(false)
+  cancelled_at         DateTime? @db.Timestamp(6)
+  trial_start          DateTime? @db.Timestamp(6)
+  trial_end            DateTime? @db.Timestamp(6)
+  payment_method       String? // 'credit_card', 'pix', 'boleto'
+  payment_gateway      String? // 'stripe', 'pagarme', 'asaas'
+  external_id          String? // ID na gateway de pagamento
+  metadata             Json?
+  created_at           DateTime  @default(now()) @db.Timestamp(6)
+  updated_at           DateTime  @default(now()) @updatedAt @db.Timestamp(6)
+  clinic               Clinic    @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+  plan                 Plan      @relation(fields: [plan_id], references: [id])
+  invoices             Invoice[]
 
   @@index([clinic_id])
   @@index([plan_id])
@@ -349,21 +359,61 @@ model Invoice {
   paid_at         DateTime? @db.Timestamp(6)
   payment_method  String?
   payment_gateway String?
-  external_id     String?   // ID na gateway de pagamento
-  invoice_url     String?   // URL do boleto ou link de pagamento
+  external_id     String? // ID na gateway de pagamento
+  invoice_url     String? // URL do boleto ou link de pagamento
   description     String?
-  items           Json?     // Itens detalhados da fatura
+  items           Json? // Itens detalhados da fatura
   metadata        Json?
-  created_at      DateTime  @default(now()) @db.Timestamp(6)
-  updated_at      DateTime  @default(now()) @updatedAt @db.Timestamp(6)
-  clinic          Clinic    @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
-  subscription    Subscription? @relation(fields: [subscription_id], references: [id], onDelete: SetNull)
+
+  // NFS-e (Nota Fiscal)
+  nfse_id            String? // ID da nota fiscal no provedor
+  nfse_pdf_url       String? // URL do PDF da NFS-e
+  nfse_status        String? // pending, issued, error, canceled
+  nfse_cancel_reason String?
+  created_at         DateTime      @default(now()) @db.Timestamp(6)
+  updated_at         DateTime      @default(now()) @updatedAt @db.Timestamp(6)
+  clinic             Clinic        @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+  subscription       Subscription? @relation(fields: [subscription_id], references: [id], onDelete: SetNull)
+  payments           Payment[]
 
   @@index([clinic_id])
   @@index([subscription_id])
   @@index([status])
   @@index([due_date])
   @@index([number])
+}
+
+model Payment {
+  id                 String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  invoice_id         String
+  gateway            String // stripe, asaas
+  gateway_payment_id String?
+  method             String // credit_card, pix, boleto
+  amount             Decimal   @db.Decimal(10, 2)
+  status             String    @default("pending") // pending, confirmed, failed, refunded
+  paid_at            DateTime? @db.Timestamp(6)
+  metadata           Json?
+  created_at         DateTime  @default(now()) @db.Timestamp(6)
+  invoice            Invoice   @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
+
+  @@index([invoice_id])
+  @@index([gateway_payment_id])
+  @@index([status])
+}
+
+model Coupon {
+  id               String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  code             String    @unique
+  discount_percent Int
+  discount_months  Int       @default(1)
+  max_uses         Int?
+  current_uses     Int       @default(0)
+  valid_until      DateTime? @db.Timestamp(6)
+  is_active        Boolean   @default(true)
+  created_at       DateTime  @default(now()) @db.Timestamp(6)
+
+  @@index([code])
+  @@index([is_active])
 }
 
 // ============================================
@@ -375,18 +425,18 @@ model ClinicAiSettings {
   clinic_id             String   @unique
   ai_enabled            Boolean  @default(true)
   ai_provider           String   @default("anthropic") // anthropic, openai, google
-  ai_api_key            String?  // Chave API do provedor (encriptada)
+  ai_api_key            String? // Chave API do provedor (encriptada)
   ai_model              String   @default("claude-3-5-haiku-20241022")
   ai_temperature        Decimal  @default(0.7) @db.Decimal(2, 1)
   max_tokens            Int      @default(800)
   assistant_name        String   @default("Sofia")
-  assistant_personality String?  // Descrição da personalidade
+  assistant_personality String? // Descrição da personalidade
   welcome_message       String?
   fallback_message      String?
   out_of_hours_message  String?
   transfer_keywords     String[] // Palavras que acionam transferência para humano
   blocked_topics        String[] // Tópicos que a IA não deve responder
-  custom_instructions   String?  // Instruções adicionais para a IA
+  custom_instructions   String? // Instruções adicionais para a IA
   context_messages      Int      @default(10) // Quantas mensagens de contexto enviar
   auto_schedule         Boolean  @default(false) // IA pode agendar automaticamente
   auto_confirm          Boolean  @default(false) // IA pode confirmar automaticamente
@@ -395,25 +445,25 @@ model ClinicAiSettings {
   working_hours_only    Boolean  @default(false) // IA só responde no horário comercial
 
   // Mensagens Interativas
-  use_welcome_menu          Boolean @default(false)  // Lista de opções no primeiro contato
-  use_confirmation_buttons  Boolean @default(false)  // Botões para confirmar consulta
-  use_timeslot_list         Boolean @default(false)  // Lista de horários selecionável
-  use_satisfaction_poll     Boolean @default(false)  // Pesquisa de satisfação pós-consulta
-  use_send_location         Boolean @default(false)  // Enviar localização da clínica
+  use_welcome_menu         Boolean @default(false) // Lista de opções no primeiro contato
+  use_confirmation_buttons Boolean @default(false) // Botões para confirmar consulta
+  use_timeslot_list        Boolean @default(false) // Lista de horários selecionável
+  use_satisfaction_poll    Boolean @default(false) // Pesquisa de satisfação pós-consulta
+  use_send_location        Boolean @default(false) // Enviar localização da clínica
 
   // Dentista via WhatsApp
-  dentist_ai_enabled        Boolean @default(false)  // Dentistas podem interagir com IA via WhatsApp
+  dentist_ai_enabled Boolean @default(false) // Dentistas podem interagir com IA via WhatsApp
 
   // Lembretes automáticos
-  reminder_enabled          Boolean @default(true)   // Ativar lembretes automáticos
-  reminder_24h              Boolean @default(true)    // Lembrete 24h antes
-  reminder_1h               Boolean @default(true)    // Lembrete 1h antes
-  reminder_message_24h      String?                   // Mensagem personalizada 24h
-  reminder_message_1h       String?                   // Mensagem personalizada 1h
+  reminder_enabled     Boolean @default(true) // Ativar lembretes automáticos
+  reminder_24h         Boolean @default(true) // Lembrete 24h antes
+  reminder_1h          Boolean @default(true) // Lembrete 1h antes
+  reminder_message_24h String? // Mensagem personalizada 24h
+  reminder_message_1h  String? // Mensagem personalizada 1h
 
-  created_at            DateTime @default(now()) @db.Timestamp(6)
-  updated_at            DateTime @default(now()) @updatedAt @db.Timestamp(6)
-  clinic                Clinic   @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamp(6)
+  clinic     Clinic   @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
 
   @@index([clinic_id])
 }
@@ -422,11 +472,11 @@ model ClinicAutomation {
   id             String    @id @default(dbgenerated("(gen_random_uuid())::text"))
   clinic_id      String
   name           String
-  type           String    // 'reminder', 'confirmation', 'follow_up', 'birthday', 'reactivation', 'custom'
-  trigger_type   String    // 'scheduled', 'event', 'condition'
-  trigger_config Json      // Configuração do trigger (horário, evento, condição)
-  action_type    String    // 'whatsapp', 'email', 'sms', 'webhook'
-  action_config  Json      // Configuração da ação (template, destinatário, etc)
+  type           String // 'reminder', 'confirmation', 'follow_up', 'birthday', 'reactivation', 'custom'
+  trigger_type   String // 'scheduled', 'event', 'condition'
+  trigger_config Json // Configuração do trigger (horário, evento, condição)
+  action_type    String // 'whatsapp', 'email', 'sms', 'webhook'
+  action_config  Json // Configuração da ação (template, destinatário, etc)
   is_active      Boolean   @default(true)
   last_run_at    DateTime? @db.Timestamp(6)
   next_run_at    DateTime? @db.Timestamp(6)
@@ -444,19 +494,19 @@ model ClinicAutomation {
 }
 
 model ClinicMessageTemplate {
-  id          String   @id @default(dbgenerated("(gen_random_uuid())::text"))
-  clinic_id   String
-  name        String
-  type        String   // 'reminder', 'confirmation', 'cancellation', 'welcome', 'follow_up', 'birthday', 'custom'
-  channel     String   @default("whatsapp") // 'whatsapp', 'email', 'sms'
-  subject     String?  // Para email
-  content     String   // Conteúdo com placeholders: {{patient_name}}, {{appointment_date}}, etc
-  variables   String[] // Lista de variáveis disponíveis
-  is_active   Boolean  @default(true)
-  is_default  Boolean  @default(false)
-  created_at  DateTime @default(now()) @db.Timestamp(6)
-  updated_at  DateTime @default(now()) @updatedAt @db.Timestamp(6)
-  clinic      Clinic   @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+  id         String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  clinic_id  String
+  name       String
+  type       String // 'reminder', 'confirmation', 'cancellation', 'welcome', 'follow_up', 'birthday', 'custom'
+  channel    String   @default("whatsapp") // 'whatsapp', 'email', 'sms'
+  subject    String? // Para email
+  content    String // Conteúdo com placeholders: {{patient_name}}, {{appointment_date}}, etc
+  variables  String[] // Lista de variáveis disponíveis
+  is_active  Boolean  @default(true)
+  is_default Boolean  @default(false)
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamp(6)
+  clinic     Clinic   @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
 
   @@unique([clinic_id, name])
   @@index([clinic_id])
@@ -469,20 +519,20 @@ model ClinicMessageTemplate {
 // ============================================
 
 model DentistSchedule {
-  id              String    @id @default(dbgenerated("(gen_random_uuid())::text"))
-  dentist_id      String
-  day_of_week     Int       // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
-  start_time      String    // "08:00"
-  end_time        String    // "18:00"
-  break_start     String?   // "12:00"
-  break_end       String?   // "13:00"
-  slot_duration   Int       @default(30) // Duração de cada slot em minutos
-  is_active       Boolean   @default(true)
-  valid_from      DateTime? @db.Date
-  valid_until     DateTime? @db.Date
-  created_at      DateTime  @default(now()) @db.Timestamp(6)
-  updated_at      DateTime  @default(now()) @updatedAt @db.Timestamp(6)
-  dentist         Dentist   @relation(fields: [dentist_id], references: [id], onDelete: Cascade)
+  id            String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  dentist_id    String
+  day_of_week   Int // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
+  start_time    String // "08:00"
+  end_time      String // "18:00"
+  break_start   String? // "12:00"
+  break_end     String? // "13:00"
+  slot_duration Int       @default(30) // Duração de cada slot em minutos
+  is_active     Boolean   @default(true)
+  valid_from    DateTime? @db.Date
+  valid_until   DateTime? @db.Date
+  created_at    DateTime  @default(now()) @db.Timestamp(6)
+  updated_at    DateTime  @default(now()) @updatedAt @db.Timestamp(6)
+  dentist       Dentist   @relation(fields: [dentist_id], references: [id], onDelete: Cascade)
 
   @@unique([dentist_id, day_of_week, valid_from])
   @@index([dentist_id])
@@ -501,8 +551,8 @@ model SystemConfig {
   type        String   @default("string") // 'string', 'number', 'boolean', 'json'
   description String?
   is_public   Boolean  @default(false) // Se pode ser exposto via API pública
-  is_editable Boolean  @default(true)  // Se pode ser editado via admin
-  category    String?  // Categoria para agrupamento (ex: 'billing', 'ai', 'notifications')
+  is_editable Boolean  @default(true) // Se pode ser editado via admin
+  category    String? // Categoria para agrupamento (ex: 'billing', 'ai', 'notifications')
   created_at  DateTime @default(now()) @db.Timestamp(6)
   updated_at  DateTime @default(now()) @updatedAt @db.Timestamp(6)
 
@@ -516,16 +566,112 @@ model SystemConfig {
 // ============================================
 
 model TwoFactorCode {
-  id          String   @id @default(dbgenerated("(gen_random_uuid())::text"))
-  user_id     String
-  code        String
-  method      String   // 'whatsapp' | 'email'
-  expires_at  DateTime @db.Timestamp(6)
-  used        Boolean  @default(false)
-  attempts    Int      @default(0)
-  created_at  DateTime @default(now()) @db.Timestamp(6)
-  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  id         String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  user_id    String
+  code       String
+  method     String // 'whatsapp' | 'email'
+  expires_at DateTime @db.Timestamp(6)
+  used       Boolean  @default(false)
+  attempts   Int      @default(0)
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id])
   @@index([expires_at])
+}
+
+// ============================================
+// TABELAS DE NOTIFICAÇÕES
+// ============================================
+
+model Notification {
+  id         String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  user_id    String
+  clinic_id  String?
+  type       String // appointment_reminder, payment_received, plan_expiring, new_appointment, etc.
+  title      String
+  body       String
+  read       Boolean  @default(false)
+  data       Json? // metadata (link, entity_id, entity_type, etc.)
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, read])
+  @@index([clinic_id])
+  @@index([created_at])
+}
+
+// ============================================
+// TABELAS DE ODONTOGRAMA
+// ============================================
+
+model Odontogram {
+  id         String            @id @default(dbgenerated("(gen_random_uuid())::text"))
+  patient_id String
+  notes      String?
+  created_at DateTime          @default(now()) @db.Timestamp(6)
+  updated_at DateTime          @default(now()) @updatedAt @db.Timestamp(6)
+  patient    Patient           @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  teeth      OdontogramTooth[]
+
+  @@index([patient_id])
+}
+
+model OdontogramTooth {
+  id            String     @id @default(dbgenerated("(gen_random_uuid())::text"))
+  odontogram_id String
+  tooth_number  Int // 11-48 (FDI notation)
+  status        String     @default("healthy") // healthy, cavity, restoration, extraction, implant, crown, bridge, root_canal, fracture
+  surfaces      Json? // { mesial: "cavity", distal: "restoration", vestibular: "healthy", lingual: "healthy", occlusal: "cavity" }
+  notes         String?
+  updated_at    DateTime   @default(now()) @updatedAt @db.Timestamp(6)
+  odontogram    Odontogram @relation(fields: [odontogram_id], references: [id], onDelete: Cascade)
+
+  @@unique([odontogram_id, tooth_number])
+  @@index([odontogram_id])
+}
+
+// ============================================
+// TABELAS DE RECEITUÁRIO E DOCUMENTOS
+// ============================================
+
+model Prescription {
+  id         String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  patient_id String
+  dentist_id String
+  clinic_id  String
+  type       String // prescription, certificate, referral
+  content    Json // { medications: [...] } ou { text: "..." }
+  pdf_url    String?
+  sent_at    DateTime? @db.Timestamp(6)
+  sent_via   String? // whatsapp, email
+  created_at DateTime  @default(now()) @db.Timestamp(6)
+  patient    Patient   @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  dentist    Dentist   @relation(fields: [dentist_id], references: [id])
+
+  @@index([patient_id])
+  @@index([dentist_id])
+  @@index([clinic_id])
+}
+
+// ============================================
+// TABELAS DE NPS E PESQUISA DE SATISFAÇÃO
+// ============================================
+
+model NpsSurvey {
+  id             String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  patient_id     String
+  clinic_id      String
+  appointment_id String?
+  score          Int? // 0-10
+  feedback       String?
+  sent_at        DateTime  @default(now()) @db.Timestamp(6)
+  answered_at    DateTime? @db.Timestamp(6)
+  patient        Patient      @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  appointment    Appointment? @relation(fields: [appointment_id], references: [id], onDelete: SetNull)
+
+  @@index([clinic_id])
+  @@index([patient_id])
+  @@index([appointment_id])
+  @@index([sent_at])
 }
