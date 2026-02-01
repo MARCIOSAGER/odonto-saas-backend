@@ -169,6 +169,11 @@ export class TwoFactorService {
     return delta !== null;
   }
 
+  // Check if WhatsApp is actually connected for a clinic
+  async checkWhatsAppConnection(clinicId: string): Promise<boolean> {
+    return this.whatsAppService.checkConnection(clinicId);
+  }
+
   // Generate short-lived 2FA pending token
   generateTwoFactorToken(userId: string, clinicId: string | null): string {
     return this.jwtService.sign(

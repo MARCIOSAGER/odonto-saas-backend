@@ -146,16 +146,26 @@ export class AuthService {
         user.clinic_id,
       );
 
-      // Auto-send code for WhatsApp method
+      // Auto-send code for WhatsApp method (with email fallback)
       let codeSent = true;
+      let codeDeliveryMethod = user.two_factor_method;
+
       if (user.two_factor_method === 'whatsapp') {
         codeSent = await this.twoFactorService.sendWhatsAppCode(user.id);
+        if (!codeSent) {
+          // Fallback: send code via email
+          codeSent = await this.twoFactorService.sendEmailCode(user.id);
+          if (codeSent) {
+            codeDeliveryMethod = 'email';
+          }
+        }
       }
 
       return {
         requires_2fa: true,
         two_factor_token: twoFactorToken,
         two_factor_method: user.two_factor_method,
+        code_delivery_method: codeDeliveryMethod,
         methods_available: this.getAvailable2faMethods(user),
         code_sent: codeSent,
       };
@@ -267,15 +277,20 @@ export class AuthService {
     if (user.two_factor_method === 'whatsapp') {
       const sent = await this.twoFactorService.sendWhatsAppCode(userId);
       if (!sent) {
-        throw new BadRequestException(
-          'Não foi possível enviar o código via WhatsApp. Verifique se o WhatsApp está configurado na clínica.',
-        );
+        // Fallback: send code via email
+        const emailSent = await this.twoFactorService.sendEmailCode(userId);
+        if (!emailSent) {
+          throw new BadRequestException(
+            'Não foi possível enviar o código. Tente novamente mais tarde.',
+          );
+        }
+        return { message: 'Código enviado por e-mail (WhatsApp indisponível)', delivery_method: 'email' };
       }
     } else if (user.two_factor_method === 'totp') {
       throw new BadRequestException('TOTP não requer reenvio de código');
     }
 
-    return { message: 'Código reenviado com sucesso' };
+    return { message: 'Código reenviado com sucesso', delivery_method: user.two_factor_method };
   }
 
   async forgotPassword(email: string) {
@@ -399,14 +414,24 @@ export class AuthService {
       );
 
       let codeSent = true;
+      let codeDeliveryMethod = user.two_factor_method;
+
       if (user.two_factor_method === 'whatsapp') {
         codeSent = await this.twoFactorService.sendWhatsAppCode(user.id);
+        if (!codeSent) {
+          // Fallback: send code via email
+          codeSent = await this.twoFactorService.sendEmailCode(user.id);
+          if (codeSent) {
+            codeDeliveryMethod = 'email';
+          }
+        }
       }
 
       return {
         requires_2fa: true,
         two_factor_token: twoFactorToken,
         two_factor_method: user.two_factor_method,
+        code_delivery_method: codeDeliveryMethod,
         methods_available: this.getAvailable2faMethods(user),
         code_sent: codeSent,
       };
@@ -460,6 +485,14 @@ export class AuthService {
     if (!user.clinic.z_api_instance || !user.clinic.z_api_token) {
       throw new BadRequestException(
         'WhatsApp (Z-API) não está configurado na sua clínica. Configure em Configurações > WhatsApp antes de ativar o 2FA por WhatsApp.',
+      );
+    }
+
+    // Verify actual WhatsApp connection is active
+    const isConnected = await this.twoFactorService.checkWhatsAppConnection(user.clinic_id);
+    if (!isConnected) {
+      throw new BadRequestException(
+        'WhatsApp não está conectado. Verifique a conexão em Configurações > WhatsApp e tente novamente.',
       );
     }
 
