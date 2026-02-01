@@ -29,7 +29,9 @@ export class ClinicsService {
   }
 
   async findAll(options: FindAllOptions = {}) {
-    const { page = 1, limit = 10, status } = options;
+    const { page: rawPage = 1, limit: rawLimit = 10, status } = options;
+    const page = Math.max(1, rawPage);
+    const limit = Math.min(100, Math.max(1, rawLimit));
     const skip = (page - 1) * limit;
 
     const where = status ? { status } : {};

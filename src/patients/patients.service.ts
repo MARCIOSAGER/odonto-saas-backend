@@ -19,8 +19,8 @@ export class PatientsService {
   ) {}
 
   async findAll(clinicId: string, options: FindAllOptions = {}) {
-    const page = Number(options.page) || 1;
-    const limit = Number(options.limit) || 10;
+    const page = Math.max(1, Number(options.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(options.limit) || 10));
     const skip = Math.max(0, (page - 1) * limit);
     const { search, status } = options;
 
