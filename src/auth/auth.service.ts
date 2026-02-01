@@ -147,8 +147,9 @@ export class AuthService {
       );
 
       // Auto-send code for WhatsApp method
+      let codeSent = true;
       if (user.two_factor_method === 'whatsapp') {
-        await this.twoFactorService.sendWhatsAppCode(user.id);
+        codeSent = await this.twoFactorService.sendWhatsAppCode(user.id);
       }
 
       return {
@@ -156,6 +157,7 @@ export class AuthService {
         two_factor_token: twoFactorToken,
         two_factor_method: user.two_factor_method,
         methods_available: this.getAvailable2faMethods(user),
+        code_sent: codeSent,
       };
     }
 
@@ -263,7 +265,12 @@ export class AuthService {
     }
 
     if (user.two_factor_method === 'whatsapp') {
-      await this.twoFactorService.sendWhatsAppCode(userId);
+      const sent = await this.twoFactorService.sendWhatsAppCode(userId);
+      if (!sent) {
+        throw new BadRequestException(
+          'Não foi possível enviar o código via WhatsApp. Verifique se o WhatsApp está configurado na clínica.',
+        );
+      }
     } else if (user.two_factor_method === 'totp') {
       throw new BadRequestException('TOTP não requer reenvio de código');
     }
@@ -391,8 +398,9 @@ export class AuthService {
         user.clinic_id,
       );
 
+      let codeSent = true;
       if (user.two_factor_method === 'whatsapp') {
-        await this.twoFactorService.sendWhatsAppCode(user.id);
+        codeSent = await this.twoFactorService.sendWhatsAppCode(user.id);
       }
 
       return {
@@ -400,6 +408,7 @@ export class AuthService {
         two_factor_token: twoFactorToken,
         two_factor_method: user.two_factor_method,
         methods_available: this.getAvailable2faMethods(user),
+        code_sent: codeSent,
       };
     }
 
@@ -438,8 +447,21 @@ export class AuthService {
   // ============================================
 
   async setupWhatsApp2fa(userId: string, phone: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { clinic: { select: { z_api_instance: true, z_api_token: true } } },
+    });
     if (!user) throw new NotFoundException('Usuário não encontrado');
+
+    if (!user.clinic_id || !user.clinic) {
+      throw new BadRequestException('Usuário não está vinculado a uma clínica');
+    }
+
+    if (!user.clinic.z_api_instance || !user.clinic.z_api_token) {
+      throw new BadRequestException(
+        'WhatsApp (Z-API) não está configurado na sua clínica. Configure em Configurações > WhatsApp antes de ativar o 2FA por WhatsApp.',
+      );
+    }
 
     await this.prisma.user.update({
       where: { id: userId },
