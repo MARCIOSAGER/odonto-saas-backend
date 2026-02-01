@@ -1,6 +1,6 @@
 import { PartialType } from '@nestjs/swagger';
 import { CreateClinicDto } from './create-clinic.dto';
-import { IsOptional, IsString, IsUrl, IsObject, Matches } from 'class-validator';
+import { IsBoolean, IsOptional, IsString, IsUrl, IsObject, Matches } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateClinicDto extends PartialType(CreateClinicDto) {
@@ -94,6 +94,12 @@ export class UpdateClinicDto extends PartialType(CreateClinicDto) {
   @IsObject()
   @IsOptional()
   business_hours?: Record<string, { open: string; close: string } | null>;
+
+  // Onboarding
+  @ApiPropertyOptional({ description: 'Whether onboarding has been completed' })
+  @IsBoolean()
+  @IsOptional()
+  onboarding_completed?: boolean;
 
   // Geolocalização
   @ApiPropertyOptional({ description: 'Clinic latitude', example: '-23.550520' })

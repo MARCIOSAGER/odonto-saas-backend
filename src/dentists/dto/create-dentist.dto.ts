@@ -32,7 +32,6 @@ export class CreateDentistDto {
   @ApiPropertyOptional({ example: '11988888888' })
   @IsString()
   @IsOptional()
-  @Matches(/^\d{10,11}$/, { message: 'Phone must have 10 or 11 digits' })
   phone?: string;
 
   @ApiPropertyOptional({ example: 'dr.joao@clinica.com' })

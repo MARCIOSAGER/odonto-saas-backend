@@ -26,7 +26,6 @@ export class CreateClinicDto {
   @ApiProperty({ example: '11999999999' })
   @IsString()
   @IsNotEmpty()
-  @Matches(/^\d{10,11}$/, { message: 'Phone must have 10 or 11 digits' })
   phone: string;
 
   @ApiProperty({ example: 'contato@clinica.com' })
