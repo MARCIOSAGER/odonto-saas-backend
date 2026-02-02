@@ -15,14 +15,21 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
 
   // Static files (uploads) - serve before any middleware
+  // SECURITY NOTE: /uploads/* is served without authentication.
+  // Uploaded files (logos, favicons, patient photos) are accessible to anyone with the URL.
+  // File names are UUIDs, making enumeration impractical.
+  // For sensitive files (patient documents), consider implementing signed URLs or an auth middleware.
   app.useStaticAssets(join(process.cwd(), 'uploads'), {
     prefix: '/uploads',
     index: false,
   });
 
-  // Security
+  // Security headers
   app.use(helmet({
-    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    crossOriginResourcePolicy: { policy: 'cross-origin' }, // Necessário: frontend e backend em domínios diferentes, /uploads precisa ser acessível cross-origin
+    frameguard: { action: 'deny' }, // Previne clickjacking
+    hsts: { maxAge: 31536000, includeSubDomains: true }, // Force HTTPS por 1 ano
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
   }));
   app.enableCors({
     origin: (origin, callback) => {
@@ -32,7 +39,10 @@ async function bootstrap() {
         'http://localhost:3001',
       ];
 
-      // Permitir requisições sem origin (mobile apps, Postman, etc)
+      // Permitir requests sem Origin header:
+      // - Webhooks server-to-server (Z-API, Stripe) não enviam Origin
+      // - Mobile apps e Postman também não
+      // Segurança garantida pelo JWT em rotas autenticadas e @Public() em rotas abertas.
       if (!origin) {
         return callback(null, true);
       }
@@ -41,9 +51,6 @@ async function bootstrap() {
         return callback(null, origin);
       }
 
-      // Não lançar erro - apenas não enviar headers CORS.
-      // Isso permite webhooks server-to-server (Z-API) que enviam Origin header,
-      // enquanto browsers ainda bloqueiam cross-origin não autorizado.
       return callback(null, false);
     },
     credentials: true,

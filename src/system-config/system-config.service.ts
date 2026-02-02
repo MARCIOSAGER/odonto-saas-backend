@@ -42,6 +42,11 @@ export class SystemConfigService {
       throw new BadRequestException(`Config "${key}" is not editable`);
     }
 
+    // Validate hex color values for color-related keys
+    if (key.endsWith('_color') && value && !/^#[0-9a-fA-F]{6}$/.test(value)) {
+      throw new BadRequestException(`"${key}" must be a valid hex color (e.g. #0EA5E9)`);
+    }
+
     // Infer category from key prefix
     let category = 'general';
     let isPublic = false;

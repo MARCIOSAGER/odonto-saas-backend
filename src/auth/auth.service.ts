@@ -52,7 +52,7 @@ export class AuthService {
     }
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(registerDto.password, 10);
+    const hashedPassword = await bcrypt.hash(registerDto.password, 12);
 
     // Create clinic and user in transaction
     const result = await this.prisma.$transaction(async (tx) => {
@@ -340,7 +340,7 @@ export class AuthService {
       throw new BadRequestException('Token inválido ou expirado');
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
 
     await this.prisma.user.update({
       where: { id: user.id },
