@@ -66,6 +66,30 @@ export class ClinicsService {
     };
   }
 
+  async findPublicBrandingBySlug(slug: string) {
+    const clinic = await this.prisma.clinic.findUnique({
+      where: { slug },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        logo_url: true,
+        favicon_url: true,
+        logo_display_mode: true,
+        primary_color: true,
+        secondary_color: true,
+        slogan: true,
+        tagline: true,
+      },
+    });
+
+    if (!clinic) {
+      throw new NotFoundException('Clinic not found');
+    }
+
+    return clinic;
+  }
+
   async findOne(id: string) {
     const clinic = await this.prisma.clinic.findUnique({
       where: { id },

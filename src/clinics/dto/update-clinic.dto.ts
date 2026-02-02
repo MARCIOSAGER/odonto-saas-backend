@@ -24,6 +24,13 @@ export class UpdateClinicDto extends PartialType(CreateClinicDto) {
   @IsOptional()
   z_api_client_token?: string;
 
+  // White-label
+  @ApiPropertyOptional({ description: 'URL slug for white-label login', example: 'clinica-odonto-saude' })
+  @IsString()
+  @IsOptional()
+  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, { message: 'slug must be lowercase alphanumeric with hyphens only' })
+  slug?: string;
+
   // Branding
   @ApiPropertyOptional({ description: 'Logo URL', example: 'https://example.com/logo.png' })
   @IsString()

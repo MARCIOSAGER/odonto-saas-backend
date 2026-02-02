@@ -29,6 +29,7 @@ import { PatientPortalModule } from './patient-portal/patient-portal.module';
 import { NpsModule } from './nps/nps.module';
 import { ReportsModule } from './reports/reports.module';
 import { AdminModule } from './admin/admin.module';
+import { SystemConfigModule } from './system-config/system-config.module';
 
 @Module({
   imports: [
@@ -87,6 +88,7 @@ import { AdminModule } from './admin/admin.module';
     NpsModule,
     ReportsModule,
     AdminModule,
+    SystemConfigModule,
   ],
   controllers: [HealthController],
   providers: [

@@ -23,26 +23,9 @@ import { UpdateEmailSettingsDto } from './dto/update-email-settings.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { diskStorage } from 'multer';
-import { extname, join } from 'path';
-import { v4 as uuidv4 } from 'uuid';
-
-const imageFileFilter = (req: any, file: Express.Multer.File, callback: (error: Error | null, acceptFile: boolean) => void) => {
-  if (!file.mimetype.match(/\/(jpg|jpeg|png|gif|ico|svg\+xml)$/)) {
-    return callback(new BadRequestException('Only image files are allowed!'), false);
-  }
-  callback(null, true);
-};
-
-const storageConfig = (folder: string) =>
-  diskStorage({
-    destination: join(process.cwd(), 'uploads', folder),
-    filename: (req, file, callback) => {
-      const uniqueName = `${uuidv4()}${extname(file.originalname)}`;
-      callback(null, uniqueName);
-    },
-  });
+import { storageConfig, imageFileFilter } from '../common/utils/upload.util';
 
 @ApiTags('clinics')
 @Controller('clinics')
@@ -256,6 +239,15 @@ export class ClinicsController {
   @ApiResponse({ status: 200, description: 'Test email result' })
   async testEmailConnection(@CurrentUser() user: { userId: string; clinicId: string }) {
     return this.clinicsService.testEmailConnection(user.clinicId, user.userId);
+  }
+
+  @Get('public/branding/:slug')
+  @Public()
+  @ApiOperation({ summary: 'Get clinic public branding by slug (no auth required)' })
+  @ApiResponse({ status: 200, description: 'Clinic branding data' })
+  @ApiResponse({ status: 404, description: 'Clinic not found' })
+  async getPublicBranding(@Param('slug') slug: string) {
+    return this.clinicsService.findPublicBrandingBySlug(slug);
   }
 
   @Get(':id')

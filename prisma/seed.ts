@@ -202,6 +202,290 @@ async function main() {
   console.log('Created plans:', basicPlan.name, standardPlan.name, premiumPlan.name);
 
   // ============================================
+  // SEED DE CONFIGURAÇÕES DE PLATAFORMA (BRANDING)
+  // ============================================
+
+  const platformBrandingConfigs = [
+    {
+      key: 'platform_name',
+      value: 'Odonto SaaS',
+      type: 'string',
+      description: 'Nome da plataforma exibido no site e telas de login',
+      is_public: true,
+      is_editable: true,
+      category: 'platform_branding',
+    },
+    {
+      key: 'platform_description',
+      value: 'Sistema completo para gestão de clínicas odontológicas',
+      type: 'string',
+      description: 'Descrição da plataforma (meta description e footer)',
+      is_public: true,
+      is_editable: true,
+      category: 'platform_branding',
+    },
+    {
+      key: 'platform_logo_url',
+      value: '',
+      type: 'string',
+      description: 'URL do logo da plataforma (vazio = usar SVG padrão)',
+      is_public: true,
+      is_editable: true,
+      category: 'platform_branding',
+    },
+    {
+      key: 'platform_favicon_url',
+      value: '',
+      type: 'string',
+      description: 'URL do favicon da plataforma (vazio = usar padrão)',
+      is_public: true,
+      is_editable: true,
+      category: 'platform_branding',
+    },
+    {
+      key: 'platform_primary_color',
+      value: '#0EA5E9',
+      type: 'string',
+      description: 'Cor primária da plataforma (hex)',
+      is_public: true,
+      is_editable: true,
+      category: 'platform_branding',
+    },
+    {
+      key: 'platform_secondary_color',
+      value: '#10B981',
+      type: 'string',
+      description: 'Cor secundária da plataforma (hex)',
+      is_public: true,
+      is_editable: true,
+      category: 'platform_branding',
+    },
+    {
+      key: 'platform_hero_title',
+      value: 'Gestão completa para sua clínica odontológica',
+      type: 'string',
+      description: 'Título da seção hero na landing page',
+      is_public: true,
+      is_editable: true,
+      category: 'platform_branding',
+    },
+    {
+      key: 'platform_hero_subtitle',
+      value: 'Agenda, prontuários, financeiro, WhatsApp e inteligência artificial em uma única plataforma. Tudo que você precisa para crescer.',
+      type: 'string',
+      description: 'Subtítulo da seção hero na landing page',
+      is_public: true,
+      is_editable: true,
+      category: 'platform_branding',
+    },
+  ];
+
+  for (const config of platformBrandingConfigs) {
+    await prisma.systemConfig.upsert({
+      where: { key: config.key },
+      update: {},
+      create: config,
+    });
+  }
+
+  console.log('Created platform branding configs:', platformBrandingConfigs.length);
+
+  // ============================================
+  // SEED DE CONFIGURAÇÕES DE GATEWAY DE PAGAMENTO
+  // ============================================
+
+  const paymentGatewayConfigs = [
+    {
+      key: 'payment_gateway_active',
+      value: 'none',
+      type: 'string',
+      description: 'Gateway ativo: none, stripe, asaas',
+      is_public: false,
+      is_editable: true,
+      category: 'payment_gateway',
+    },
+    {
+      key: 'stripe_secret_key',
+      value: '',
+      type: 'string',
+      description: 'Chave secreta do Stripe (sk_live_... ou sk_test_...)',
+      is_public: false,
+      is_editable: true,
+      category: 'payment_gateway',
+    },
+    {
+      key: 'stripe_webhook_secret',
+      value: '',
+      type: 'string',
+      description: 'Segredo do webhook do Stripe (whsec_...)',
+      is_public: false,
+      is_editable: true,
+      category: 'payment_gateway',
+    },
+    {
+      key: 'stripe_publishable_key',
+      value: '',
+      type: 'string',
+      description: 'Chave publicável do Stripe (pk_live_... ou pk_test_...)',
+      is_public: false,
+      is_editable: true,
+      category: 'payment_gateway',
+    },
+    {
+      key: 'asaas_api_key',
+      value: '',
+      type: 'string',
+      description: 'API Key do Asaas',
+      is_public: false,
+      is_editable: true,
+      category: 'payment_gateway',
+    },
+    {
+      key: 'asaas_webhook_token',
+      value: '',
+      type: 'string',
+      description: 'Token de webhook do Asaas',
+      is_public: false,
+      is_editable: true,
+      category: 'payment_gateway',
+    },
+    {
+      key: 'asaas_sandbox',
+      value: 'true',
+      type: 'boolean',
+      description: 'Usar ambiente sandbox do Asaas (true/false)',
+      is_public: false,
+      is_editable: true,
+      category: 'payment_gateway',
+    },
+  ];
+
+  for (const config of paymentGatewayConfigs) {
+    await prisma.systemConfig.upsert({
+      where: { key: config.key },
+      update: {},
+      create: config,
+    });
+  }
+
+  console.log('Created payment gateway configs:', paymentGatewayConfigs.length);
+
+  // ============================================
+  // SEED DE CONFIGURAÇÕES SMTP PADRÃO
+  // ============================================
+
+  const smtpConfigs = [
+    {
+      key: 'smtp_default_host',
+      value: '',
+      type: 'string',
+      description: 'Servidor SMTP padrão para clínicas sem SMTP próprio',
+      is_public: false,
+      is_editable: true,
+      category: 'smtp',
+    },
+    {
+      key: 'smtp_default_port',
+      value: '587',
+      type: 'string',
+      description: 'Porta SMTP padrão',
+      is_public: false,
+      is_editable: true,
+      category: 'smtp',
+    },
+    {
+      key: 'smtp_default_user',
+      value: '',
+      type: 'string',
+      description: 'Usuário SMTP padrão',
+      is_public: false,
+      is_editable: true,
+      category: 'smtp',
+    },
+    {
+      key: 'smtp_default_pass',
+      value: '',
+      type: 'string',
+      description: 'Senha SMTP padrão',
+      is_public: false,
+      is_editable: true,
+      category: 'smtp',
+    },
+    {
+      key: 'smtp_default_from',
+      value: '',
+      type: 'string',
+      description: 'E-mail remetente padrão (ex: noreply@seudominio.com)',
+      is_public: false,
+      is_editable: true,
+      category: 'smtp',
+    },
+  ];
+
+  for (const config of smtpConfigs) {
+    await prisma.systemConfig.upsert({
+      where: { key: config.key },
+      update: {},
+      create: config,
+    });
+  }
+
+  console.log('Created SMTP configs:', smtpConfigs.length);
+
+  // ============================================
+  // SEED DE CONFIGURAÇÕES GERAIS DA PLATAFORMA
+  // ============================================
+
+  const generalConfigs = [
+    {
+      key: 'platform_support_email',
+      value: '',
+      type: 'string',
+      description: 'E-mail de suporte exibido na plataforma',
+      is_public: true,
+      is_editable: true,
+      category: 'general',
+    },
+    {
+      key: 'platform_support_whatsapp',
+      value: '',
+      type: 'string',
+      description: 'WhatsApp de suporte (apenas números, ex: 5511999999999)',
+      is_public: true,
+      is_editable: true,
+      category: 'general',
+    },
+    {
+      key: 'platform_terms_url',
+      value: '',
+      type: 'string',
+      description: 'URL dos termos de uso',
+      is_public: true,
+      is_editable: true,
+      category: 'general',
+    },
+    {
+      key: 'platform_privacy_url',
+      value: '',
+      type: 'string',
+      description: 'URL da política de privacidade',
+      is_public: true,
+      is_editable: true,
+      category: 'general',
+    },
+  ];
+
+  for (const config of generalConfigs) {
+    await prisma.systemConfig.upsert({
+      where: { key: config.key },
+      update: {},
+      create: config,
+    });
+  }
+
+  console.log('Created general configs:', generalConfigs.length);
+
+  // ============================================
   // SEED DE DADOS DEMO
   // ============================================
 

@@ -74,6 +74,9 @@ model Clinic {
   // 2FA Policy
   two_factor_policy String @default("disabled") // 'disabled' | 'optional' | 'required'
 
+  // White-label
+  slug String? @unique @db.VarChar(100)
+
   // Branding
   logo_url          String?
   favicon_url       String?
@@ -113,6 +116,7 @@ model Clinic {
 
   @@index([cnpj], map: "idx_clinic_cnpj")
   @@index([status], map: "idx_clinic_status")
+  @@index([slug], map: "idx_clinic_slug")
 }
 
 model Dentist {
