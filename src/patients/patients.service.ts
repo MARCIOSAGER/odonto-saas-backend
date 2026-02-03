@@ -539,7 +539,7 @@ export class PatientsService {
           type: 'odontogram',
           date: entry.created_at instanceof Date ? entry.created_at.toISOString() : String(entry.created_at),
           title: `Dente ${entry.tooth_number}`,
-          description: `${entry.entry_type}: ${entry.status_code} [${entry.surfaces.join(',')}]${entry.notes ? ` — ${entry.notes}` : ''}`,
+          description: `${entry.entry_type}: ${entry.status_code} [${(entry.surfaces || []).join(',')}]${entry.notes ? ` — ${entry.notes}` : ''}`,
           meta: {
             tooth_number: entry.tooth_number,
             status_code: entry.status_code,

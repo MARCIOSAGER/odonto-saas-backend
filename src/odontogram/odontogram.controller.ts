@@ -130,7 +130,7 @@ export class OdontogramController {
   // CLINIC LEGEND ROUTES
   // ============================================
 
-  @Get('clinics/odontogram/legend')
+  @Get('odontogram/legend')
   @ApiOperation({ summary: 'Get odontogram legend for the clinic' })
   @ApiResponse({ status: 200, description: 'Legend items list' })
   async getLegend(
@@ -139,7 +139,7 @@ export class OdontogramController {
     return this.odontogramService.getLegend(user.clinicId);
   }
 
-  @Put('clinics/odontogram/legend')
+  @Put('odontogram/legend')
   @ApiOperation({ summary: 'Create or update an odontogram legend item' })
   @ApiResponse({ status: 200, description: 'Legend item upserted' })
   @Permissions('settings:manage')
@@ -150,7 +150,7 @@ export class OdontogramController {
     return this.odontogramService.upsertLegend(user.clinicId, dto);
   }
 
-  @Delete('clinics/odontogram/legend/:code')
+  @Delete('odontogram/legend/:code')
   @ApiOperation({ summary: 'Soft-delete an odontogram legend item' })
   @ApiResponse({ status: 200, description: 'Legend item deactivated' })
   @ApiResponse({ status: 404, description: 'Legend item not found' })
