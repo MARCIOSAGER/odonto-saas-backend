@@ -34,18 +34,44 @@ export class NotificationsService {
     return notification;
   }
 
-  async findAll(userId: string, page = 1, limit = 20) {
-    const skip = (page - 1) * limit;
+  async findAll(userId: string, page = 1, limit = 20, cursor?: string) {
     const take = Math.min(limit, 100);
+    const where = { user_id: userId };
+
+    // Cursor-based pagination
+    if (cursor) {
+      const notifications = await this.prisma.notification.findMany({
+        where,
+        cursor: { id: cursor },
+        skip: 1,
+        take: take + 1,
+        orderBy: { created_at: 'desc' },
+      });
+
+      const hasMore = notifications.length > take;
+      const data = hasMore ? notifications.slice(0, take) : notifications;
+
+      return {
+        data,
+        meta: {
+          hasMore,
+          nextCursor: data.length > 0 ? data[data.length - 1].id : null,
+          limit: take,
+        },
+      };
+    }
+
+    // Offset-based pagination (default)
+    const skip = (page - 1) * take;
 
     const [notifications, total] = await Promise.all([
       this.prisma.notification.findMany({
-        where: { user_id: userId },
+        where,
         orderBy: { created_at: 'desc' },
         skip,
         take,
       }),
-      this.prisma.notification.count({ where: { user_id: userId } }),
+      this.prisma.notification.count({ where }),
     ]);
 
     return {

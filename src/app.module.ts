@@ -6,6 +6,7 @@ import { TerminusModule } from '@nestjs/terminus';
 import { CorrelationIdMiddleware } from './logger/correlation-id.middleware';
 import { RedisCacheModule } from './cache/cache.module';
 import { QueueModule } from './queue/queue.module';
+import { StorageModule } from './storage/storage.module';
 
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
@@ -71,6 +72,9 @@ import { AnamnesisModule } from './anamnesis/anamnesis.module';
 
     // Queue system (BullMQ + Redis)
     QueueModule,
+
+    // Object storage (S3/R2 with local disk fallback)
+    StorageModule,
 
     // Database
     PrismaModule,

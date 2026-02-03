@@ -31,14 +31,16 @@ export class PatientsController {
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'search', required: false, type: String })
   @ApiQuery({ name: 'status', required: false, type: String })
+  @ApiQuery({ name: 'cursor', required: false, type: String, description: 'Cursor for cursor-based pagination' })
   async findAll(
     @CurrentUser() user: { clinicId: string },
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('search') search?: string,
     @Query('status') status?: string,
+    @Query('cursor') cursor?: string,
   ) {
-    return this.patientsService.findAll(user.clinicId, { page, limit, search, status });
+    return this.patientsService.findAll(user.clinicId, { page, limit, search, status, cursor });
   }
 
   @Post()

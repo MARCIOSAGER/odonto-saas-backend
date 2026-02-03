@@ -9,6 +9,7 @@ interface FindAllOptions {
   limit?: number;
   search?: string;
   status?: string;
+  cursor?: string;
 }
 
 @Injectable()
@@ -19,10 +20,8 @@ export class PatientsService {
   ) {}
 
   async findAll(clinicId: string, options: FindAllOptions = {}) {
-    const page = Math.max(1, Number(options.page) || 1);
     const limit = Math.min(100, Math.max(1, Number(options.limit) || 10));
-    const skip = Math.max(0, (page - 1) * limit);
-    const { search, status } = options;
+    const { search, status, cursor } = options;
 
     const where: Record<string, unknown> = { clinic_id: clinicId, deleted_at: null };
 
@@ -38,6 +37,36 @@ export class PatientsService {
         { cpf: { contains: search } },
       ];
     }
+
+    // Cursor-based pagination
+    if (cursor) {
+      const patients = await this.prisma.patient.findMany({
+        where,
+        cursor: { id: cursor },
+        skip: 1,
+        take: limit + 1,
+        orderBy: { created_at: 'desc' },
+        include: {
+          _count: { select: { appointments: true } },
+        },
+      });
+
+      const hasMore = patients.length > limit;
+      const data = hasMore ? patients.slice(0, limit) : patients;
+
+      return {
+        data,
+        meta: {
+          hasMore,
+          nextCursor: data.length > 0 ? data[data.length - 1].id : null,
+          limit,
+        },
+      };
+    }
+
+    // Offset-based pagination (default)
+    const page = Math.max(1, Number(options.page) || 1);
+    const skip = Math.max(0, (page - 1) * limit);
 
     const [patients, total] = await Promise.all([
       this.prisma.patient.findMany({

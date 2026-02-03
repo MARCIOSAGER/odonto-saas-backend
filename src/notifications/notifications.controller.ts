@@ -33,15 +33,18 @@ export class NotificationsController {
   @ApiResponse({ status: 200, description: 'Notifications list' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'cursor', required: false, type: String, description: 'Cursor for cursor-based pagination' })
   async findAll(
     @CurrentUser() user: { userId: string },
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('cursor') cursor?: string,
   ) {
     return this.notificationsService.findAll(
       user.userId,
       page ? parseInt(page, 10) : 1,
       limit ? parseInt(limit, 10) : 20,
+      cursor,
     );
   }
 

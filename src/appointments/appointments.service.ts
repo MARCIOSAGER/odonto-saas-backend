@@ -16,6 +16,7 @@ interface FindAllOptions {
   status?: string;
   dentistId?: string;
   patientId?: string;
+  cursor?: string;
 }
 
 @Injectable()
@@ -26,10 +27,8 @@ export class AppointmentsService {
   ) {}
 
   async findAll(clinicId: string, options: FindAllOptions = {}) {
-    const page = Math.max(1, Number(options.page) || 1);
     const limit = Math.min(100, Math.max(1, Number(options.limit) || 10));
-    const skip = Math.max(0, (page - 1) * limit);
-    const { date, status, dentistId, patientId } = options;
+    const { date, status, dentistId, patientId, cursor } = options;
 
     const where: Record<string, unknown> = { clinic_id: clinicId, deleted_at: null };
 
@@ -57,23 +56,48 @@ export class AppointmentsService {
       };
     }
 
+    const orderBy: any[] = [{ date: 'asc' }, { time: 'asc' }];
+    const include = {
+      patient: { select: { id: true, name: true, phone: true } },
+      dentist: { select: { id: true, name: true, specialty: true } },
+      service: { select: { id: true, name: true, price: true, duration: true } },
+    };
+
+    // Cursor-based pagination
+    if (cursor) {
+      const appointments = await this.prisma.appointment.findMany({
+        where,
+        cursor: { id: cursor },
+        skip: 1,
+        take: limit + 1,
+        orderBy,
+        include,
+      });
+
+      const hasMore = appointments.length > limit;
+      const data = hasMore ? appointments.slice(0, limit) : appointments;
+
+      return {
+        data,
+        meta: {
+          hasMore,
+          nextCursor: data.length > 0 ? data[data.length - 1].id : null,
+          limit,
+        },
+      };
+    }
+
+    // Offset-based pagination (default)
+    const page = Math.max(1, Number(options.page) || 1);
+    const skip = Math.max(0, (page - 1) * limit);
+
     const [appointments, total] = await Promise.all([
       this.prisma.appointment.findMany({
         where,
         skip,
         take: limit,
-        orderBy: [{ date: 'asc' }, { time: 'asc' }],
-        include: {
-          patient: {
-            select: { id: true, name: true, phone: true },
-          },
-          dentist: {
-            select: { id: true, name: true, specialty: true },
-          },
-          service: {
-            select: { id: true, name: true, price: true, duration: true },
-          },
-        },
+        orderBy,
+        include,
       }),
       this.prisma.appointment.count({ where }),
     ]);

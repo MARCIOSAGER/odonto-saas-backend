@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { diskStorage } from 'multer';
+import { diskStorage, memoryStorage } from 'multer';
 import { extname, join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -29,3 +29,10 @@ export const storageConfig = (folder: string) =>
       callback(null, uniqueName);
     },
   });
+
+export const memoryStorageConfig = () => memoryStorage();
+
+export const getStorageKey = (folder: string, originalname: string): string => {
+  const ext = extname(originalname);
+  return `${folder}/${uuidv4()}${ext}`;
+};

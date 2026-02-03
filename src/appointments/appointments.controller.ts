@@ -38,6 +38,7 @@ export class AppointmentsController {
   @ApiQuery({ name: 'status', required: false, type: String })
   @ApiQuery({ name: 'dentist_id', required: false, type: String })
   @ApiQuery({ name: 'patient_id', required: false, type: String })
+  @ApiQuery({ name: 'cursor', required: false, type: String, description: 'Cursor for cursor-based pagination' })
   async findAll(
     @CurrentUser() user: { clinicId: string },
     @Query('page') page?: number,
@@ -46,6 +47,7 @@ export class AppointmentsController {
     @Query('status') status?: string,
     @Query('dentist_id') dentistId?: string,
     @Query('patient_id') patientId?: string,
+    @Query('cursor') cursor?: string,
   ) {
     return this.appointmentsService.findAll(user.clinicId, {
       page,
@@ -54,6 +56,7 @@ export class AppointmentsController {
       status,
       dentistId,
       patientId,
+      cursor,
     });
   }
 

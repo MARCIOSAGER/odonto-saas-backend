@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { StorageService } from '../storage/storage.service';
 import * as PDFDocument from 'pdfkit';
-import * as fs from 'fs';
-import * as path from 'path';
+import { PassThrough } from 'stream';
 
 interface Medication {
   name: string;
@@ -16,7 +16,10 @@ interface Medication {
 export class PdfGeneratorService {
   private readonly logger = new Logger(PdfGeneratorService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storageService: StorageService,
+  ) {}
 
   async generatePdf(prescriptionId: string, clinicId: string): Promise<string> {
     const prescription = await this.prisma.prescription.findFirst({
@@ -54,12 +57,7 @@ export class PdfGeneratorService {
       },
     });
 
-    // Ensure directory exists
-    const dir = path.join(process.cwd(), 'uploads', 'prescriptions', clinicId);
-    fs.mkdirSync(dir, { recursive: true });
-
-    const filePath = path.join(dir, `${prescriptionId}.pdf`);
-    const pdfUrl = `/uploads/prescriptions/${clinicId}/${prescriptionId}.pdf`;
+    const storageKey = `prescriptions/${clinicId}/${prescriptionId}.pdf`;
 
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({
@@ -67,8 +65,10 @@ export class PdfGeneratorService {
         margins: { top: 50, bottom: 50, left: 60, right: 60 },
       });
 
-      const stream = fs.createWriteStream(filePath);
-      doc.pipe(stream);
+      const chunks: Buffer[] = [];
+      const passThrough = new PassThrough();
+      passThrough.on('data', (chunk: Buffer) => chunks.push(chunk));
+      doc.pipe(passThrough);
 
       const primaryColor = clinic?.primary_color || '#0EA5E9';
 
@@ -306,20 +306,31 @@ export class PdfGeneratorService {
 
       doc.end();
 
-      stream.on('finish', async () => {
-        // Update pdf_url in database
-        await this.prisma.prescription.update({
-          where: { id: prescriptionId },
-          data: { pdf_url: pdfUrl },
-        });
+      passThrough.on('end', async () => {
+        try {
+          const buffer = Buffer.concat(chunks);
+          const pdfUrl = await this.storageService.upload(
+            buffer,
+            storageKey,
+            'application/pdf',
+          );
 
-        this.logger.log(
-          `PDF generated for prescription ${prescriptionId}: ${pdfUrl}`,
-        );
-        resolve(pdfUrl);
+          await this.prisma.prescription.update({
+            where: { id: prescriptionId },
+            data: { pdf_url: pdfUrl },
+          });
+
+          this.logger.log(
+            `PDF generated for prescription ${prescriptionId}: ${pdfUrl}`,
+          );
+          resolve(pdfUrl);
+        } catch (err) {
+          this.logger.error(`Failed to upload PDF: ${(err as Error).message}`);
+          reject(err);
+        }
       });
 
-      stream.on('error', (err) => {
+      passThrough.on('error', (err) => {
         this.logger.error(`Failed to generate PDF: ${err.message}`);
         reject(err);
       });

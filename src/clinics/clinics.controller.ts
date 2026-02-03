@@ -25,14 +25,18 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { storageConfig, imageFileFilter } from '../common/utils/upload.util';
+import { memoryStorageConfig, imageFileFilter, getStorageKey } from '../common/utils/upload.util';
+import { StorageService } from '../storage/storage.service';
 
 @ApiTags('clinics')
 @Controller('clinics')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth('JWT-auth')
 export class ClinicsController {
-  constructor(private readonly clinicsService: ClinicsService) {}
+  constructor(
+    private readonly clinicsService: ClinicsService,
+    private readonly storageService: StorageService,
+  ) {}
 
   @Get()
   @Roles('admin', 'superadmin')
@@ -100,7 +104,7 @@ export class ClinicsController {
   @ApiResponse({ status: 200, description: 'Logo uploaded successfully' })
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: storageConfig('logos'),
+      storage: memoryStorageConfig(),
       fileFilter: imageFileFilter,
       limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
     }),
@@ -112,7 +116,8 @@ export class ClinicsController {
     if (!file) {
       throw new BadRequestException('File is required');
     }
-    const logoUrl = `/uploads/logos/${file.filename}`;
+    const key = getStorageKey('logos', file.originalname);
+    const logoUrl = await this.storageService.upload(file.buffer, key, file.mimetype);
     await this.clinicsService.update(user.clinicId, { logo_url: logoUrl }, user.userId);
     return { logo_url: logoUrl };
   }
@@ -131,7 +136,7 @@ export class ClinicsController {
   @ApiResponse({ status: 200, description: 'Favicon uploaded successfully' })
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: storageConfig('favicons'),
+      storage: memoryStorageConfig(),
       fileFilter: imageFileFilter,
       limits: { fileSize: 1 * 1024 * 1024 }, // 1MB
     }),
@@ -143,7 +148,8 @@ export class ClinicsController {
     if (!file) {
       throw new BadRequestException('File is required');
     }
-    const faviconUrl = `/uploads/favicons/${file.filename}`;
+    const key = getStorageKey('favicons', file.originalname);
+    const faviconUrl = await this.storageService.upload(file.buffer, key, file.mimetype);
     await this.clinicsService.update(user.clinicId, { favicon_url: faviconUrl }, user.userId);
     return { favicon_url: faviconUrl };
   }

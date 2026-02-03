@@ -99,17 +99,25 @@ export class PrescriptionsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Res() res: Response,
   ) {
-    const prescription = await this.prescriptionsService.findById(
+    let prescription = await this.prescriptionsService.findById(
       user.clinicId,
       id,
     );
 
     if (!prescription.pdf_url) {
-      // Generate on demand if not yet generated
       await this.prescriptionsService.generatePdf(user.clinicId, id);
+      prescription = await this.prescriptionsService.findById(user.clinicId, id);
     }
 
-    const filePath = path.join(process.cwd(), prescription.pdf_url || '');
+    const pdfUrl = prescription.pdf_url || '';
+
+    // S3/R2 URLs — redirect to the public URL
+    if (pdfUrl.startsWith('http')) {
+      return res.redirect(302, pdfUrl);
+    }
+
+    // Local file
+    const filePath = path.join(process.cwd(), pdfUrl);
     if (!fs.existsSync(filePath)) {
       throw new NotFoundException('Arquivo PDF não encontrado');
     }
