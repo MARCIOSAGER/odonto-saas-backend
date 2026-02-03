@@ -364,4 +364,162 @@ export class PatientsService {
       treatment_plans: treatmentPlans,
     };
   }
+
+  async getTimeline(clinicId: string, patientId: string) {
+    await this.findOne(clinicId, patientId);
+
+    const [appointments, prescriptions, anamneses, treatmentPlans, odontogram] =
+      await Promise.all([
+        this.prisma.appointment.findMany({
+          where: { clinic_id: clinicId, patient_id: patientId },
+          orderBy: { date: 'desc' },
+          include: {
+            service: { select: { name: true, price: true } },
+            dentist: { select: { name: true } },
+          },
+        }),
+        this.prisma.prescription.findMany({
+          where: { clinic_id: clinicId, patient_id: patientId },
+          orderBy: { created_at: 'desc' },
+          select: {
+            id: true,
+            type: true,
+            pdf_url: true,
+            sent_at: true,
+            sent_via: true,
+            created_at: true,
+            dentist: { select: { name: true } },
+          },
+        }),
+        this.prisma.anamnesis.findMany({
+          where: { clinic_id: clinicId, patient_id: patientId },
+          orderBy: { created_at: 'desc' },
+          select: {
+            id: true,
+            risk_classification: true,
+            alerts: true,
+            created_at: true,
+            updated_at: true,
+          },
+        }),
+        this.prisma.treatmentPlan.findMany({
+          where: { clinic_id: clinicId, patient_id: patientId },
+          orderBy: { created_at: 'desc' },
+          select: {
+            id: true,
+            status: true,
+            total_cost: true,
+            total_sessions: true,
+            notes: true,
+            created_at: true,
+          },
+        }),
+        this.prisma.odontogram.findFirst({
+          where: { patient_id: patientId },
+          include: {
+            teeth: {
+              orderBy: { updated_at: 'desc' },
+              take: 20,
+            },
+          },
+        }),
+      ]);
+
+    const events: {
+      id: string;
+      type: string;
+      date: string;
+      title: string;
+      description: string;
+      meta?: Record<string, unknown>;
+    }[] = [];
+
+    for (const apt of appointments) {
+      events.push({
+        id: apt.id,
+        type: 'appointment',
+        date: apt.date instanceof Date ? apt.date.toISOString() : String(apt.date),
+        title: apt.service?.name || 'Consulta',
+        description: `${apt.status === 'completed' ? 'Concluída' : apt.status === 'cancelled' ? 'Cancelada' : apt.status === 'confirmed' ? 'Confirmada' : 'Agendada'} às ${apt.time}${apt.dentist ? ` com Dr(a). ${apt.dentist.name}` : ''}`,
+        meta: {
+          status: apt.status,
+          price: apt.service?.price,
+          dentist: apt.dentist?.name,
+          notes: apt.notes,
+        },
+      });
+    }
+
+    for (const rx of prescriptions) {
+      const typeLabel =
+        rx.type === 'prescription' ? 'Receita' :
+        rx.type === 'certificate' ? 'Atestado' : 'Encaminhamento';
+      events.push({
+        id: rx.id,
+        type: 'prescription',
+        date: rx.created_at instanceof Date ? rx.created_at.toISOString() : String(rx.created_at),
+        title: typeLabel,
+        description: `Emitida por Dr(a). ${rx.dentist?.name || 'N/A'}${rx.sent_via ? ` — enviada via ${rx.sent_via}` : ''}`,
+        meta: {
+          subtype: rx.type,
+          pdf_url: rx.pdf_url,
+          sent_at: rx.sent_at,
+        },
+      });
+    }
+
+    for (const a of anamneses) {
+      events.push({
+        id: a.id,
+        type: 'anamnesis',
+        date: a.created_at instanceof Date ? a.created_at.toISOString() : String(a.created_at),
+        title: 'Anamnese',
+        description: `Classificação: ${a.risk_classification || 'não definida'}${(a.alerts as string[])?.length ? ` — ${(a.alerts as string[]).length} alerta(s)` : ''}`,
+        meta: {
+          risk_classification: a.risk_classification,
+          alerts: a.alerts,
+        },
+      });
+    }
+
+    for (const tp of treatmentPlans) {
+      const statusLabel =
+        tp.status === 'pending' ? 'Pendente' :
+        tp.status === 'in_progress' ? 'Em andamento' :
+        tp.status === 'completed' ? 'Concluído' : 'Cancelado';
+      events.push({
+        id: tp.id,
+        type: 'treatment_plan',
+        date: tp.created_at instanceof Date ? tp.created_at.toISOString() : String(tp.created_at),
+        title: 'Plano de Tratamento',
+        description: `${statusLabel}${tp.total_cost ? ` — R$ ${Number(tp.total_cost).toFixed(2)}` : ''}${tp.total_sessions ? ` (${tp.total_sessions} sessões)` : ''}`,
+        meta: {
+          status: tp.status,
+          total_cost: tp.total_cost,
+          total_sessions: tp.total_sessions,
+          notes: tp.notes,
+        },
+      });
+    }
+
+    if (odontogram?.teeth) {
+      for (const tooth of odontogram.teeth) {
+        events.push({
+          id: `tooth-${tooth.tooth_number}-${tooth.updated_at}`,
+          type: 'odontogram',
+          date: tooth.updated_at instanceof Date ? tooth.updated_at.toISOString() : String(tooth.updated_at),
+          title: `Dente ${tooth.tooth_number}`,
+          description: `Status: ${tooth.status}${tooth.notes ? ` — ${tooth.notes}` : ''}`,
+          meta: {
+            tooth_number: tooth.tooth_number,
+            status: tooth.status,
+          },
+        });
+      }
+    }
+
+    events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    return { events, total: events.length };
+  }
 }

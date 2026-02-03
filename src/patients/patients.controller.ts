@@ -123,4 +123,15 @@ export class PatientsController {
   ) {
     return this.patientsService.getFinancialSummary(user.clinicId, id);
   }
+
+  @Get(':id/timeline')
+  @ApiOperation({ summary: 'Get patient timeline with all events' })
+  @ApiResponse({ status: 200, description: 'Patient timeline' })
+  @ApiResponse({ status: 404, description: 'Patient not found' })
+  async getTimeline(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: { clinicId: string },
+  ) {
+    return this.patientsService.getTimeline(user.clinicId, id);
+  }
 }
