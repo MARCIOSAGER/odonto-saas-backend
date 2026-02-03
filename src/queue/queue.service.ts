@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
-import { QUEUE_EMAIL, QUEUE_WHATSAPP, QUEUE_PDF } from './queue.module';
+import { QUEUE_EMAIL, QUEUE_WHATSAPP, QUEUE_PDF } from './queue.constants';
 
 export interface EmailJobData {
   type: 'generic' | 'password-reset' | 'welcome' | '2fa-code' | 'appointment-reminder';

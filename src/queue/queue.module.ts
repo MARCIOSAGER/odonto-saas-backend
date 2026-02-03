@@ -3,10 +3,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EmailProcessor } from './processors/email.processor';
 import { QueueService } from './queue.service';
-
-export const QUEUE_EMAIL = 'email';
-export const QUEUE_WHATSAPP = 'whatsapp';
-export const QUEUE_PDF = 'pdf';
+import { QUEUE_EMAIL, QUEUE_WHATSAPP, QUEUE_PDF } from './queue.constants';
 
 @Global()
 @Module({
