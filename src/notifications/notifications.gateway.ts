@@ -3,10 +3,14 @@ import {
   WebSocketServer,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  OnGatewayInit,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { createAdapter } from '@socket.io/redis-adapter';
+import Redis from 'ioredis';
 
 @WebSocketGateway({
   cors: {
@@ -20,7 +24,7 @@ import { JwtService } from '@nestjs/jwt';
   namespace: '/notifications',
 })
 export class NotificationsGateway
-  implements OnGatewayConnection, OnGatewayDisconnect
+  implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit
 {
   @WebSocketServer()
   server: Server;
@@ -28,7 +32,36 @@ export class NotificationsGateway
   private readonly logger = new Logger(NotificationsGateway.name);
   private userSockets = new Map<string, Set<string>>();
 
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  afterInit(server: Server) {
+    const redisHost = this.configService.get<string>('REDIS_HOST');
+    const redisPort = this.configService.get<number>('REDIS_PORT', 6379);
+    const redisPassword = this.configService.get<string>('REDIS_PASSWORD');
+
+    if (redisHost) {
+      try {
+        const pubClient = new Redis({
+          host: redisHost,
+          port: redisPort,
+          password: redisPassword || undefined,
+        });
+        const subClient = pubClient.duplicate();
+
+        server.adapter(createAdapter(pubClient, subClient) as any);
+        this.logger.log('Socket.IO Redis adapter configured');
+      } catch (error) {
+        this.logger.warn(
+          `Failed to configure Redis adapter, using in-memory: ${error}`,
+        );
+      }
+    } else {
+      this.logger.log('Socket.IO using in-memory adapter (no REDIS_HOST set)');
+    }
+  }
 
   handleConnection(client: Socket) {
     try {
