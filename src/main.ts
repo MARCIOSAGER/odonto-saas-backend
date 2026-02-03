@@ -14,16 +14,6 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
 
-  // Static files (uploads) - serve before any middleware
-  // SECURITY NOTE: /uploads/* is served without authentication.
-  // Uploaded files (logos, favicons, patient photos) are accessible to anyone with the URL.
-  // File names are UUIDs, making enumeration impractical.
-  // For sensitive files (patient documents), consider implementing signed URLs or an auth middleware.
-  app.useStaticAssets(join(process.cwd(), 'uploads'), {
-    prefix: '/uploads',
-    index: false,
-  });
-
   // Security headers
   app.use(helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' }, // Necessário: frontend e backend em domínios diferentes, /uploads precisa ser acessível cross-origin
@@ -56,6 +46,15 @@ async function bootstrap() {
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  });
+
+  // Static files (uploads) - served AFTER CORS and Helmet so headers are applied
+  // SECURITY NOTE: /uploads/* is served without authentication.
+  // Uploaded files (logos, favicons, patient photos) are accessible to anyone with the URL.
+  // File names are UUIDs, making enumeration impractical.
+  app.useStaticAssets(join(process.cwd(), 'uploads'), {
+    prefix: '/uploads',
+    index: false,
   });
 
   // Global prefix
