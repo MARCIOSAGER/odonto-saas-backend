@@ -1,18 +1,29 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReportPdfService } from './report-pdf.service';
+import { RedisCacheService } from '../cache/cache.service';
+
+const TEN_MINUTES = 10 * 60 * 1000;
+const FIVE_MINUTES = 5 * 60 * 1000;
 
 @Injectable()
 export class ReportsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly reportPdfService: ReportPdfService,
+    private readonly cacheService: RedisCacheService,
   ) {}
 
   /**
    * Revenue report (by period, dentist, service)
    */
   async getRevenue(clinicId: string, startDate: Date, endDate: Date) {
+    const startKey = startDate.toISOString().split('T')[0];
+    const endKey = endDate.toISOString().split('T')[0];
+
+    return this.cacheService.getOrSet(
+      `reports:revenue:${clinicId}:${startKey}:${endKey}`,
+      async () => {
     const appointments = await this.prisma.appointment.findMany({
       where: {
         clinic_id: clinicId,
@@ -63,12 +74,21 @@ export class ReportsService {
         .map(([month, revenue]) => ({ month, revenue }))
         .sort((a, b) => a.month.localeCompare(b.month)),
     };
+      },
+      TEN_MINUTES,
+    );
   }
 
   /**
    * Appointments report (attendance, no-shows, cancellations)
    */
   async getAppointments(clinicId: string, startDate: Date, endDate: Date) {
+    const startKey = startDate.toISOString().split('T')[0];
+    const endKey = endDate.toISOString().split('T')[0];
+
+    return this.cacheService.getOrSet(
+      `reports:appointments:${clinicId}:${startKey}:${endKey}`,
+      async () => {
     const appointments = await this.prisma.appointment.findMany({
       where: {
         clinic_id: clinicId,
@@ -108,12 +128,21 @@ export class ReportsService {
         .map(([month, statuses]) => ({ month, ...statuses }))
         .sort((a, b) => a.month.localeCompare(b.month)),
     };
+      },
+      TEN_MINUTES,
+    );
   }
 
   /**
    * Patients report (new, active, inactive)
    */
   async getPatients(clinicId: string, startDate: Date, endDate: Date) {
+    const startKey = startDate.toISOString().split('T')[0];
+    const endKey = endDate.toISOString().split('T')[0];
+
+    return this.cacheService.getOrSet(
+      `reports:patients:${clinicId}:${startKey}:${endKey}`,
+      async () => {
     const [totalActive, totalInactive, newPatients] = await Promise.all([
       this.prisma.patient.count({
         where: { clinic_id: clinicId, status: 'active' },
@@ -145,12 +174,21 @@ export class ReportsService {
         .map(([month, count]) => ({ month, new_patients: count }))
         .sort((a, b) => a.month.localeCompare(b.month)),
     };
+      },
+      TEN_MINUTES,
+    );
   }
 
   /**
    * Services report (most popular, avg ticket)
    */
   async getServices(clinicId: string, startDate: Date, endDate: Date) {
+    const startKey = startDate.toISOString().split('T')[0];
+    const endKey = endDate.toISOString().split('T')[0];
+
+    return this.cacheService.getOrSet(
+      `reports:services:${clinicId}:${startKey}:${endKey}`,
+      async () => {
     const appointments = await this.prisma.appointment.findMany({
       where: {
         clinic_id: clinicId,
@@ -183,12 +221,21 @@ export class ReportsService {
       total_services_performed: appointments.length,
       services,
     };
+      },
+      TEN_MINUTES,
+    );
   }
 
   /**
    * Commissions report (by dentist)
    */
   async getCommissions(clinicId: string, startDate: Date, endDate: Date) {
+    const startKey = startDate.toISOString().split('T')[0];
+    const endKey = endDate.toISOString().split('T')[0];
+
+    return this.cacheService.getOrSet(
+      `reports:commissions:${clinicId}:${startKey}:${endKey}`,
+      async () => {
     const appointments: any[] = await this.prisma.appointment.findMany({
       where: {
         clinic_id: clinicId,
@@ -230,12 +277,18 @@ export class ReportsService {
     return {
       dentists: Array.from(dentistMap.values()).sort((a, b) => b.total_revenue - a.total_revenue),
     };
+      },
+      TEN_MINUTES,
+    );
   }
 
   /**
    * Cashflow projection (30/60/90 days)
    */
   async getCashflow(clinicId: string) {
+    return this.cacheService.getOrSet(
+      `reports:cashflow:${clinicId}`,
+      async () => {
     const now = new Date();
     const days30 = new Date(now);
     days30.setDate(days30.getDate() + 30);
@@ -283,6 +336,9 @@ export class ReportsService {
         revenue: sum(next30) + sum(next60) + sum(next90),
       },
     };
+      },
+      FIVE_MINUTES,
+    );
   }
 
   /**
