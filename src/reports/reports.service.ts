@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { ReportPdfService } from './report-pdf.service';
 
 @Injectable()
 export class ReportsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly reportPdfService: ReportPdfService,
+  ) {}
 
   /**
    * Revenue report (by period, dentist, service)
@@ -342,5 +346,114 @@ export class ReportsService {
     }
 
     return '';
+  }
+
+  /**
+   * Export report as PDF buffer
+   */
+  async exportPdf(clinicId: string, type: string, startDate: Date, endDate: Date): Promise<Buffer> {
+    const fmt = (d: Date) => d.toLocaleDateString('pt-BR');
+    const fmtCur = (v: number) => `R$ ${v.toFixed(2)}`;
+    const period = `${fmt(startDate)} a ${fmt(endDate)}`;
+
+    if (type === 'revenue') {
+      const data = await this.getRevenue(clinicId, startDate, endDate);
+      return this.reportPdfService.generatePdf(clinicId, {
+        title: 'Relatório de Receita',
+        period,
+        clinicName: '',
+        primaryColor: '',
+        summary: [
+          { label: 'Receita Total', value: fmtCur(data.total_revenue) },
+          { label: 'Atendimentos', value: String(data.total_appointments) },
+          { label: 'Ticket Médio', value: fmtCur(data.average_ticket) },
+        ],
+        headers: ['Dentista', 'Receita', 'Atendimentos'],
+        rows: data.by_dentist.map((d) => [d.name, fmtCur(d.revenue), String(d.count)]),
+      });
+    }
+
+    if (type === 'appointments') {
+      const data = await this.getAppointments(clinicId, startDate, endDate);
+      return this.reportPdfService.generatePdf(clinicId, {
+        title: 'Relatório de Agendamentos',
+        period,
+        clinicName: '',
+        primaryColor: '',
+        summary: [
+          { label: 'Total', value: String(data.total) },
+          { label: 'Concluídos', value: String(data.completed) },
+          { label: 'Taxa Presença', value: `${data.attendance_rate}%` },
+          { label: 'Cancelamentos', value: String(data.cancelled) },
+        ],
+        headers: ['Mês', 'Agendados', 'Concluídos', 'Cancelados', 'Faltou'],
+        rows: data.by_month.map((m: any) => [
+          m.month,
+          String((m.scheduled || 0) + (m.confirmed || 0) + (m.completed || 0) + (m.cancelled || 0) + (m.no_show || 0)),
+          String(m.completed || 0),
+          String(m.cancelled || 0),
+          String(m.no_show || 0),
+        ]),
+      });
+    }
+
+    if (type === 'patients') {
+      const data = await this.getPatients(clinicId, startDate, endDate);
+      return this.reportPdfService.generatePdf(clinicId, {
+        title: 'Relatório de Pacientes',
+        period,
+        clinicName: '',
+        primaryColor: '',
+        summary: [
+          { label: 'Ativos', value: String(data.total_active) },
+          { label: 'Inativos', value: String(data.total_inactive) },
+          { label: 'Novos no Período', value: String(data.new_in_period) },
+        ],
+        headers: ['Mês', 'Novos Pacientes'],
+        rows: data.by_month.map((m) => [m.month, String(m.new_patients)]),
+      });
+    }
+
+    if (type === 'commissions') {
+      const data = await this.getCommissions(clinicId, startDate, endDate);
+      return this.reportPdfService.generatePdf(clinicId, {
+        title: 'Relatório de Comissões',
+        period,
+        clinicName: '',
+        primaryColor: '',
+        headers: ['Dentista', 'Especialidade', 'Taxa (%)', 'Receita', 'Comissão', 'Atend.'],
+        rows: data.dentists.map((d) => [
+          d.name,
+          d.specialty || '-',
+          String(d.commission_rate),
+          fmtCur(d.total_revenue),
+          fmtCur(d.total_commission),
+          String(d.appointment_count),
+        ]),
+      });
+    }
+
+    if (type === 'services') {
+      const data = await this.getServices(clinicId, startDate, endDate);
+      return this.reportPdfService.generatePdf(clinicId, {
+        title: 'Relatório de Serviços',
+        period,
+        clinicName: '',
+        primaryColor: '',
+        summary: [
+          { label: 'Total Realizados', value: String(data.total_services_performed) },
+        ],
+        headers: ['Serviço', 'Quantidade', 'Receita', 'Ticket Médio', 'Duração (min)'],
+        rows: data.services.map((s) => [
+          s.name,
+          String(s.count),
+          fmtCur(s.revenue),
+          fmtCur(s.average_ticket),
+          String(s.duration),
+        ]),
+      });
+    }
+
+    return Buffer.from('');
   }
 }

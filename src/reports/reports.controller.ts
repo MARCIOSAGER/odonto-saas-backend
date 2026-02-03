@@ -120,4 +120,24 @@ export class ReportsController {
     res.setHeader('Content-Disposition', `attachment; filename=relatorio-${type}.csv`);
     res.send('\uFEFF' + csv); // BOM for Excel compatibility
   }
+
+  @Get('export-pdf')
+  @ApiOperation({ summary: 'Export report as PDF' })
+  @ApiQuery({ name: 'type', required: true, enum: ['revenue', 'appointments', 'patients', 'commissions', 'services'] })
+  @ApiQuery({ name: 'start', required: false })
+  @ApiQuery({ name: 'end', required: false })
+  async exportPdf(
+    @CurrentUser() user: { clinicId: string },
+    @Query('type') type: string,
+    @Res() res: Response,
+    @Query('start') start?: string,
+    @Query('end') end?: string,
+  ) {
+    const { startDate, endDate } = this.parseDates(start, end);
+    const pdfBuffer = await this.reportsService.exportPdf(user.clinicId, type, startDate, endDate);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=relatorio-${type}.pdf`);
+    res.send(pdfBuffer);
+  }
 }
