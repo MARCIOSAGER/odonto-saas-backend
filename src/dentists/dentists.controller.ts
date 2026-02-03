@@ -16,11 +16,14 @@ import { CreateDentistDto } from './dto/create-dentist.dto';
 import { UpdateDentistDto } from './dto/update-dentist.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { Permissions } from '../common/decorators/permissions.decorator';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
 
 @ApiTags('dentists')
 @Controller('dentists')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @ApiBearerAuth('JWT-auth')
+@Permissions('dentists:manage')
 export class DentistsController {
   constructor(private readonly dentistsService: DentistsService) {}
 

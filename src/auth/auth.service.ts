@@ -102,7 +102,7 @@ export class AuthService {
     ).catch(() => {});
 
     // Generate tokens
-    const tokens = await this.generateTokens(result.user.id, result.clinic.id, result.user.role);
+    const tokens = await this.generateTokens(result.user.id, result.clinic.id, result.user.role, result.user.permissions || []);
 
     return {
       user: {
@@ -182,7 +182,7 @@ export class AuthService {
       userAgent: meta?.userAgent,
     });
 
-    const tokens = await this.generateTokens(user.id, user.clinic_id, user.role);
+    const tokens = await this.generateTokens(user.id, user.clinic_id, user.role, user.permissions || []);
 
     return {
       user: {
@@ -244,7 +244,7 @@ export class AuthService {
       userAgent: meta?.userAgent,
     });
 
-    const tokens = await this.generateTokens(user.id, user.clinic_id, user.role);
+    const tokens = await this.generateTokens(user.id, user.clinic_id, user.role, user.permissions || []);
 
     return {
       user: {
@@ -448,7 +448,7 @@ export class AuthService {
       userAgent: meta?.userAgent,
     });
 
-    const tokens = await this.generateTokens(user.id, user.clinic_id, user.role);
+    const tokens = await this.generateTokens(user.id, user.clinic_id, user.role, user.permissions || []);
 
     return {
       user: {
@@ -594,7 +594,7 @@ export class AuthService {
         throw new UnauthorizedException('User not found or inactive');
       }
 
-      return this.generateTokens(user.id, user.clinic_id, user.role);
+      return this.generateTokens(user.id, user.clinic_id, user.role, user.permissions || []);
     } catch {
       throw new UnauthorizedException('Invalid refresh token');
     }
@@ -656,11 +656,12 @@ export class AuthService {
     return methods;
   }
 
-  private async generateTokens(userId: string, clinicId: string | null, role: string) {
+  private async generateTokens(userId: string, clinicId: string | null, role: string, permissions: string[] = []) {
     const payload = {
       sub: userId,
       clinicId,
       role,
+      permissions,
     };
 
     const [accessToken, refreshToken] = await Promise.all([

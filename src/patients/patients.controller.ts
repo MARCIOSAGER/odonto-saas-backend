@@ -16,10 +16,12 @@ import { CreatePatientDto } from './dto/create-patient.dto';
 import { UpdatePatientDto } from './dto/update-patient.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { Permissions } from '../common/decorators/permissions.decorator';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
 
 @ApiTags('patients')
 @Controller('patients')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @ApiBearerAuth('JWT-auth')
 export class PatientsController {
   constructor(private readonly patientsService: PatientsService) {}
@@ -32,6 +34,7 @@ export class PatientsController {
   @ApiQuery({ name: 'search', required: false, type: String })
   @ApiQuery({ name: 'status', required: false, type: String })
   @ApiQuery({ name: 'cursor', required: false, type: String, description: 'Cursor for cursor-based pagination' })
+  @Permissions('patients:read')
   async findAll(
     @CurrentUser() user: { clinicId: string },
     @Query('page') page?: number,
@@ -47,6 +50,7 @@ export class PatientsController {
   @ApiOperation({ summary: 'Create a new patient' })
   @ApiResponse({ status: 201, description: 'Patient created' })
   @ApiResponse({ status: 409, description: 'Patient with this phone already exists' })
+  @Permissions('patients:write')
   async create(
     @Body() createPatientDto: CreatePatientDto,
     @CurrentUser() user: { userId: string; clinicId: string },
@@ -58,6 +62,7 @@ export class PatientsController {
   @ApiOperation({ summary: 'Find patient by phone number' })
   @ApiResponse({ status: 200, description: 'Patient found' })
   @ApiResponse({ status: 404, description: 'Patient not found' })
+  @Permissions('patients:read')
   async findByPhone(@Param('phone') phone: string, @CurrentUser() user: { clinicId: string }) {
     return this.patientsService.findByPhone(user.clinicId, phone);
   }
@@ -66,6 +71,7 @@ export class PatientsController {
   @ApiOperation({ summary: 'Get patient by ID' })
   @ApiResponse({ status: 200, description: 'Patient found' })
   @ApiResponse({ status: 404, description: 'Patient not found' })
+  @Permissions('patients:read')
   async findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: { clinicId: string }) {
     return this.patientsService.findOne(user.clinicId, id);
   }
@@ -74,6 +80,7 @@ export class PatientsController {
   @ApiOperation({ summary: 'Update patient' })
   @ApiResponse({ status: 200, description: 'Patient updated' })
   @ApiResponse({ status: 404, description: 'Patient not found' })
+  @Permissions('patients:write')
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updatePatientDto: UpdatePatientDto,
@@ -86,6 +93,7 @@ export class PatientsController {
   @ApiOperation({ summary: 'Deactivate patient' })
   @ApiResponse({ status: 200, description: 'Patient deactivated' })
   @ApiResponse({ status: 404, description: 'Patient not found' })
+  @Permissions('patients:write')
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: { userId: string; clinicId: string },
@@ -97,6 +105,7 @@ export class PatientsController {
   @ApiOperation({ summary: 'Restore soft-deleted patient' })
   @ApiResponse({ status: 200, description: 'Patient restored' })
   @ApiResponse({ status: 404, description: 'Patient not found or not deleted' })
+  @Permissions('patients:write')
   async restore(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: { userId: string; clinicId: string },
@@ -107,6 +116,7 @@ export class PatientsController {
   @Get(':id/appointments')
   @ApiOperation({ summary: 'Get patient appointments history' })
   @ApiResponse({ status: 200, description: 'Patient appointments' })
+  @Permissions('patients:read')
   async getAppointments(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: { clinicId: string },
@@ -119,6 +129,7 @@ export class PatientsController {
   @ApiOperation({ summary: 'Get patient financial summary' })
   @ApiResponse({ status: 200, description: 'Patient financial data' })
   @ApiResponse({ status: 404, description: 'Patient not found' })
+  @Permissions('patients:read')
   async getFinancialSummary(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: { clinicId: string },
@@ -130,6 +141,7 @@ export class PatientsController {
   @ApiOperation({ summary: 'Get patient timeline with all events' })
   @ApiResponse({ status: 200, description: 'Patient timeline' })
   @ApiResponse({ status: 404, description: 'Patient not found' })
+  @Permissions('patients:read')
   async getTimeline(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: { clinicId: string },

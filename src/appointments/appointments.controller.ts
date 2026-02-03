@@ -16,10 +16,12 @@ import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { Permissions } from '../common/decorators/permissions.decorator';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
 
 @ApiTags('appointments')
 @Controller('appointments')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @ApiBearerAuth('JWT-auth')
 export class AppointmentsController {
   constructor(private readonly appointmentsService: AppointmentsService) {}
@@ -39,6 +41,7 @@ export class AppointmentsController {
   @ApiQuery({ name: 'dentist_id', required: false, type: String })
   @ApiQuery({ name: 'patient_id', required: false, type: String })
   @ApiQuery({ name: 'cursor', required: false, type: String, description: 'Cursor for cursor-based pagination' })
+  @Permissions('appointments:manage')
   async findAll(
     @CurrentUser() user: { clinicId: string },
     @Query('page') page?: number,
@@ -63,6 +66,7 @@ export class AppointmentsController {
   @Get('today')
   @ApiOperation({ summary: 'Get today appointments' })
   @ApiResponse({ status: 200, description: 'Today appointments' })
+  @Permissions('appointments:manage')
   async getToday(@CurrentUser() user: { clinicId: string }) {
     return this.appointmentsService.getToday(user.clinicId);
   }
@@ -73,6 +77,7 @@ export class AppointmentsController {
   @ApiQuery({ name: 'date', required: true, type: String, description: 'Date (YYYY-MM-DD)' })
   @ApiQuery({ name: 'dentist_id', required: false, type: String })
   @ApiQuery({ name: 'service_id', required: false, type: String })
+  @Permissions('appointments:manage')
   async getAvailableSlots(
     @CurrentUser() user: { clinicId: string },
     @Query('date') date: string,
@@ -86,6 +91,7 @@ export class AppointmentsController {
   @ApiOperation({ summary: 'Create a new appointment' })
   @ApiResponse({ status: 201, description: 'Appointment created' })
   @ApiResponse({ status: 409, description: 'Time slot not available' })
+  @Permissions('appointments:manage')
   async create(
     @Body() createAppointmentDto: CreateAppointmentDto,
     @CurrentUser() user: { userId: string; clinicId: string },
@@ -97,6 +103,7 @@ export class AppointmentsController {
   @ApiOperation({ summary: 'Get appointment by ID' })
   @ApiResponse({ status: 200, description: 'Appointment found' })
   @ApiResponse({ status: 404, description: 'Appointment not found' })
+  @Permissions('appointments:manage')
   async findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: { clinicId: string }) {
     return this.appointmentsService.findOne(user.clinicId, id);
   }
@@ -105,6 +112,7 @@ export class AppointmentsController {
   @ApiOperation({ summary: 'Update appointment' })
   @ApiResponse({ status: 200, description: 'Appointment updated' })
   @ApiResponse({ status: 404, description: 'Appointment not found' })
+  @Permissions('appointments:manage')
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateAppointmentDto: UpdateAppointmentDto,
@@ -117,6 +125,7 @@ export class AppointmentsController {
   @ApiOperation({ summary: 'Cancel appointment' })
   @ApiResponse({ status: 200, description: 'Appointment cancelled' })
   @ApiResponse({ status: 404, description: 'Appointment not found' })
+  @Permissions('appointments:manage')
   async cancel(
     @Param('id', ParseUUIDPipe) id: string,
     @Body('reason') reason: string,
@@ -128,6 +137,7 @@ export class AppointmentsController {
   @Put(':id/confirm')
   @ApiOperation({ summary: 'Confirm appointment' })
   @ApiResponse({ status: 200, description: 'Appointment confirmed' })
+  @Permissions('appointments:manage')
   async confirm(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: { userId: string; clinicId: string },
@@ -138,6 +148,7 @@ export class AppointmentsController {
   @Put(':id/complete')
   @ApiOperation({ summary: 'Mark appointment as completed' })
   @ApiResponse({ status: 200, description: 'Appointment completed' })
+  @Permissions('appointments:manage')
   async complete(
     @Param('id', ParseUUIDPipe) id: string,
     @Body('notes') notes: string,
