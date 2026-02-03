@@ -30,6 +30,8 @@ import { NpsModule } from './nps/nps.module';
 import { ReportsModule } from './reports/reports.module';
 import { AdminModule } from './admin/admin.module';
 import { SystemConfigModule } from './system-config/system-config.module';
+import { TreatmentPlansModule } from './treatment-plans/treatment-plans.module';
+import { AnamnesisModule } from './anamnesis/anamnesis.module';
 
 @Module({
   imports: [
@@ -89,6 +91,8 @@ import { SystemConfigModule } from './system-config/system-config.module';
     ReportsModule,
     AdminModule,
     SystemConfigModule,
+    TreatmentPlansModule,
+    AnamnesisModule,
   ],
   controllers: [HealthController],
   providers: [

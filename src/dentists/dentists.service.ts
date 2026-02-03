@@ -16,7 +16,7 @@ export class DentistsService {
   ) {}
 
   async findAll(clinicId: string, options: FindAllOptions = {}) {
-    const where: Record<string, unknown> = { clinic_id: clinicId };
+    const where: Record<string, unknown> = { clinic_id: clinicId, deleted_at: null };
 
     where.status = options.status || 'active';
 
@@ -33,7 +33,7 @@ export class DentistsService {
 
   async findOne(clinicId: string, id: string) {
     const dentist = await this.prisma.dentist.findFirst({
-      where: { id, clinic_id: clinicId },
+      where: { id, clinic_id: clinicId, deleted_at: null },
       include: {
         _count: {
           select: { appointments: true },
@@ -53,6 +53,7 @@ export class DentistsService {
       where: {
         clinic_id: clinicId,
         cro: createDentistDto.cro,
+        deleted_at: null,
       },
     });
 
@@ -93,6 +94,7 @@ export class DentistsService {
           clinic_id: clinicId,
           cro: updateDentistDto.cro,
           id: { not: id },
+          deleted_at: null,
         },
       });
 
@@ -124,7 +126,7 @@ export class DentistsService {
 
     await this.prisma.dentist.update({
       where: { id },
-      data: { status: 'inactive' },
+      data: { status: 'inactive', deleted_at: new Date() },
     });
 
     await this.auditService.log({
@@ -133,10 +135,37 @@ export class DentistsService {
       entityId: id,
       clinicId,
       userId,
-      oldValues: { status: dentist.status },
-      newValues: { status: 'inactive' },
+      oldValues: { status: dentist.status, deleted_at: null },
+      newValues: { status: 'inactive', deleted_at: new Date() },
     });
 
     return { message: 'Dentist deactivated successfully' };
+  }
+
+  async restore(clinicId: string, id: string, userId: string) {
+    const dentist = await this.prisma.dentist.findFirst({
+      where: { id, clinic_id: clinicId, deleted_at: { not: null } },
+    });
+
+    if (!dentist) {
+      throw new NotFoundException('Dentist not found or not deleted');
+    }
+
+    const restored = await this.prisma.dentist.update({
+      where: { id },
+      data: { status: 'active', deleted_at: null },
+    });
+
+    await this.auditService.log({
+      action: 'RESTORE',
+      entity: 'Dentist',
+      entityId: id,
+      clinicId,
+      userId,
+      oldValues: { status: dentist.status, deleted_at: dentist.deleted_at },
+      newValues: { status: 'active', deleted_at: null },
+    });
+
+    return restored;
   }
 }

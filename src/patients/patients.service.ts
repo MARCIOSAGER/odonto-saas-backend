@@ -24,7 +24,7 @@ export class PatientsService {
     const skip = Math.max(0, (page - 1) * limit);
     const { search, status } = options;
 
-    const where: Record<string, unknown> = { clinic_id: clinicId };
+    const where: Record<string, unknown> = { clinic_id: clinicId, deleted_at: null };
 
     if (status) {
       where.status = status;
@@ -67,7 +67,7 @@ export class PatientsService {
 
   async findOne(clinicId: string, id: string) {
     const patient = await this.prisma.patient.findFirst({
-      where: { id, clinic_id: clinicId },
+      where: { id, clinic_id: clinicId, deleted_at: null },
       include: {
         _count: {
           select: { appointments: true },
@@ -89,6 +89,7 @@ export class PatientsService {
       where: {
         clinic_id: clinicId,
         phone: { contains: normalizedPhone },
+        deleted_at: null,
       },
       include: {
         _count: {
@@ -111,6 +112,7 @@ export class PatientsService {
       where: {
         clinic_id: clinicId,
         phone: normalizedPhone,
+        deleted_at: null,
       },
     });
 
@@ -135,6 +137,7 @@ export class PatientsService {
       where: {
         clinic_id: clinicId,
         phone: normalizedPhone,
+        deleted_at: null,
       },
     });
 
@@ -182,6 +185,7 @@ export class PatientsService {
             clinic_id: clinicId,
             phone: normalizedPhone,
             id: { not: id },
+            deleted_at: null,
           },
         });
 
@@ -221,7 +225,7 @@ export class PatientsService {
 
     const updated = await this.prisma.patient.update({
       where: { id },
-      data: { status: 'inactive' },
+      data: { status: 'inactive', deleted_at: new Date() },
     });
 
     await this.auditService.log({
@@ -230,11 +234,38 @@ export class PatientsService {
       entityId: id,
       clinicId,
       userId,
-      oldValues: { status: patient.status },
-      newValues: { status: 'inactive' },
+      oldValues: { status: patient.status, deleted_at: null },
+      newValues: { status: 'inactive', deleted_at: updated.deleted_at },
     });
 
     return updated;
+  }
+
+  async restore(clinicId: string, id: string, userId: string) {
+    const patient = await this.prisma.patient.findFirst({
+      where: { id, clinic_id: clinicId, deleted_at: { not: null } },
+    });
+
+    if (!patient) {
+      throw new NotFoundException('Patient not found or not deleted');
+    }
+
+    const restored = await this.prisma.patient.update({
+      where: { id },
+      data: { status: 'active', deleted_at: null },
+    });
+
+    await this.auditService.log({
+      action: 'RESTORE',
+      entity: 'Patient',
+      entityId: id,
+      clinicId,
+      userId,
+      oldValues: { status: patient.status, deleted_at: patient.deleted_at },
+      newValues: { status: 'active', deleted_at: null },
+    });
+
+    return restored;
   }
 
   async getAppointments(clinicId: string, patientId: string, limit = 10) {

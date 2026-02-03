@@ -73,4 +73,15 @@ export class DentistsController {
   ) {
     return this.dentistsService.remove(user.clinicId, id, user.userId);
   }
+
+  @Post(':id/restore')
+  @ApiOperation({ summary: 'Restore soft-deleted dentist' })
+  @ApiResponse({ status: 200, description: 'Dentist restored' })
+  @ApiResponse({ status: 404, description: 'Dentist not found or not deleted' })
+  async restore(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: { userId: string; clinicId: string },
+  ) {
+    return this.dentistsService.restore(user.clinicId, id, user.userId);
+  }
 }

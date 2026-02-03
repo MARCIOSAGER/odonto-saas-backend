@@ -91,6 +91,17 @@ export class PatientsController {
     return this.patientsService.remove(user.clinicId, id, user.userId);
   }
 
+  @Post(':id/restore')
+  @ApiOperation({ summary: 'Restore soft-deleted patient' })
+  @ApiResponse({ status: 200, description: 'Patient restored' })
+  @ApiResponse({ status: 404, description: 'Patient not found or not deleted' })
+  async restore(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: { userId: string; clinicId: string },
+  ) {
+    return this.patientsService.restore(user.clinicId, id, user.userId);
+  }
+
   @Get(':id/appointments')
   @ApiOperation({ summary: 'Get patient appointments history' })
   @ApiResponse({ status: 200, description: 'Patient appointments' })

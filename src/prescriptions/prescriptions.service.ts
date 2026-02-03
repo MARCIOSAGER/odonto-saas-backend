@@ -1,20 +1,18 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
-
-export interface CreatePrescriptionDto {
-  patient_id: string;
-  dentist_id: string;
-  type: 'prescription' | 'certificate' | 'referral';
-  content: Record<string, unknown>;
-}
+import { CreatePrescriptionDto } from './dto/create-prescription.dto';
+import { PdfGeneratorService } from './pdf-generator.service';
 
 @Injectable()
 export class PrescriptionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly pdfGenerator: PdfGeneratorService,
+  ) {}
 
   async create(clinicId: string, dto: CreatePrescriptionDto) {
-    return this.prisma.prescription.create({
+    const prescription = await this.prisma.prescription.create({
       data: {
         clinic_id: clinicId,
         patient_id: dto.patient_id,
@@ -27,6 +25,16 @@ export class PrescriptionsService {
         dentist: { select: { name: true, cro: true } },
       },
     });
+
+    // Generate PDF in background (don't block the response)
+    this.pdfGenerator.generatePdf(prescription.id, clinicId).catch(() => {});
+
+    return prescription;
+  }
+
+  async generatePdf(clinicId: string, id: string) {
+    await this.findById(clinicId, id);
+    return this.pdfGenerator.generatePdf(id, clinicId);
   }
 
   async findAll(clinicId: string, page = 1, limit = 20) {
@@ -35,7 +43,7 @@ export class PrescriptionsService {
 
     const [prescriptions, total] = await Promise.all([
       this.prisma.prescription.findMany({
-        where: { clinic_id: clinicId },
+        where: { clinic_id: clinicId, deleted_at: null },
         orderBy: { created_at: 'desc' },
         skip,
         take,
@@ -44,7 +52,7 @@ export class PrescriptionsService {
           dentist: { select: { name: true, cro: true } },
         },
       }),
-      this.prisma.prescription.count({ where: { clinic_id: clinicId } }),
+      this.prisma.prescription.count({ where: { clinic_id: clinicId, deleted_at: null } }),
     ]);
 
     return {
@@ -55,7 +63,7 @@ export class PrescriptionsService {
 
   async findByPatient(clinicId: string, patientId: string) {
     return this.prisma.prescription.findMany({
-      where: { clinic_id: clinicId, patient_id: patientId },
+      where: { clinic_id: clinicId, patient_id: patientId, deleted_at: null },
       orderBy: { created_at: 'desc' },
       include: {
         dentist: { select: { name: true, cro: true } },
@@ -65,7 +73,7 @@ export class PrescriptionsService {
 
   async findById(clinicId: string, id: string) {
     const prescription = await this.prisma.prescription.findFirst({
-      where: { id, clinic_id: clinicId },
+      where: { id, clinic_id: clinicId, deleted_at: null },
       include: {
         patient: {
           select: {
@@ -97,13 +105,31 @@ export class PrescriptionsService {
 
   async delete(clinicId: string, id: string) {
     const prescription = await this.prisma.prescription.findFirst({
-      where: { id, clinic_id: clinicId },
+      where: { id, clinic_id: clinicId, deleted_at: null },
     });
 
     if (!prescription) {
       throw new NotFoundException('Prescrição não encontrada');
     }
 
-    return this.prisma.prescription.delete({ where: { id } });
+    return this.prisma.prescription.update({
+      where: { id },
+      data: { deleted_at: new Date() },
+    });
+  }
+
+  async restore(clinicId: string, id: string) {
+    const prescription = await this.prisma.prescription.findFirst({
+      where: { id, clinic_id: clinicId, deleted_at: { not: null } },
+    });
+
+    if (!prescription) {
+      throw new NotFoundException('Prescrição não encontrada ou não deletada');
+    }
+
+    return this.prisma.prescription.update({
+      where: { id },
+      data: { deleted_at: null },
+    });
   }
 }

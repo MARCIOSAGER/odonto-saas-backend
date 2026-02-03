@@ -31,7 +31,7 @@ export class AppointmentsService {
     const skip = Math.max(0, (page - 1) * limit);
     const { date, status, dentistId, patientId } = options;
 
-    const where: Record<string, unknown> = { clinic_id: clinicId };
+    const where: Record<string, unknown> = { clinic_id: clinicId, deleted_at: null };
 
     if (status) {
       where.status = status;
@@ -91,7 +91,7 @@ export class AppointmentsService {
 
   async findOne(clinicId: string, id: string) {
     const appointment = await this.prisma.appointment.findFirst({
-      where: { id, clinic_id: clinicId },
+      where: { id, clinic_id: clinicId, deleted_at: null },
       include: {
         patient: true,
         dentist: true,
@@ -115,6 +115,7 @@ export class AppointmentsService {
     return this.prisma.appointment.findMany({
       where: {
         clinic_id: clinicId,
+        deleted_at: null,
         date: {
           gte: today,
           lt: tomorrow,
@@ -143,6 +144,7 @@ export class AppointmentsService {
 
     const where: Record<string, unknown> = {
       clinic_id: clinicId,
+      deleted_at: null,
       date: {
         gte: startDate,
         lte: endDate,
@@ -391,6 +393,54 @@ export class AppointmentsService {
     return updated;
   }
 
+  async softDelete(clinicId: string, id: string, userId: string) {
+    const appointment = await this.findOne(clinicId, id);
+
+    const updated = await this.prisma.appointment.update({
+      where: { id },
+      data: { deleted_at: new Date() },
+    });
+
+    await this.auditService.log({
+      action: 'DELETE',
+      entity: 'Appointment',
+      entityId: id,
+      clinicId,
+      userId,
+      oldValues: { deleted_at: null },
+      newValues: { deleted_at: updated.deleted_at },
+    });
+
+    return { message: 'Appointment deleted successfully' };
+  }
+
+  async restore(clinicId: string, id: string, userId: string) {
+    const appointment = await this.prisma.appointment.findFirst({
+      where: { id, clinic_id: clinicId, deleted_at: { not: null } },
+    });
+
+    if (!appointment) {
+      throw new NotFoundException('Appointment not found or not deleted');
+    }
+
+    const restored = await this.prisma.appointment.update({
+      where: { id },
+      data: { deleted_at: null },
+    });
+
+    await this.auditService.log({
+      action: 'RESTORE',
+      entity: 'Appointment',
+      entityId: id,
+      clinicId,
+      userId,
+      oldValues: { deleted_at: appointment.deleted_at },
+      newValues: { deleted_at: null },
+    });
+
+    return restored;
+  }
+
   private async checkAvailability(
     clinicId: string,
     date: string,
@@ -405,6 +455,7 @@ export class AppointmentsService {
 
     const where: Record<string, unknown> = {
       clinic_id: clinicId,
+      deleted_at: null,
       date: {
         gte: startDate,
         lte: endDate,

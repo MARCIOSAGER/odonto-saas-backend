@@ -135,6 +135,7 @@ model Dentist {
   appointments    Appointment[]
   schedules       DentistSchedule[]
   prescriptions   Prescription[]
+  deleted_at      DateTime?       @db.Timestamp(6)
 
   @@unique([clinic_id, cro])
   @@index([clinic_id])
@@ -164,6 +165,9 @@ model Patient {
   odontograms      Odontogram[]
   prescriptions    Prescription[]
   npsSurveys       NpsSurvey[]
+  anamneses        Anamnesis[]
+  treatmentPlans   TreatmentPlan[]
+  deleted_at       DateTime?         @db.Timestamp(6)
 
   @@unique([clinic_id, phone], map: "unique_clinic_phone")
   @@index([clinic_id], map: "idx_patient_clinic")
@@ -210,6 +214,7 @@ model Appointment {
   dentist          Dentist?    @relation(fields: [dentist_id], references: [id])
   service          Service     @relation(fields: [service_id], references: [id], onDelete: Cascade)
   npsSurveys       NpsSurvey[]
+  deleted_at       DateTime?   @db.Timestamp(6)
 
   @@index([clinic_id], map: "idx_appointment_clinic")
   @@index([patient_id], map: "idx_appointment_patient")
@@ -615,8 +620,9 @@ model Odontogram {
   notes      String?
   created_at DateTime          @default(now()) @db.Timestamp(6)
   updated_at DateTime          @default(now()) @updatedAt @db.Timestamp(6)
-  patient    Patient           @relation(fields: [patient_id], references: [id], onDelete: Cascade)
-  teeth      OdontogramTooth[]
+  patient        Patient           @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  teeth          OdontogramTooth[]
+  treatmentPlans TreatmentPlan[]
 
   @@index([patient_id])
 }
@@ -652,6 +658,7 @@ model Prescription {
   created_at DateTime  @default(now()) @db.Timestamp(6)
   patient    Patient   @relation(fields: [patient_id], references: [id], onDelete: Cascade)
   dentist    Dentist   @relation(fields: [dentist_id], references: [id])
+  deleted_at DateTime? @db.Timestamp(6)
 
   @@index([patient_id])
   @@index([dentist_id])
@@ -678,4 +685,60 @@ model NpsSurvey {
   @@index([patient_id])
   @@index([appointment_id])
   @@index([sent_at])
+}
+
+// ============================================
+// ANAMNESE (HISTÓRICO MÉDICO DO PACIENTE)
+// ============================================
+
+model Anamnesis {
+  id                  String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  patient_id          String
+  clinic_id           String
+  filled_by_id        String?
+  allergies           String[]
+  medications         String[]
+  conditions          String[]
+  surgeries           String?
+  habits              Json?
+  risk_classification String?
+  contraindications   String[]
+  alerts              String[]
+  warnings            String[]
+  ai_notes            String?
+  ai_recommendations  String?
+  raw_answers         Json?
+  created_at          DateTime @default(now()) @db.Timestamp(6)
+  updated_at          DateTime @default(now()) @updatedAt @db.Timestamp(6)
+  patient             Patient  @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+
+  @@index([patient_id])
+  @@index([clinic_id])
+}
+
+// ============================================
+// PLANOS DE TRATAMENTO
+// ============================================
+
+model TreatmentPlan {
+  id              String      @id @default(dbgenerated("(gen_random_uuid())::text"))
+  patient_id      String
+  clinic_id       String
+  created_by      String?
+  status          String      @default("pending") // pending, in_progress, completed, cancelled
+  patient_summary String?
+  phases          Json?
+  total_cost      Decimal?    @db.Decimal(10, 2)
+  total_sessions  Int?
+  recommendations String?
+  odontogram_id   String?
+  notes           String?
+  created_at      DateTime    @default(now()) @db.Timestamp(6)
+  updated_at      DateTime    @default(now()) @updatedAt @db.Timestamp(6)
+  patient         Patient     @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  odontogram      Odontogram? @relation(fields: [odontogram_id], references: [id], onDelete: SetNull)
+
+  @@index([patient_id])
+  @@index([clinic_id])
+  @@index([status])
 }

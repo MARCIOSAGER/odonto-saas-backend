@@ -142,4 +142,26 @@ export class AppointmentsController {
   ) {
     return this.appointmentsService.complete(user.clinicId, id, notes, user.userId);
   }
+
+  @Delete(':id/permanent')
+  @ApiOperation({ summary: 'Soft delete appointment' })
+  @ApiResponse({ status: 200, description: 'Appointment soft deleted' })
+  @ApiResponse({ status: 404, description: 'Appointment not found' })
+  async softDelete(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: { userId: string; clinicId: string },
+  ) {
+    return this.appointmentsService.softDelete(user.clinicId, id, user.userId);
+  }
+
+  @Post(':id/restore')
+  @ApiOperation({ summary: 'Restore soft-deleted appointment' })
+  @ApiResponse({ status: 200, description: 'Appointment restored' })
+  @ApiResponse({ status: 404, description: 'Appointment not found or not deleted' })
+  async restore(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: { userId: string; clinicId: string },
+  ) {
+    return this.appointmentsService.restore(user.clinicId, id, user.userId);
+  }
 }

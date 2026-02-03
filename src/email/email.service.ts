@@ -5,6 +5,7 @@ import * as nodemailer from 'nodemailer';
 import { passwordResetTemplate } from './templates/password-reset.template';
 import { welcomeTemplate } from './templates/welcome.template';
 import { twoFactorCodeTemplate } from './templates/two-factor-code.template';
+import { appointmentReminderTemplate } from './templates/appointment-reminder.template';
 
 @Injectable()
 export class EmailService {
@@ -93,5 +94,19 @@ export class EmailService {
       return this.sendMailForClinic(clinicId, to, 'Seu código de verificação', html);
     }
     return this.sendMail(to, 'Seu código de verificação', html);
+  }
+
+  async sendAppointmentReminder(
+    clinicId: string,
+    to: string,
+    patientName: string,
+    clinicName: string,
+    date: string,
+    time: string,
+    serviceName: string,
+    dentistName: string,
+  ): Promise<boolean> {
+    const html = appointmentReminderTemplate(patientName, clinicName, date, time, serviceName, dentistName);
+    return this.sendMailForClinic(clinicId, to, `Lembrete: Consulta em ${date} às ${time}`, html);
   }
 }

@@ -1,0 +1,96 @@
+export const createPrismaMock = () => ({
+  patient: {
+    findMany: jest.fn(),
+    findFirst: jest.fn(),
+    count: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  },
+  appointment: {
+    findMany: jest.fn(),
+    findFirst: jest.fn(),
+    count: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  },
+  dentist: {
+    findMany: jest.fn(),
+    findFirst: jest.fn(),
+    count: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  },
+  prescription: {
+    findMany: jest.fn(),
+    findFirst: jest.fn(),
+    count: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  },
+  clinic: {
+    findMany: jest.fn(),
+    findFirst: jest.fn(),
+    findUnique: jest.fn(),
+    count: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+  },
+  user: {
+    findMany: jest.fn(),
+    findFirst: jest.fn(),
+    findUnique: jest.fn(),
+    count: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+  },
+  service: {
+    findMany: jest.fn(),
+    findFirst: jest.fn(),
+  },
+  subscription: {
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    count: jest.fn(),
+    update: jest.fn(),
+  },
+  invoice: {
+    findMany: jest.fn(),
+    count: jest.fn(),
+    aggregate: jest.fn(),
+    create: jest.fn(),
+  },
+  payment: {
+    create: jest.fn(),
+  },
+  plan: {
+    findUnique: jest.fn(),
+  },
+  coupon: {
+    findUnique: jest.fn(),
+    update: jest.fn(),
+  },
+  clinicAiSettings: {
+    findUnique: jest.fn(),
+    upsert: jest.fn(),
+  },
+  auditLog: {
+    create: jest.fn(),
+  },
+  anamnesis: {
+    findMany: jest.fn(),
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+  },
+  treatmentPlan: {
+    findMany: jest.fn(),
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+  },
+  $transaction: jest.fn((fn) => fn()),
+});

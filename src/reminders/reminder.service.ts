@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { WhatsAppService } from '../integrations/whatsapp.service';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class ReminderService {
@@ -11,6 +12,7 @@ export class ReminderService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly whatsappService: WhatsAppService,
+    private readonly emailService: EmailService,
   ) {}
 
   /**
@@ -54,7 +56,7 @@ export class ReminderService {
         },
       },
       include: {
-        patient: { select: { name: true, phone: true } },
+        patient: { select: { name: true, phone: true, email: true } },
         dentist: { select: { name: true } },
         service: { select: { name: true } },
         clinic: {
@@ -84,8 +86,8 @@ export class ReminderService {
 
       if (diffHours < 23 || diffHours > 25) continue;
 
-      // Envia lembrete
-      if (!apt.patient.phone) continue;
+      // Pula se paciente não tem phone nem email
+      if (!apt.patient.phone && !apt.patient.email) continue;
 
       const dateStr = this.formatDate(apt.date);
       const message = settings.reminder_message_24h
@@ -99,20 +101,46 @@ export class ReminderService {
           })
         : `Ola ${apt.patient.name}! Lembramos que voce tem uma consulta amanha (${dateStr}) as ${apt.time} na ${apt.clinic.name}.\n\nServico: ${apt.service.name}${apt.dentist ? `\nDentista: ${apt.dentist.name}` : ''}\n\nPor favor, confirme sua presenca respondendo SIM ou NAO.`;
 
-      const sent = await this.whatsappService.sendMessage(
-        apt.clinic_id,
-        apt.patient.phone,
-        message,
-      );
+      let sent = false;
+
+      // Tenta WhatsApp primeiro
+      if (apt.patient.phone) {
+        sent = await this.whatsappService.sendMessage(
+          apt.clinic_id,
+          apt.patient.phone,
+          message,
+        );
+      }
+
+      // Fallback: email se WhatsApp falhou ou paciente não tem phone
+      if (!sent && apt.patient.email) {
+        sent = await this.emailService.sendAppointmentReminder(
+          apt.clinic_id,
+          apt.patient.email,
+          apt.patient.name,
+          apt.clinic.name,
+          dateStr,
+          apt.time,
+          apt.service.name,
+          apt.dentist?.name || '',
+        );
+        if (sent) {
+          this.logger.log(
+            `24h reminder sent via EMAIL for appointment ${apt.id} - Patient: ${apt.patient.name}`,
+          );
+        }
+      }
 
       if (sent) {
         await this.prisma.appointment.update({
           where: { id: apt.id },
           data: { reminder_sent: true },
         });
-        this.logger.log(
-          `24h reminder sent for appointment ${apt.id} - Patient: ${apt.patient.name}`,
-        );
+        if (apt.patient.phone) {
+          this.logger.log(
+            `24h reminder sent for appointment ${apt.id} - Patient: ${apt.patient.name}`,
+          );
+        }
       }
     }
   }
@@ -140,7 +168,7 @@ export class ReminderService {
         },
       },
       include: {
-        patient: { select: { name: true, phone: true } },
+        patient: { select: { name: true, phone: true, email: true } },
         dentist: { select: { name: true } },
         service: { select: { name: true } },
         clinic: {
@@ -169,7 +197,7 @@ export class ReminderService {
 
       if (diffMin < 50 || diffMin > 70) continue;
 
-      if (!apt.patient.phone) continue;
+      if (!apt.patient.phone && !apt.patient.email) continue;
 
       const dateStr = this.formatDate(apt.date);
       const message = settings.reminder_message_1h
@@ -181,22 +209,47 @@ export class ReminderService {
             dentist: apt.dentist?.name || '',
             clinicName: apt.clinic.name,
           })
-        : `Ola ${apt.patient.name}! Sua consulta e daqui a 1 hora (${apt.time}) na ${apt.clinic.name}.\n\nEstamos te aguardando! 😊`;
+        : `Ola ${apt.patient.name}! Sua consulta e daqui a 1 hora (${apt.time}) na ${apt.clinic.name}.\n\nEstamos te aguardando!`;
 
-      const sent = await this.whatsappService.sendMessage(
-        apt.clinic_id,
-        apt.patient.phone,
-        message,
-      );
+      let sent = false;
+
+      if (apt.patient.phone) {
+        sent = await this.whatsappService.sendMessage(
+          apt.clinic_id,
+          apt.patient.phone,
+          message,
+        );
+      }
+
+      // Fallback: email se WhatsApp falhou ou paciente não tem phone
+      if (!sent && apt.patient.email) {
+        sent = await this.emailService.sendAppointmentReminder(
+          apt.clinic_id,
+          apt.patient.email,
+          apt.patient.name,
+          apt.clinic.name,
+          dateStr,
+          apt.time,
+          apt.service.name,
+          apt.dentist?.name || '',
+        );
+        if (sent) {
+          this.logger.log(
+            `1h reminder sent via EMAIL for appointment ${apt.id} - Patient: ${apt.patient.name}`,
+          );
+        }
+      }
 
       if (sent) {
         await this.prisma.appointment.update({
           where: { id: apt.id },
           data: { reminder_1h_sent: true },
         });
-        this.logger.log(
-          `1h reminder sent for appointment ${apt.id} - Patient: ${apt.patient.name}`,
-        );
+        if (apt.patient.phone) {
+          this.logger.log(
+            `1h reminder sent for appointment ${apt.id} - Patient: ${apt.patient.name}`,
+          );
+        }
       }
     }
   }

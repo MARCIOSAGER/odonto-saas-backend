@@ -6,8 +6,10 @@ import {
   Param,
   Body,
   Query,
+  Res,
   UseGuards,
   ParseUUIDPipe,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -16,12 +18,13 @@ import {
   ApiBearerAuth,
   ApiQuery,
 } from '@nestjs/swagger';
-import {
-  PrescriptionsService,
-  CreatePrescriptionDto,
-} from './prescriptions.service';
+import { Response } from 'express';
+import { PrescriptionsService } from './prescriptions.service';
+import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @ApiTags('prescriptions')
 @Controller('prescriptions')
@@ -76,6 +79,60 @@ export class PrescriptionsController {
     return this.prescriptionsService.findById(user.clinicId, id);
   }
 
+  @Post(':id/generate-pdf')
+  @ApiOperation({ summary: 'Generate or regenerate PDF for prescription' })
+  async generatePdf(
+    @CurrentUser() user: { clinicId: string },
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    const pdfUrl = await this.prescriptionsService.generatePdf(
+      user.clinicId,
+      id,
+    );
+    return { pdf_url: pdfUrl };
+  }
+
+  @Get(':id/download')
+  @ApiOperation({ summary: 'Download prescription PDF' })
+  async downloadPdf(
+    @CurrentUser() user: { clinicId: string },
+    @Param('id', ParseUUIDPipe) id: string,
+    @Res() res: Response,
+  ) {
+    const prescription = await this.prescriptionsService.findById(
+      user.clinicId,
+      id,
+    );
+
+    if (!prescription.pdf_url) {
+      // Generate on demand if not yet generated
+      await this.prescriptionsService.generatePdf(user.clinicId, id);
+    }
+
+    const filePath = path.join(process.cwd(), prescription.pdf_url || '');
+    if (!fs.existsSync(filePath)) {
+      throw new NotFoundException('Arquivo PDF não encontrado');
+    }
+
+    const types: Record<string, string> = {
+      prescription: 'receita',
+      certificate: 'atestado',
+      referral: 'encaminhamento',
+    };
+    const typeName = types[prescription.type] || 'documento';
+    const patientName = (prescription.patient?.name || 'paciente')
+      .replace(/\s+/g, '_')
+      .toLowerCase();
+    const fileName = `${typeName}_${patientName}_${id.slice(0, 8)}.pdf`;
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${fileName}"`,
+    );
+    fs.createReadStream(filePath).pipe(res);
+  }
+
   @Post(':id/send')
   @ApiOperation({ summary: 'Mark prescription as sent' })
   async markAsSent(
@@ -92,5 +149,15 @@ export class PrescriptionsController {
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.prescriptionsService.delete(user.clinicId, id);
+  }
+
+  @Post(':id/restore')
+  @ApiOperation({ summary: 'Restore soft-deleted prescription' })
+  @ApiResponse({ status: 200, description: 'Prescription restored' })
+  async restore(
+    @CurrentUser() user: { clinicId: string },
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.prescriptionsService.restore(user.clinicId, id);
   }
 }
