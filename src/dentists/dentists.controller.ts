@@ -31,8 +31,13 @@ export class DentistsController {
   @ApiOperation({ summary: 'List all dentists of the clinic' })
   @ApiResponse({ status: 200, description: 'Dentists list' })
   @ApiQuery({ name: 'status', required: false, type: String })
-  async findAll(@CurrentUser() user: { clinicId: string }, @Query('status') status?: string) {
-    return this.dentistsService.findAll(user.clinicId, { status });
+  @ApiQuery({ name: 'search', required: false, type: String })
+  async findAll(
+    @CurrentUser() user: { clinicId: string },
+    @Query('status') status?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.dentistsService.findAll(user.clinicId, { status, search });
   }
 
   @Post()

@@ -6,6 +6,7 @@ import { UpdateDentistDto } from './dto/update-dentist.dto';
 
 interface FindAllOptions {
   status?: string;
+  search?: string;
 }
 
 @Injectable()
@@ -19,6 +20,14 @@ export class DentistsService {
     const where: Record<string, unknown> = { clinic_id: clinicId, deleted_at: null };
 
     where.status = options.status || 'active';
+
+    if (options.search) {
+      where.OR = [
+        { name: { contains: options.search, mode: 'insensitive' } },
+        { cro: { contains: options.search, mode: 'insensitive' } },
+        { specialty: { contains: options.search, mode: 'insensitive' } },
+      ];
+    }
 
     return this.prisma.dentist.findMany({
       where,

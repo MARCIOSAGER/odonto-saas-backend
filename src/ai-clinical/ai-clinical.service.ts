@@ -92,11 +92,15 @@ Regras:
         select: { name: true, birth_date: true, notes: true },
       }),
       this.prisma.odontogram.findFirst({
-        where: { patient_id: patientId },
+        where: { patient_id: patientId, clinic_id: clinicId },
         orderBy: { updated_at: 'desc' },
         include: {
-          teeth: {
-            where: { status: { not: 'healthy' } },
+          entries: {
+            where: {
+              superseded_at: null,
+              entry_type: 'FINDING',
+              status_code: { not: 'HEALTHY' },
+            },
             orderBy: { tooth_number: 'asc' },
           },
         },
@@ -121,11 +125,12 @@ Regras:
     }
 
     const teethIssues =
-      odontogram?.teeth.map((t) => ({
-        tooth: t.tooth_number,
-        status: t.status,
-        surfaces: t.surfaces,
-        notes: t.notes,
+      odontogram?.entries?.map((e) => ({
+        tooth: e.tooth_number,
+        status_code: e.status_code,
+        entry_type: e.entry_type,
+        surfaces: e.surfaces,
+        notes: e.notes,
       })) || [];
 
     const recentProcedures = appointments
@@ -217,8 +222,12 @@ ${JSON.stringify(services, null, 2)}`;
         where: { patient_id: patientId },
         orderBy: { updated_at: 'desc' },
         include: {
-          teeth: {
-            where: { status: { not: 'healthy' } },
+          entries: {
+            where: {
+              superseded_at: null,
+              entry_type: 'FINDING',
+              status_code: { not: 'HEALTHY' },
+            },
           },
         },
       }),
@@ -267,7 +276,7 @@ Histórico recente:
 ${appointments.slice(0, 10).map((a) => `- ${a.date.toISOString().split('T')[0]} ${a.time}: ${a.service.name} (${a.status})${a.dentist ? ` - Dr(a). ${a.dentist.name}` : ''}`).join('\n')}
 
 Problemas odontológicos atuais:
-${odontogram?.teeth.length ? odontogram.teeth.map((t) => `- Dente ${t.tooth_number}: ${t.status}${t.notes ? ` (${t.notes})` : ''}`).join('\n') : 'Nenhum registrado'}`;
+${odontogram?.entries.length ? odontogram.entries.map((e) => `- Dente ${e.tooth_number}: ${e.status_code} [${e.surfaces.join(',')}]${e.notes ? ` (${e.notes})` : ''}`).join('\n') : 'Nenhum registrado'}`;
 
     const response = await this.callAi(settings, systemPrompt, userMessage);
     return this.parseJsonResponse(response);

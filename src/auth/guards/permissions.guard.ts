@@ -20,6 +20,7 @@ const DEFAULT_PERMISSIONS: Record<string, string[]> = {
     'settings:manage',
     'billing:manage',
     'conversations:manage',
+    'odontogram:write',
   ],
   user: [
     'patients:read',
@@ -27,6 +28,7 @@ const DEFAULT_PERMISSIONS: Record<string, string[]> = {
     'appointments:manage',
     'reports:view',
     'conversations:manage',
+    'odontogram:write',
   ],
 };
 

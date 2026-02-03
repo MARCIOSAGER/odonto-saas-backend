@@ -105,8 +105,26 @@ export const createPrismaMock = () => ({
     findMany: jest.fn(),
     create: jest.fn(),
   },
-  odontogramTooth: {
+  odontogramEntry: {
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    count: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+  },
+  odontogramLegendItem: {
+    findMany: jest.fn(),
+    findUnique: jest.fn(),
+    create: jest.fn(),
+    createMany: jest.fn(),
+    update: jest.fn(),
     upsert: jest.fn(),
+  },
+  treatmentPlanItem: {
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
   },
   $transaction: jest.fn((fn) => fn()),
 });

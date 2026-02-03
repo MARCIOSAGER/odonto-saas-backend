@@ -446,8 +446,9 @@ export class PatientsService {
         this.prisma.odontogram.findFirst({
           where: { patient_id: patientId },
           include: {
-            teeth: {
-              orderBy: { updated_at: 'desc' },
+            entries: {
+              where: { superseded_at: null },
+              orderBy: { created_at: 'desc' },
               take: 20,
             },
           },
@@ -531,17 +532,18 @@ export class PatientsService {
       });
     }
 
-    if (odontogram?.teeth) {
-      for (const tooth of odontogram.teeth) {
+    if (odontogram?.entries) {
+      for (const entry of odontogram.entries) {
         events.push({
-          id: `tooth-${tooth.tooth_number}-${tooth.updated_at}`,
+          id: `entry-${entry.tooth_number}-${entry.created_at}`,
           type: 'odontogram',
-          date: tooth.updated_at instanceof Date ? tooth.updated_at.toISOString() : String(tooth.updated_at),
-          title: `Dente ${tooth.tooth_number}`,
-          description: `Status: ${tooth.status}${tooth.notes ? ` — ${tooth.notes}` : ''}`,
+          date: entry.created_at instanceof Date ? entry.created_at.toISOString() : String(entry.created_at),
+          title: `Dente ${entry.tooth_number}`,
+          description: `${entry.entry_type}: ${entry.status_code} [${entry.surfaces.join(',')}]${entry.notes ? ` — ${entry.notes}` : ''}`,
           meta: {
-            tooth_number: tooth.tooth_number,
-            status: tooth.status,
+            tooth_number: entry.tooth_number,
+            status_code: entry.status_code,
+            entry_type: entry.entry_type,
           },
         });
       }

@@ -154,11 +154,12 @@ describe('AiClinicalService', () => {
         id: 'odontogram-1',
         patient_id: mockPatient.id,
         updated_at: new Date(),
-        teeth: [
+        entries: [
           {
             tooth_number: 36,
-            status: 'caries',
-            surfaces: ['occlusal'],
+            status_code: 'CARIES_ACTIVE',
+            entry_type: 'FINDING',
+            surfaces: ['OI'],
             notes: 'Carie profunda',
           },
         ],

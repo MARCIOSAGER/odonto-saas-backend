@@ -615,31 +615,91 @@ model Notification {
 // TABELAS DE ODONTOGRAMA
 // ============================================
 
-model Odontogram {
-  id         String            @id @default(dbgenerated("(gen_random_uuid())::text"))
-  patient_id String
-  notes      String?
-  created_at DateTime          @default(now()) @db.Timestamp(6)
-  updated_at DateTime          @default(now()) @updatedAt @db.Timestamp(6)
-  patient        Patient           @relation(fields: [patient_id], references: [id], onDelete: Cascade)
-  teeth          OdontogramTooth[]
-  treatmentPlans TreatmentPlan[]
-
-  @@index([patient_id])
+enum DentitionType {
+  PERMANENT
+  DECIDUOUS
+  MIXED
 }
 
-model OdontogramTooth {
-  id            String     @id @default(dbgenerated("(gen_random_uuid())::text"))
-  odontogram_id String
-  tooth_number  Int // 11-48 (FDI notation)
-  status        String     @default("healthy") // healthy, cavity, restoration, extraction, implant, crown, bridge, root_canal, fracture
-  surfaces      Json? // { mesial: "cavity", distal: "restoration", vestibular: "healthy", lingual: "healthy", occlusal: "cavity" }
-  notes         String?
-  updated_at    DateTime   @default(now()) @updatedAt @db.Timestamp(6)
-  odontogram    Odontogram @relation(fields: [odontogram_id], references: [id], onDelete: Cascade)
+enum ToothSurface {
+  WHOLE
+  M  // Mesial
+  D  // Distal
+  OI // Oclusal/Incisal
+  VB // Vestibular/Bucal
+  LP // Lingual/Palatal
+}
 
-  @@unique([odontogram_id, tooth_number])
+enum OdontogramEntryType {
+  FINDING
+  PROCEDURE
+  NOTE
+}
+
+enum TreatmentPlanItemStatus {
+  PLANNED
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+model Odontogram {
+  id              String            @id @default(dbgenerated("(gen_random_uuid())::text"))
+  patient_id      String
+  clinic_id       String
+  dentition_type  DentitionType     @default(PERMANENT)
+  created_by      String?
+  notes           String?
+  created_at      DateTime          @default(now()) @db.Timestamp(6)
+  updated_at      DateTime          @default(now()) @updatedAt @db.Timestamp(6)
+  patient         Patient           @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  entries         OdontogramEntry[]
+  treatmentPlans  TreatmentPlan[]
+
+  @@index([patient_id])
+  @@index([clinic_id])
+}
+
+model OdontogramEntry {
+  id                     String               @id @default(dbgenerated("(gen_random_uuid())::text"))
+  odontogram_id          String
+  tooth_number           Int // 11-48 permanent (FDI), 51-85 deciduous
+  entry_type             OdontogramEntryType
+  status_code            String // Generic codes: CARIES_SUSPECTED, RESTORATION_COMPOSITE, EXTRACTION, etc.
+  surfaces               ToothSurface[]       @default([WHOLE])
+  notes                  String?
+  created_by             String?
+  superseded_by          String? // FK to new entry that corrects this one
+  superseded_at          DateTime?            @db.Timestamp(6)
+  treatment_plan_item_id String?
+  created_at             DateTime             @default(now()) @db.Timestamp(6)
+  odontogram             Odontogram           @relation(fields: [odontogram_id], references: [id], onDelete: Cascade)
+  treatmentPlanItem      TreatmentPlanItem?   @relation(fields: [treatment_plan_item_id], references: [id], onDelete: SetNull)
+  supersededByEntry      OdontogramEntry?     @relation("EntrySupersede", fields: [superseded_by], references: [id])
+  supersedes             OdontogramEntry[]    @relation("EntrySupersede")
+
   @@index([odontogram_id])
+  @@index([tooth_number])
+  @@index([odontogram_id, tooth_number, created_at(sort: Desc)])
+  @@index([superseded_at])
+}
+
+model OdontogramLegendItem {
+  id         String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  clinic_id  String
+  code       String // Matches OdontogramEntry.status_code
+  label      String
+  color      String // Hex color
+  icon       String? // Optional icon name
+  category   String   @default("general") // finding, procedure, general
+  sort_order Int      @default(0)
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamp(6)
+
+  @@unique([clinic_id, code])
+  @@index([clinic_id])
+  @@index([is_active])
 }
 
 // ============================================
@@ -722,24 +782,47 @@ model Anamnesis {
 // ============================================
 
 model TreatmentPlan {
-  id              String      @id @default(dbgenerated("(gen_random_uuid())::text"))
+  id              String              @id @default(dbgenerated("(gen_random_uuid())::text"))
   patient_id      String
   clinic_id       String
   created_by      String?
-  status          String      @default("pending") // pending, in_progress, completed, cancelled
+  status          String              @default("pending") // pending, in_progress, completed, cancelled
   patient_summary String?
   phases          Json?
-  total_cost      Decimal?    @db.Decimal(10, 2)
+  total_cost      Decimal?            @db.Decimal(10, 2)
   total_sessions  Int?
   recommendations String?
   odontogram_id   String?
   notes           String?
-  created_at      DateTime    @default(now()) @db.Timestamp(6)
-  updated_at      DateTime    @default(now()) @updatedAt @db.Timestamp(6)
-  patient         Patient     @relation(fields: [patient_id], references: [id], onDelete: Cascade)
-  odontogram      Odontogram? @relation(fields: [odontogram_id], references: [id], onDelete: SetNull)
+  created_at      DateTime            @default(now()) @db.Timestamp(6)
+  updated_at      DateTime            @default(now()) @updatedAt @db.Timestamp(6)
+  patient         Patient             @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  odontogram      Odontogram?         @relation(fields: [odontogram_id], references: [id], onDelete: SetNull)
+  items           TreatmentPlanItem[]
 
   @@index([patient_id])
   @@index([clinic_id])
+  @@index([status])
+}
+
+model TreatmentPlanItem {
+  id                   String                  @id @default(dbgenerated("(gen_random_uuid())::text"))
+  treatment_plan_id    String
+  tooth_number         Int?
+  procedure_code       String
+  description          String?
+  status               TreatmentPlanItemStatus @default(PLANNED)
+  estimated_cost       Decimal?                @db.Decimal(10, 2)
+  actual_cost          Decimal?                @db.Decimal(10, 2)
+  notes                String?
+  sort_order           Int                     @default(0)
+  completed_at         DateTime?               @db.Timestamp(6)
+  completed_by         String?
+  created_at           DateTime                @default(now()) @db.Timestamp(6)
+  updated_at           DateTime                @default(now()) @updatedAt @db.Timestamp(6)
+  treatmentPlan        TreatmentPlan           @relation(fields: [treatment_plan_id], references: [id], onDelete: Cascade)
+  odontogramEntries    OdontogramEntry[]
+
+  @@index([treatment_plan_id])
   @@index([status])
 }
