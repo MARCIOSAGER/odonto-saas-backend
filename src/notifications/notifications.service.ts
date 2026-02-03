@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisCacheService } from '../cache/cache.service';
 
 export interface CreateNotificationParams {
   user_id: string;
@@ -12,10 +13,13 @@ export interface CreateNotificationParams {
 
 @Injectable()
 export class NotificationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cacheService: RedisCacheService,
+  ) {}
 
   async create(params: CreateNotificationParams) {
-    return this.prisma.notification.create({
+    const notification = await this.prisma.notification.create({
       data: {
         user_id: params.user_id,
         clinic_id: params.clinic_id || null,
@@ -25,6 +29,9 @@ export class NotificationsService {
         data: params.data ? (params.data as any) : null,
       },
     });
+
+    await this.cacheService.invalidate(`notifications:count:${params.user_id}`);
+    return notification;
   }
 
   async findAll(userId: string, page = 1, limit = 20) {
@@ -48,24 +55,36 @@ export class NotificationsService {
   }
 
   async getUnreadCount(userId: string) {
-    const count = await this.prisma.notification.count({
-      where: { user_id: userId, read: false },
-    });
-    return { count };
+    return this.cacheService.getOrSet(
+      `notifications:count:${userId}`,
+      async () => {
+        const count = await this.prisma.notification.count({
+          where: { user_id: userId, read: false },
+        });
+        return { count };
+      },
+      15 * 1000, // 15 seconds
+    );
   }
 
   async markAsRead(userId: string, notificationId: string) {
-    return this.prisma.notification.updateMany({
+    const result = await this.prisma.notification.updateMany({
       where: { id: notificationId, user_id: userId },
       data: { read: true },
     });
+
+    await this.cacheService.invalidate(`notifications:count:${userId}`);
+    return result;
   }
 
   async markAllAsRead(userId: string) {
-    return this.prisma.notification.updateMany({
+    const result = await this.prisma.notification.updateMany({
       where: { user_id: userId, read: false },
       data: { read: true },
     });
+
+    await this.cacheService.invalidate(`notifications:count:${userId}`);
+    return result;
   }
 
   /**

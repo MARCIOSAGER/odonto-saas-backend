@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ConflictException, Logger } from '@nestj
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { RedisCacheService } from '../cache/cache.service';
 import { CreateClinicDto } from './dto/create-clinic.dto';
 import { UpdateClinicDto } from './dto/update-clinic.dto';
 import { UpdateAiSettingsDto } from './dto/update-ai-settings.dto';
@@ -24,6 +25,7 @@ export class ClinicsService {
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
     private readonly configService: ConfigService,
+    private readonly cacheService: RedisCacheService,
   ) {
     this.zApiClientToken = this.configService.get('z_api_client_token', '');
   }
@@ -67,27 +69,33 @@ export class ClinicsService {
   }
 
   async findPublicBrandingBySlug(slug: string) {
-    const clinic = await this.prisma.clinic.findUnique({
-      where: { slug },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        logo_url: true,
-        favicon_url: true,
-        logo_display_mode: true,
-        primary_color: true,
-        secondary_color: true,
-        slogan: true,
-        tagline: true,
+    return this.cacheService.getOrSet(
+      `branding:slug:${slug}`,
+      async () => {
+        const clinic = await this.prisma.clinic.findUnique({
+          where: { slug },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            logo_url: true,
+            favicon_url: true,
+            logo_display_mode: true,
+            primary_color: true,
+            secondary_color: true,
+            slogan: true,
+            tagline: true,
+          },
+        });
+
+        if (!clinic) {
+          throw new NotFoundException('Clinic not found');
+        }
+
+        return clinic;
       },
-    });
-
-    if (!clinic) {
-      throw new NotFoundException('Clinic not found');
-    }
-
-    return clinic;
+      24 * 60 * 60 * 1000, // 24 hours
+    );
   }
 
   async findOne(id: string) {
@@ -201,6 +209,14 @@ export class ClinicsService {
   }
 
   async getStats(clinicId: string) {
+    return this.cacheService.getOrSet(
+      `clinic:stats:${clinicId}`,
+      () => this.fetchStats(clinicId),
+      5 * 60 * 1000, // 5 minutes
+    );
+  }
+
+  private async fetchStats(clinicId: string) {
     const now = new Date();
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
     const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
@@ -243,7 +259,6 @@ export class ClinicsService {
       }),
     ]);
 
-    // Calcular receita do mês baseado nos agendamentos completados
     const revenueMonth = completedAppointmentsThisMonth.reduce((total, appointment) => {
       const price = appointment.service?.price ? Number(appointment.service.price) : 0;
       return total + price;

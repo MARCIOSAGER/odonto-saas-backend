@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { EmailService } from '../email/email.service';
 import { ConfigService } from '@nestjs/config';
+import { RedisCacheService } from '../cache/cache.service';
 
 @Injectable()
 export class AdminService {
@@ -12,6 +13,7 @@ export class AdminService {
     private readonly auditService: AuditService,
     private readonly emailService: EmailService,
     private readonly configService: ConfigService,
+    private readonly cacheService: RedisCacheService,
   ) {}
 
   // =====================
@@ -19,25 +21,31 @@ export class AdminService {
   // =====================
 
   async getStats() {
-    const [
-      totalClinics,
-      activeClinics,
-      totalUsers,
-      activeUsers,
-    ] = await Promise.all([
-      this.prisma.clinic.count(),
-      this.prisma.clinic.count({ where: { status: 'active' } }),
-      this.prisma.user.count(),
-      this.prisma.user.count({ where: { status: 'active' } }),
-    ]);
+    return this.cacheService.getOrSet(
+      'admin:stats:global',
+      async () => {
+        const [
+          totalClinics,
+          activeClinics,
+          totalUsers,
+          activeUsers,
+        ] = await Promise.all([
+          this.prisma.clinic.count(),
+          this.prisma.clinic.count({ where: { status: 'active' } }),
+          this.prisma.user.count(),
+          this.prisma.user.count({ where: { status: 'active' } }),
+        ]);
 
-    return {
-      total_clinics: totalClinics,
-      active_clinics: activeClinics,
-      inactive_clinics: totalClinics - activeClinics,
-      total_users: totalUsers,
-      active_users: activeUsers,
-    };
+        return {
+          total_clinics: totalClinics,
+          active_clinics: activeClinics,
+          inactive_clinics: totalClinics - activeClinics,
+          total_users: totalUsers,
+          active_users: activeUsers,
+        };
+      },
+      15 * 60 * 1000, // 15 minutes
+    );
   }
 
   // =====================

@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { ClinicsService } from './clinics.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { RedisCacheService } from '../cache/cache.service';
 import { createPrismaMock } from '../test/prisma-mock';
 
 describe('ClinicsService', () => {
@@ -11,6 +12,7 @@ describe('ClinicsService', () => {
   let prisma: ReturnType<typeof createPrismaMock>;
   let auditService: { log: jest.Mock };
   let configService: { get: jest.Mock };
+  let cacheService: { getOrSet: jest.Mock; invalidate: jest.Mock; invalidateMany: jest.Mock };
 
   const userId = 'user-uuid-1';
 
@@ -51,6 +53,11 @@ describe('ClinicsService', () => {
     prisma = createPrismaMock();
     auditService = { log: jest.fn().mockResolvedValue(undefined) };
     configService = { get: jest.fn().mockReturnValue('') };
+    cacheService = {
+      getOrSet: jest.fn((key, factory) => factory()),
+      invalidate: jest.fn().mockResolvedValue(undefined),
+      invalidateMany: jest.fn().mockResolvedValue(undefined),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -58,6 +65,7 @@ describe('ClinicsService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: AuditService, useValue: auditService },
         { provide: ConfigService, useValue: configService },
+        { provide: RedisCacheService, useValue: cacheService },
       ],
     }).compile();
 

@@ -290,4 +290,78 @@ export class PatientsService {
 
     return appointments;
   }
+
+  async getFinancialSummary(clinicId: string, patientId: string) {
+    await this.findOne(clinicId, patientId);
+
+    const [appointments, treatmentPlans] = await Promise.all([
+      this.prisma.appointment.findMany({
+        where: { clinic_id: clinicId, patient_id: patientId },
+        orderBy: { date: 'desc' },
+        include: {
+          service: { select: { id: true, name: true, price: true } },
+          dentist: { select: { id: true, name: true } },
+        },
+      }),
+      this.prisma.treatmentPlan.findMany({
+        where: { clinic_id: clinicId, patient_id: patientId },
+        orderBy: { created_at: 'desc' },
+        select: {
+          id: true,
+          status: true,
+          total_cost: true,
+          total_sessions: true,
+          created_at: true,
+          notes: true,
+        },
+      }),
+    ]);
+
+    let completedTotal = 0;
+    let pendingTotal = 0;
+    let cancelledTotal = 0;
+    let completedCount = 0;
+    let pendingCount = 0;
+    let cancelledCount = 0;
+
+    for (const apt of appointments) {
+      const price = Number(apt.service?.price) || 0;
+      if (apt.status === 'completed') {
+        completedTotal += price;
+        completedCount++;
+      } else if (apt.status === 'cancelled') {
+        cancelledTotal += price;
+        cancelledCount++;
+      } else {
+        pendingTotal += price;
+        pendingCount++;
+      }
+    }
+
+    let treatmentPlanTotal = 0;
+    let activePlansCount = 0;
+    for (const plan of treatmentPlans) {
+      const cost = Number(plan.total_cost) || 0;
+      treatmentPlanTotal += cost;
+      if (plan.status === 'pending' || plan.status === 'in_progress') {
+        activePlansCount++;
+      }
+    }
+
+    return {
+      summary: {
+        completed_total: completedTotal,
+        pending_total: pendingTotal,
+        cancelled_total: cancelledTotal,
+        completed_count: completedCount,
+        pending_count: pendingCount,
+        cancelled_count: cancelledCount,
+        treatment_plan_total: treatmentPlanTotal,
+        active_plans_count: activePlansCount,
+        total_appointments: appointments.length,
+      },
+      appointments,
+      treatment_plans: treatmentPlans,
+    };
+  }
 }

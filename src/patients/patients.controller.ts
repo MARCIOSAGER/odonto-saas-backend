@@ -112,4 +112,15 @@ export class PatientsController {
   ) {
     return this.patientsService.getAppointments(user.clinicId, id, limit);
   }
+
+  @Get(':id/financial')
+  @ApiOperation({ summary: 'Get patient financial summary' })
+  @ApiResponse({ status: 200, description: 'Patient financial data' })
+  @ApiResponse({ status: 404, description: 'Patient not found' })
+  async getFinancialSummary(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: { clinicId: string },
+  ) {
+    return this.patientsService.getFinancialSummary(user.clinicId, id);
+  }
 }

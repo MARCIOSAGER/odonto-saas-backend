@@ -50,6 +50,8 @@ export const createPrismaMock = () => ({
   service: {
     findMany: jest.fn(),
     findFirst: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
   },
   subscription: {
     findFirst: jest.fn(),
@@ -91,6 +93,20 @@ export const createPrismaMock = () => ({
     findFirst: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
+  },
+  notification: {
+    findMany: jest.fn(),
+    count: jest.fn(),
+    create: jest.fn(),
+    updateMany: jest.fn(),
+  },
+  odontogram: {
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+  },
+  odontogramTooth: {
+    upsert: jest.fn(),
   },
   $transaction: jest.fn((fn) => fn()),
 });
