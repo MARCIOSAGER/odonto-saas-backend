@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EmailProcessor } from './processors/email.processor';
 import { QueueService } from './queue.service';
 import { QUEUE_EMAIL, QUEUE_WHATSAPP, QUEUE_PDF } from './queue.constants';
+import { EmailModule } from '../email/email.module';
 
 @Global()
 @Module({
@@ -40,6 +41,7 @@ import { QUEUE_EMAIL, QUEUE_WHATSAPP, QUEUE_PDF } from './queue.constants';
       { name: QUEUE_WHATSAPP },
       { name: QUEUE_PDF },
     ),
+    EmailModule,
   ],
   providers: [QueueService, EmailProcessor],
   exports: [QueueService, BullModule],
