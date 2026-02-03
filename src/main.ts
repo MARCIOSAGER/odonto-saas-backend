@@ -1,3 +1,4 @@
+import './common/sentry/instrument';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe, VersioningType, Logger } from '@nestjs/common';
