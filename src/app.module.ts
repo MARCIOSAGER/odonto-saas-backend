@@ -5,6 +5,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { TerminusModule } from '@nestjs/terminus';
 import { CorrelationIdMiddleware } from './logger/correlation-id.middleware';
 import { RedisCacheModule } from './cache/cache.module';
+import { QueueModule } from './queue/queue.module';
 
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
@@ -67,6 +68,9 @@ import { AnamnesisModule } from './anamnesis/anamnesis.module';
 
     // Cache (Redis in production, in-memory fallback)
     RedisCacheModule,
+
+    // Queue system (BullMQ + Redis)
+    QueueModule,
 
     // Database
     PrismaModule,

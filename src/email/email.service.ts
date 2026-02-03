@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
+import { QueueService } from '../queue/queue.service';
 import * as nodemailer from 'nodemailer';
 import { passwordResetTemplate } from './templates/password-reset.template';
 import { welcomeTemplate } from './templates/welcome.template';
@@ -15,6 +16,7 @@ export class EmailService {
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
+    @Optional() private readonly queueService?: QueueService,
   ) {
     this.transporter = nodemailer.createTransport({
       host: this.configService.get('SMTP_HOST', 'smtp.hostinger.com'),
@@ -73,6 +75,9 @@ export class EmailService {
   }
 
   async sendPasswordResetEmail(to: string, name: string, resetLink: string, clinicId?: string): Promise<boolean> {
+    if (this.queueService?.isEnabled) {
+      return this.queueService.addEmailJob({ type: 'password-reset', to, name, resetLink, clinicId });
+    }
     const html = passwordResetTemplate(name, resetLink);
     if (clinicId) {
       return this.sendMailForClinic(clinicId, to, 'Redefinir sua senha', html);
@@ -81,6 +86,9 @@ export class EmailService {
   }
 
   async sendWelcomeEmail(to: string, name: string, clinicName: string, clinicId?: string): Promise<boolean> {
+    if (this.queueService?.isEnabled) {
+      return this.queueService.addEmailJob({ type: 'welcome', to, name, clinicName, clinicId });
+    }
     const html = welcomeTemplate(name, clinicName);
     if (clinicId) {
       return this.sendMailForClinic(clinicId, to, 'Bem-vindo ao Odonto SaaS!', html);
@@ -89,6 +97,9 @@ export class EmailService {
   }
 
   async sendTwoFactorCode(to: string, name: string, code: string, clinicId?: string): Promise<boolean> {
+    if (this.queueService?.isEnabled) {
+      return this.queueService.addEmailJob({ type: '2fa-code', to, name, code, clinicId });
+    }
     const html = twoFactorCodeTemplate(name, code);
     if (clinicId) {
       return this.sendMailForClinic(clinicId, to, 'Seu código de verificação', html);
@@ -106,6 +117,19 @@ export class EmailService {
     serviceName: string,
     dentistName: string,
   ): Promise<boolean> {
+    if (this.queueService?.isEnabled) {
+      return this.queueService.addEmailJob({
+        type: 'appointment-reminder',
+        to,
+        clinicId,
+        patientName,
+        clinicName,
+        date,
+        time,
+        serviceName,
+        dentistName,
+      });
+    }
     const html = appointmentReminderTemplate(patientName, clinicName, date, time, serviceName, dentistName);
     return this.sendMailForClinic(clinicId, to, `Lembrete: Consulta em ${date} às ${time}`, html);
   }
