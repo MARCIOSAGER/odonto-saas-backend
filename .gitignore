@@ -40,5 +40,8 @@ prisma/*.db-journal
 # Docker
 docker-compose.override.yml
 
+# Deploy
+.coolify-token
+
 # Misc
 *.tsbuildinfo

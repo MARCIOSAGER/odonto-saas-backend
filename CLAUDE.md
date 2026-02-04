@@ -193,30 +193,24 @@ npx prisma studio          # GUI para inspecionar dados
 - **Health check:** GET `/health` (Terminus module)
 - **Migrations:** `prisma db push` roda automaticamente no `start:prod`
 
-### Workflow de deploy (OBRIGATORIO)
+### Workflow de deploy
 
-Apos concluir qualquer alteracao de codigo, SEMPRE executar na seguinte ordem:
+O deploy e automatico via **webhook do Coolify**. Basta fazer push para `main`:
 
 1. **Commit** — `git add <arquivos> && git commit -m "mensagem"`
 2. **Push** — `git push origin main`
-3. **Deploy** — Disparar deploy via API Coolify:
+3. **Deploy** — Automatico! O webhook do GitHub notifica o Coolify, que inicia o build e deploy.
+
+> **Nota:** O webhook esta configurado no GitHub (Settings > Webhooks) apontando para o Coolify. Nao e necessario disparar manualmente.
+
+### Deploy manual (fallback)
+
+Se precisar disparar deploy manual sem push, use a API do Coolify com o token salvo em `.coolify-token` (arquivo gitignored):
 
 ```bash
-# Backend
+TOKEN=$(cat .coolify-token)
 curl -s -X POST "https://coolify.marciosager.com/api/v1/deploy" \
-  -H "Authorization: Bearer 3|C9chzr4uPsVPFcei9qSQV2v50r4cWew93AyHwtk7164addd0" \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"uuid":"o480kk4sk4444c04kocswcog","force":false}'
-
-# Frontend (quando houver alteracoes no frontend)
-curl -s -X POST "https://coolify.marciosager.com/api/v1/deploy" \
-  -H "Authorization: Bearer 3|C9chzr4uPsVPFcei9qSQV2v50r4cWew93AyHwtk7164addd0" \
-  -H "Content-Type: application/json" \
-  -d '{"uuid":"tc08w80kccws48osw48woswo","force":false}'
 ```
-
-### UUIDs Coolify
-| Servico | UUID |
-|---|---|
-| Backend | `o480kk4sk4444c04kocswcog` |
-| Frontend | `tc08w80kccws48osw48woswo` |
