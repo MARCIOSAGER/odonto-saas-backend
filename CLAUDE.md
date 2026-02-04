@@ -187,7 +187,36 @@ npx prisma studio          # GUI para inspecionar dados
 
 ## Deploy
 
+### Infraestrutura
 - **Docker:** Multi-stage build, Node 20 Alpine, usuario nao-root
 - **Coolify / VPS:** docker-compose.prod.yml com Nginx reverse proxy
 - **Health check:** GET `/health` (Terminus module)
 - **Migrations:** `prisma db push` roda automaticamente no `start:prod`
+
+### Workflow de deploy (OBRIGATORIO)
+
+Apos concluir qualquer alteracao de codigo, SEMPRE executar na seguinte ordem:
+
+1. **Commit** — `git add <arquivos> && git commit -m "mensagem"`
+2. **Push** — `git push origin main`
+3. **Deploy** — Disparar deploy via API Coolify:
+
+```bash
+# Backend
+curl -s -X POST "https://coolify.marciosager.com/api/v1/deploy" \
+  -H "Authorization: Bearer 3|C9chzr4uPsVPFcei9qSQV2v50r4cWew93AyHwtk7164addd0" \
+  -H "Content-Type: application/json" \
+  -d '{"uuid":"o480kk4sk4444c04kocswcog","force":false}'
+
+# Frontend (quando houver alteracoes no frontend)
+curl -s -X POST "https://coolify.marciosager.com/api/v1/deploy" \
+  -H "Authorization: Bearer 3|C9chzr4uPsVPFcei9qSQV2v50r4cWew93AyHwtk7164addd0" \
+  -H "Content-Type: application/json" \
+  -d '{"uuid":"tc08w80kccws48osw48woswo","force":false}'
+```
+
+### UUIDs Coolify
+| Servico | UUID |
+|---|---|
+| Backend | `o480kk4sk4444c04kocswcog` |
+| Frontend | `tc08w80kccws48osw48woswo` |
