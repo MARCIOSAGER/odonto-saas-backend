@@ -195,12 +195,8 @@ describe('AuthService', () => {
     it('should throw ConflictException if email already exists', async () => {
       prisma.user.findUnique.mockResolvedValue(mockUser);
 
-      await expect(service.register(registerDto)).rejects.toThrow(
-        ConflictException,
-      );
-      await expect(service.register(registerDto)).rejects.toThrow(
-        'Email already registered',
-      );
+      await expect(service.register(registerDto)).rejects.toThrow(ConflictException);
+      await expect(service.register(registerDto)).rejects.toThrow('Email already registered');
       expect(prisma.$transaction).not.toHaveBeenCalled();
     });
 
@@ -208,12 +204,8 @@ describe('AuthService', () => {
       prisma.user.findUnique.mockResolvedValue(null);
       prisma.clinic.findUnique.mockResolvedValue(mockClinic);
 
-      await expect(service.register(registerDto)).rejects.toThrow(
-        ConflictException,
-      );
-      await expect(service.register(registerDto)).rejects.toThrow(
-        'CNPJ already registered',
-      );
+      await expect(service.register(registerDto)).rejects.toThrow(ConflictException);
+      await expect(service.register(registerDto)).rejects.toThrow('CNPJ already registered');
       expect(prisma.$transaction).not.toHaveBeenCalled();
     });
 
@@ -278,12 +270,8 @@ describe('AuthService', () => {
     it('should throw UnauthorizedException if user not found', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
 
-      await expect(service.login(loginDto)).rejects.toThrow(
-        UnauthorizedException,
-      );
-      await expect(service.login(loginDto)).rejects.toThrow(
-        'Invalid credentials',
-      );
+      await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
+      await expect(service.login(loginDto)).rejects.toThrow('Invalid credentials');
     });
 
     it('should throw UnauthorizedException if user is inactive', async () => {
@@ -292,24 +280,16 @@ describe('AuthService', () => {
         status: 'inactive',
       });
 
-      await expect(service.login(loginDto)).rejects.toThrow(
-        UnauthorizedException,
-      );
-      await expect(service.login(loginDto)).rejects.toThrow(
-        'Account is inactive',
-      );
+      await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
+      await expect(service.login(loginDto)).rejects.toThrow('Account is inactive');
     });
 
     it('should throw UnauthorizedException if password is wrong', async () => {
       prisma.user.findUnique.mockResolvedValue(mockUser);
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
-      await expect(service.login(loginDto)).rejects.toThrow(
-        UnauthorizedException,
-      );
-      await expect(service.login(loginDto)).rejects.toThrow(
-        'Invalid credentials',
-      );
+      await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
+      await expect(service.login(loginDto)).rejects.toThrow('Invalid credentials');
     });
 
     it('should return requires_2fa when 2FA is enabled', async () => {
@@ -358,9 +338,7 @@ describe('AuthService', () => {
           code_sent: true,
         }),
       );
-      expect(twoFactorService.sendEmailCode).toHaveBeenCalledWith(
-        mockUser.id,
-      );
+      expect(twoFactorService.sendEmailCode).toHaveBeenCalledWith(mockUser.id);
     });
   });
 
@@ -381,7 +359,8 @@ describe('AuthService', () => {
     });
 
     it('should generate token, save hashed token, and send reset email', async () => {
-      const { clinic: _clinic, ...userWithoutClinic } = mockUser;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { clinic, ...userWithoutClinic } = mockUser;
       prisma.user.findUnique.mockResolvedValue(userWithoutClinic);
       prisma.user.update.mockResolvedValue(userWithoutClinic);
 
@@ -411,7 +390,8 @@ describe('AuthService', () => {
   // ──────────────────────────────────────────────────
   describe('resetPassword', () => {
     it('should reset password when token is valid', async () => {
-      const { clinic: _clinic, ...userWithoutClinic } = mockUser;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { clinic, ...userWithoutClinic } = mockUser;
       prisma.user.findFirst.mockResolvedValue({
         ...userWithoutClinic,
         reset_token: 'hashed-token',
@@ -436,12 +416,12 @@ describe('AuthService', () => {
     it('should throw BadRequestException when token is invalid or expired', async () => {
       prisma.user.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.resetPassword('invalid-token', 'NewPass@123'),
-      ).rejects.toThrow(BadRequestException);
-      await expect(
-        service.resetPassword('invalid-token', 'NewPass@123'),
-      ).rejects.toThrow('Token inválido ou expirado');
+      await expect(service.resetPassword('invalid-token', 'NewPass@123')).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.resetPassword('invalid-token', 'NewPass@123')).rejects.toThrow(
+        'Token inválido ou expirado',
+      );
     });
   });
 
@@ -474,9 +454,9 @@ describe('AuthService', () => {
         type: 'access',
       });
 
-      await expect(
-        service.refreshToken('access-token-instead'),
-      ).rejects.toThrow(UnauthorizedException);
+      await expect(service.refreshToken('access-token-instead')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should throw UnauthorizedException for inactive user', async () => {
@@ -489,9 +469,9 @@ describe('AuthService', () => {
         status: 'inactive',
       });
 
-      await expect(
-        service.refreshToken('valid-refresh-token'),
-      ).rejects.toThrow(UnauthorizedException);
+      await expect(service.refreshToken('valid-refresh-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should throw UnauthorizedException for invalid token', async () => {
@@ -499,9 +479,7 @@ describe('AuthService', () => {
         throw new Error('invalid token');
       });
 
-      await expect(
-        service.refreshToken('garbage-token'),
-      ).rejects.toThrow(UnauthorizedException);
+      await expect(service.refreshToken('garbage-token')).rejects.toThrow(UnauthorizedException);
     });
   });
 
@@ -534,12 +512,8 @@ describe('AuthService', () => {
     it('should throw NotFoundException when user not found', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
 
-      await expect(service.getProfile('non-existent-id')).rejects.toThrow(
-        NotFoundException,
-      );
-      await expect(service.getProfile('non-existent-id')).rejects.toThrow(
-        'User not found',
-      );
+      await expect(service.getProfile('non-existent-id')).rejects.toThrow(NotFoundException);
+      await expect(service.getProfile('non-existent-id')).rejects.toThrow('User not found');
     });
   });
 
@@ -617,21 +591,21 @@ describe('AuthService', () => {
     it('should throw NotFoundException when user not found', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.disable2fa('non-existent-id', 'password'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.disable2fa('non-existent-id', 'password')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw UnauthorizedException when password is incorrect', async () => {
       prisma.user.findUnique.mockResolvedValue(mockUser);
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
-      await expect(
-        service.disable2fa(mockUser.id, 'wrong-password'),
-      ).rejects.toThrow(UnauthorizedException);
-      await expect(
-        service.disable2fa(mockUser.id, 'wrong-password'),
-      ).rejects.toThrow('Senha incorreta');
+      await expect(service.disable2fa(mockUser.id, 'wrong-password')).rejects.toThrow(
+        UnauthorizedException,
+      );
+      await expect(service.disable2fa(mockUser.id, 'wrong-password')).rejects.toThrow(
+        'Senha incorreta',
+      );
     });
   });
 
@@ -674,9 +648,7 @@ describe('AuthService', () => {
     it('should throw NotFoundException when user not found', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
 
-      await expect(service.get2faStatus('non-existent-id')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.get2faStatus('non-existent-id')).rejects.toThrow(NotFoundException);
     });
   });
 });

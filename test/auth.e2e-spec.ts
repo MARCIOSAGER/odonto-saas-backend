@@ -3,10 +3,7 @@ import { INestApplication, ValidationPipe, VersioningType } from '@nestjs/common
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import * as request from 'supertest';
-import {
-  ConflictException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import { AuthController } from '../src/auth/auth.controller';
 import { AuthService } from '../src/auth/auth.service';
 import { TransformInterceptor } from '../src/common/interceptors/transform.interceptor';
@@ -26,7 +23,13 @@ class TestJwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: { sub: string; clinicId: string; role: string; email: string; type: string }) {
+  async validate(payload: {
+    sub: string;
+    clinicId: string;
+    role: string;
+    email: string;
+    type: string;
+  }) {
     if (payload.type !== 'access') {
       throw new UnauthorizedException('Invalid token type');
     }
@@ -94,10 +97,7 @@ describe('AuthController (e2e)', () => {
         JwtModule.register({ secret: 'test-secret', signOptions: { expiresIn: '1h' } }),
       ],
       controllers: [AuthController],
-      providers: [
-        { provide: AuthService, useValue: mockAuthService },
-        TestJwtStrategy,
-      ],
+      providers: [{ provide: AuthService, useValue: mockAuthService }, TestJwtStrategy],
     }).compile();
 
     app = moduleFixture.createNestApplication();
@@ -160,7 +160,8 @@ describe('AuthController (e2e)', () => {
     });
 
     it('should return 400 when name is missing', () => {
-      const { name: _name, ...body } = validBody;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { name, ...body } = validBody;
       return request(app.getHttpServer())
         .post('/api/v1/auth/register')
         .send(body)
@@ -209,10 +210,7 @@ describe('AuthController (e2e)', () => {
       mockAuthService.register.mockRejectedValueOnce(
         new ConflictException('Email already registered'),
       );
-      return request(app.getHttpServer())
-        .post('/api/v1/auth/register')
-        .send(validBody)
-        .expect(409);
+      return request(app.getHttpServer()).post('/api/v1/auth/register').send(validBody).expect(409);
     });
 
     it('should accept CPF (11 digits) as cnpj field', () => {
@@ -242,13 +240,8 @@ describe('AuthController (e2e)', () => {
     });
 
     it('should return 401 for invalid credentials', () => {
-      mockAuthService.login.mockRejectedValueOnce(
-        new UnauthorizedException('Invalid credentials'),
-      );
-      return request(app.getHttpServer())
-        .post('/api/v1/auth/login')
-        .send(validBody)
-        .expect(401);
+      mockAuthService.login.mockRejectedValueOnce(new UnauthorizedException('Invalid credentials'));
+      return request(app.getHttpServer()).post('/api/v1/auth/login').send(validBody).expect(401);
     });
 
     it('should return 400 when email is missing', () => {
@@ -301,9 +294,7 @@ describe('AuthController (e2e)', () => {
     });
 
     it('should return 401 without JWT', () => {
-      return request(app.getHttpServer())
-        .get('/api/v1/auth/me')
-        .expect(401);
+      return request(app.getHttpServer()).get('/api/v1/auth/me').expect(401);
     });
 
     it('should return 401 with invalid JWT', () => {
@@ -315,7 +306,13 @@ describe('AuthController (e2e)', () => {
 
     it('should return 401 with expired JWT', () => {
       const expired = jwtService.sign(
-        { sub: 'user-uuid', email: 'test@test.com', role: 'admin', clinicId: 'clinic-uuid', type: 'access' },
+        {
+          sub: 'user-uuid',
+          email: 'test@test.com',
+          role: 'admin',
+          clinicId: 'clinic-uuid',
+          type: 'access',
+        },
         { expiresIn: '0s' },
       );
       return request(app.getHttpServer())
@@ -340,10 +337,7 @@ describe('AuthController (e2e)', () => {
     });
 
     it('should return 400 when email is missing', () => {
-      return request(app.getHttpServer())
-        .post('/api/v1/auth/forgot-password')
-        .send({})
-        .expect(400);
+      return request(app.getHttpServer()).post('/api/v1/auth/forgot-password').send({}).expect(400);
     });
 
     it('should return 400 when email is invalid', () => {
@@ -370,9 +364,7 @@ describe('AuthController (e2e)', () => {
     });
 
     it('should format errors with { statusCode, timestamp, path, method, message }', () => {
-      mockAuthService.login.mockRejectedValueOnce(
-        new UnauthorizedException('Invalid credentials'),
-      );
+      mockAuthService.login.mockRejectedValueOnce(new UnauthorizedException('Invalid credentials'));
       return request(app.getHttpServer())
         .post('/api/v1/auth/login')
         .send({ email: 'joao@clinica.com', password: 'Senha@123' })

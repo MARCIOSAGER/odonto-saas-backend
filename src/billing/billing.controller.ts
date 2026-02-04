@@ -8,13 +8,7 @@ import {
   UseGuards,
   ParseUUIDPipe,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-  ApiQuery,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { BillingService } from './billing.service';
 import { CouponService } from './coupon.service';
 import { NfseService } from './nfse/nfse.service';
@@ -41,10 +35,7 @@ export class BillingController {
   @Roles('admin', 'superadmin')
   @ApiOperation({ summary: 'Create checkout session' })
   @ApiResponse({ status: 201, description: 'Checkout created' })
-  async checkout(
-    @Body() dto: CheckoutDto,
-    @CurrentUser() user: { clinicId: string },
-  ) {
+  async checkout(@Body() dto: CheckoutDto, @CurrentUser() user: { clinicId: string }) {
     return this.billingService.checkout(user.clinicId, dto);
   }
 
@@ -65,7 +56,8 @@ export class BillingController {
   @ApiOperation({ summary: 'Emit NFS-e for invoice' })
   async emitNfse(
     @Param('invoiceId', ParseUUIDPipe) invoiceId: string,
-    @CurrentUser() _user: { clinicId: string },
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    @CurrentUser() user: { clinicId: string },
   ) {
     return this.nfseService.reprocess(invoiceId);
   }
@@ -82,9 +74,7 @@ export class BillingController {
 
   @Get('nfse/:invoiceId/pdf')
   @ApiOperation({ summary: 'Get NFS-e PDF URL' })
-  async getNfsePdf(
-    @Param('invoiceId', ParseUUIDPipe) invoiceId: string,
-  ) {
+  async getNfsePdf(@Param('invoiceId', ParseUUIDPipe) invoiceId: string) {
     const url = await this.nfseService.getPdfUrl(invoiceId);
     return { pdf_url: url };
   }

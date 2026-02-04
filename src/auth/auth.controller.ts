@@ -70,7 +70,8 @@ export class AuthController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Logout user' })
   @ApiResponse({ status: 200, description: 'Logout successful' })
-  async logout(@CurrentUser() _user: { userId: string }) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async logout(@CurrentUser() user: { userId: string }) {
     return { message: 'Logout successful' };
   }
 
@@ -168,10 +169,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Verify TOTP setup with code' })
   @ApiResponse({ status: 200, description: 'TOTP 2FA enabled' })
   @ApiResponse({ status: 400, description: 'Invalid TOTP code' })
-  async verifyTotpSetup(
-    @CurrentUser() user: { userId: string },
-    @Body() dto: VerifyTotpSetupDto,
-  ) {
+  async verifyTotpSetup(@CurrentUser() user: { userId: string }, @Body() dto: VerifyTotpSetupDto) {
     return this.authService.verifyTotpSetup(user.userId, dto.code, dto.secret);
   }
 
@@ -181,10 +179,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Disable 2FA (requires password)' })
   @ApiResponse({ status: 200, description: '2FA disabled' })
   @ApiResponse({ status: 401, description: 'Wrong password' })
-  async disable2fa(
-    @CurrentUser() user: { userId: string },
-    @Body() dto: Disable2faDto,
-  ) {
+  async disable2fa(@CurrentUser() user: { userId: string }, @Body() dto: Disable2faDto) {
     return this.authService.disable2fa(user.userId, dto.password);
   }
 
