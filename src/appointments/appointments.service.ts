@@ -418,7 +418,7 @@ export class AppointmentsService {
   }
 
   async softDelete(clinicId: string, id: string, userId: string) {
-    const appointment = await this.findOne(clinicId, id);
+    await this.findOne(clinicId, id);
 
     const updated = await this.prisma.appointment.update({
       where: { id },

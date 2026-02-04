@@ -381,7 +381,7 @@ describe('AuthService', () => {
     });
 
     it('should generate token, save hashed token, and send reset email', async () => {
-      const { clinic, ...userWithoutClinic } = mockUser;
+      const { clinic: _clinic, ...userWithoutClinic } = mockUser;
       prisma.user.findUnique.mockResolvedValue(userWithoutClinic);
       prisma.user.update.mockResolvedValue(userWithoutClinic);
 
@@ -411,7 +411,7 @@ describe('AuthService', () => {
   // ──────────────────────────────────────────────────
   describe('resetPassword', () => {
     it('should reset password when token is valid', async () => {
-      const { clinic, ...userWithoutClinic } = mockUser;
+      const { clinic: _clinic, ...userWithoutClinic } = mockUser;
       prisma.user.findFirst.mockResolvedValue({
         ...userWithoutClinic,
         reset_token: 'hashed-token',

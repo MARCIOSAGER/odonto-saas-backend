@@ -1,6 +1,6 @@
 import { PartialType } from '@nestjs/swagger';
 import { CreateClinicDto } from './create-clinic.dto';
-import { IsBoolean, IsOptional, IsString, IsUrl, IsObject, Matches } from 'class-validator';
+import { IsBoolean, IsOptional, IsString, IsObject, Matches } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateClinicDto extends PartialType(CreateClinicDto) {

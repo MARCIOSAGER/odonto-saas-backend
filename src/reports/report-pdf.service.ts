@@ -1,8 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as PDFDocument from 'pdfkit';
-import * as fs from 'fs';
-import * as path from 'path';
 
 interface ReportData {
   title: string;

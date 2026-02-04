@@ -70,7 +70,7 @@ export class AuthController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Logout user' })
   @ApiResponse({ status: 200, description: 'Logout successful' })
-  async logout(@CurrentUser() user: { userId: string }) {
+  async logout(@CurrentUser() _user: { userId: string }) {
     return { message: 'Logout successful' };
   }
 

@@ -151,8 +151,6 @@ export class ReminderService {
    */
   private async send1hReminders(): Promise<void> {
     const now = new Date();
-    const from50min = new Date(now.getTime() + 50 * 60 * 1000);
-    const to70min = new Date(now.getTime() + 70 * 60 * 1000);
 
     const today = new Date(now.toISOString().split('T')[0]);
     const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);

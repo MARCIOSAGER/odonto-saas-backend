@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException, BadRequestException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import { BillingService } from './billing.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeGateway } from './gateways/stripe.gateway';

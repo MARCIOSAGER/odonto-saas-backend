@@ -207,7 +207,7 @@ export class AuthService {
     method?: string,
     meta?: RequestMeta,
   ) {
-    const { userId, clinicId } = this.twoFactorService.verifyTwoFactorToken(twoFactorToken);
+    const { userId } = this.twoFactorService.verifyTwoFactorToken(twoFactorToken);
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },

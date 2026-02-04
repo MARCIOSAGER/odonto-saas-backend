@@ -160,7 +160,7 @@ describe('AuthController (e2e)', () => {
     });
 
     it('should return 400 when name is missing', () => {
-      const { name, ...body } = validBody;
+      const { name: _name, ...body } = validBody;
       return request(app.getHttpServer())
         .post('/api/v1/auth/register')
         .send(body)

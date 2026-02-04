@@ -65,7 +65,7 @@ export class BillingController {
   @ApiOperation({ summary: 'Emit NFS-e for invoice' })
   async emitNfse(
     @Param('invoiceId', ParseUUIDPipe) invoiceId: string,
-    @CurrentUser() user: { clinicId: string },
+    @CurrentUser() _user: { clinicId: string },
   ) {
     return this.nfseService.reprocess(invoiceId);
   }

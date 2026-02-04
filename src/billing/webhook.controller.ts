@@ -6,7 +6,7 @@ import {
   HttpCode,
   Logger,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiExcludeEndpoint } from '@nestjs/swagger';
+import { ApiTags, ApiExcludeEndpoint } from '@nestjs/swagger';
 import { Request } from 'express';
 import { BillingService } from './billing.service';
 import { StripeGateway } from './gateways/stripe.gateway';
