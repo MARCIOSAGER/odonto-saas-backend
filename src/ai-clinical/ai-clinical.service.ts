@@ -192,7 +192,7 @@ ${JSON.stringify(services, null, 2)}`;
   async getPatientSummary(clinicId: string, patientId: string) {
     const settings = await this.getAiSettings(clinicId);
 
-    const [patient, appointments, odontogram] = await Promise.all([
+    const [patient, appointments, odontogram, appointmentStats, totalRevenue] = await Promise.all([
       this.prisma.patient.findUnique({
         where: { id: patientId },
         select: {
@@ -228,18 +228,39 @@ ${JSON.stringify(services, null, 2)}`;
           },
         },
       }),
+      // SQL aggregation for status counts
+      this.prisma.$queryRaw<Array<{ status: string; count: bigint }>>`
+        SELECT status, COUNT(*) as count
+        FROM "Appointment"
+        WHERE patient_id = ${patientId}
+        GROUP BY status
+      `,
+      // SQL SUM for total revenue
+      this.prisma.$queryRaw<Array<{ total: number }>>`
+        SELECT COALESCE(SUM(s.price), 0) as total
+        FROM "Appointment" a
+        JOIN "Service" s ON a.service_id = s.id
+        WHERE a.patient_id = ${patientId}
+          AND a.status = 'completed'
+      `,
     ]);
 
     if (!patient) {
       return { error: 'Paciente não encontrado' };
     }
 
-    const completedCount = appointments.filter((a) => a.status === 'completed').length;
-    const cancelledCount = appointments.filter((a) => a.status === 'cancelled').length;
-    const noShowCount = appointments.filter((a) => a.status === 'no_show').length;
-    const totalSpent = appointments
-      .filter((a) => a.status === 'completed')
-      .reduce((sum, a) => sum + Number(a.service.price), 0);
+    // Convert SQL aggregation results to counts
+    const statsMap = appointmentStats.reduce(
+      (acc, row) => {
+        acc[row.status] = Number(row.count);
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+    const completedCount = statsMap.completed || 0;
+    const cancelledCount = statsMap.cancelled || 0;
+    const noShowCount = statsMap.no_show || 0;
+    const totalSpent = totalRevenue[0]?.total || 0;
 
     const systemPrompt = `Você é um assistente odontológico. Gere um resumo executivo do paciente para o dentista. Seja conciso e objetivo.
 

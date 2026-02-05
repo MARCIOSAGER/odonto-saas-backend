@@ -41,6 +41,8 @@ describe('AiClinicalService', () => {
     prisma = createPrismaMock();
     // The service uses patient.findUnique which is not in the default mock
     (prisma.patient as any).findUnique = jest.fn();
+    // Add $queryRaw mock for SQL aggregations
+    (prisma as any).$queryRaw = jest.fn();
 
     configService = { get: jest.fn() };
 
@@ -232,6 +234,9 @@ describe('AiClinicalService', () => {
       (prisma.patient as any).findUnique.mockResolvedValue(null);
       prisma.appointment.findMany.mockResolvedValue([]);
       prisma.odontogram.findFirst.mockResolvedValue(null);
+      ((prisma as any).$queryRaw as jest.Mock)
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ total: 0 }]);
 
       const result = await service.getPatientSummary(clinicId, 'non-existent-id');
 

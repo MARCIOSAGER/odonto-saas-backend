@@ -204,45 +204,42 @@ export class ReportsService {
     return this.cacheService.getOrSet(
       `reports:services:${clinicId}:${startKey}:${endKey}`,
       async () => {
-        const appointments = await this.prisma.appointment.findMany({
-          where: {
-            clinic_id: clinicId,
-            status: 'completed',
-            date: { gte: startDate, lte: endDate },
-          },
-          include: {
-            service: { select: { name: true, price: true, duration: true } },
-          },
-        });
+        // SQL aggregation for service performance
+        const services = await this.prisma.$queryRaw<
+          Array<{
+            name: string;
+            count: bigint;
+            revenue: number;
+            duration: number;
+          }>
+        >`
+          SELECT
+            s.name,
+            COUNT(*) as count,
+            COALESCE(SUM(s.price), 0) as revenue,
+            COALESCE(MAX(s.duration), 0) as duration
+          FROM "Appointment" a
+          JOIN "Service" s ON a.service_id = s.id
+          WHERE a.clinic_id = ${clinicId}
+            AND a.status = 'completed'
+            AND a.date >= ${startDate}
+            AND a.date <= ${endDate}
+          GROUP BY s.name
+          ORDER BY count DESC
+        `;
 
-        const serviceMap = new Map<
-          string,
-          { name: string; count: number; revenue: number; duration: number }
-        >();
-
-        for (const apt of appointments) {
-          const key = apt.service.name;
-          const s = serviceMap.get(key) || {
-            name: key,
-            count: 0,
-            revenue: 0,
-            duration: Number(apt.service.duration || 0),
-          };
-          s.count++;
-          s.revenue += Number(apt.service.price || 0);
-          serviceMap.set(key, s);
-        }
-
-        const services = Array.from(serviceMap.values())
-          .map((s) => ({
-            ...s,
-            average_ticket: s.count > 0 ? Math.round(s.revenue / s.count) : 0,
-          }))
-          .sort((a, b) => b.count - a.count);
+        const total_services_performed = services.reduce((sum, s) => sum + Number(s.count), 0);
 
         return {
-          total_services_performed: appointments.length,
-          services,
+          total_services_performed,
+          services: services.map((s) => ({
+            name: s.name,
+            count: Number(s.count),
+            revenue: Number(s.revenue),
+            duration: Number(s.duration),
+            average_ticket:
+              Number(s.count) > 0 ? Math.round(Number(s.revenue) / Number(s.count)) : 0,
+          })),
         };
       },
       TEN_MINUTES,
@@ -259,51 +256,42 @@ export class ReportsService {
     return this.cacheService.getOrSet(
       `reports:commissions:${clinicId}:${startKey}:${endKey}`,
       async () => {
-        const appointments: any[] = await this.prisma.appointment.findMany({
-          where: {
-            clinic_id: clinicId,
-            status: 'completed',
-            date: { gte: startDate, lte: endDate },
-          },
-          include: {
-            dentist: true,
-            service: { select: { name: true, price: true } },
-          },
-        });
-
-        const dentistMap = new Map<
-          string,
-          {
+        // SQL aggregation for dentist commissions
+        const dentists = await this.prisma.$queryRaw<
+          Array<{
             name: string;
             specialty: string | null;
             commission_rate: number;
             total_revenue: number;
-            total_commission: number;
-            appointment_count: number;
-          }
-        >();
-
-        for (const apt of appointments) {
-          if (!apt.dentist) continue;
-          const d = dentistMap.get(apt.dentist.id) || {
-            name: apt.dentist.name,
-            specialty: apt.dentist.specialty,
-            commission_rate: Number(apt.dentist.commission_rate || 0),
-            total_revenue: 0,
-            total_commission: 0,
-            appointment_count: 0,
-          };
-          const price = Number(apt.service.price || 0);
-          d.total_revenue += price;
-          d.total_commission += price * (d.commission_rate / 100);
-          d.appointment_count++;
-          dentistMap.set(apt.dentist.id, d);
-        }
+            appointment_count: bigint;
+          }>
+        >`
+          SELECT
+            d.name,
+            d.specialty,
+            COALESCE(d.commission_rate, 0) as commission_rate,
+            COALESCE(SUM(s.price), 0) as total_revenue,
+            COUNT(*) as appointment_count
+          FROM "Appointment" a
+          JOIN "Dentist" d ON a.dentist_id = d.id
+          JOIN "Service" s ON a.service_id = s.id
+          WHERE a.clinic_id = ${clinicId}
+            AND a.status = 'completed'
+            AND a.date >= ${startDate}
+            AND a.date <= ${endDate}
+          GROUP BY d.id, d.name, d.specialty, d.commission_rate
+          ORDER BY total_revenue DESC
+        `;
 
         return {
-          dentists: Array.from(dentistMap.values()).sort(
-            (a, b) => b.total_revenue - a.total_revenue,
-          ),
+          dentists: dentists.map((d) => ({
+            name: d.name,
+            specialty: d.specialty,
+            commission_rate: Number(d.commission_rate),
+            total_revenue: Number(d.total_revenue),
+            total_commission: Number(d.total_revenue) * (Number(d.commission_rate) / 100),
+            appointment_count: Number(d.appointment_count),
+          })),
         };
       },
       TEN_MINUTES,
