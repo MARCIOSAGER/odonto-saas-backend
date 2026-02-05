@@ -144,13 +144,21 @@ export class PatientsController {
 
   @Get(':id/timeline')
   @ApiOperation({ summary: 'Get patient timeline with all events' })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Max items per category (default: 50)',
+  })
   @ApiResponse({ status: 200, description: 'Patient timeline' })
   @ApiResponse({ status: 404, description: 'Patient not found' })
   @Permissions('patients:read')
   async getTimeline(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: { clinicId: string },
+    @Query('limit') limit?: string,
   ) {
-    return this.patientsService.getTimeline(user.clinicId, id);
+    const limitNum = limit ? Math.min(Math.max(parseInt(limit, 10), 1), 100) : 50;
+    return this.patientsService.getTimeline(user.clinicId, id, limitNum);
   }
 }

@@ -184,6 +184,8 @@ model Patient {
   @@index([email_hash], map: "idx_patient_email_hash")
   @@index([clinic_id, status], map: "idx_patient_clinic_status")
   @@index([clinic_id, deleted_at], map: "idx_patient_clinic_deleted")
+  @@index([clinic_id, birth_date], map: "idx_patient_clinic_birth_date")
+  @@index([clinic_id, status, last_visit], map: "idx_patient_clinic_status_last_visit")
 }
 
 model Service {
@@ -237,6 +239,7 @@ model Appointment {
   @@index([clinic_id, date, status], map: "idx_appointment_clinic_date_status")
   @@index([dentist_id], map: "idx_appointment_dentist")
   @@index([reminder_sent, date], map: "idx_appointment_reminder_date")
+  @@index([clinic_id, dentist_id, date], map: "idx_appointment_clinic_dentist_date")
 }
 
 // ============================================

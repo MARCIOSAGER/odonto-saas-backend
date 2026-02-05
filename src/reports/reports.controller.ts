@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, Res, UseGuards, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { Response } from 'express';
 import { ReportsService } from './reports.service';
@@ -15,10 +15,25 @@ import { PermissionsGuard } from '../auth/guards/permissions.guard';
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
-  private parseDates(start?: string, end?: string) {
+  private parseDates(start?: string, end?: string, maxDaysSpan = 365) {
     const now = new Date();
     const startDate = start ? new Date(start) : new Date(now.getFullYear(), now.getMonth() - 2, 1);
     const endDate = end ? new Date(end) : now;
+
+    // Validate dates
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      throw new BadRequestException('Invalid date format. Use ISO 8601 (YYYY-MM-DD)');
+    }
+    if (startDate > endDate) {
+      throw new BadRequestException('Start date must be before end date');
+    }
+    const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysDiff > maxDaysSpan) {
+      throw new BadRequestException(
+        `Date range exceeds maximum allowed span of ${maxDaysSpan} days`,
+      );
+    }
+
     return { startDate, endDate };
   }
 

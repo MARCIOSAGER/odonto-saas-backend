@@ -102,7 +102,9 @@ export class ZApiController {
 
       return { status: 'processed', result };
     } catch (error) {
-      this.logger.error(`Error processing webhook: ${error}`);
+      this.logger.error(
+        `Error processing webhook. InstanceId: ${instanceId}, MessageId: ${payload.messageId || 'unknown'}, Phone: ${payload.phone || 'unknown'}, ChatName: ${payload.chatName || 'unknown'}, Error: ${error instanceof Error ? `${error.name}: ${error.message}` : String(error)}`,
+      );
       return { status: 'error', message: 'Failed to process webhook' };
     }
   }

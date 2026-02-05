@@ -161,8 +161,10 @@ export class ZApiService {
           this.logger.warn('Interactive message failed, falling back to text');
         }
       }
-    } catch {
-      // Não é JSON válido, envia como texto normal
+    } catch (error) {
+      this.logger.debug(
+        `Response is not valid JSON, sending as plain text. Clinic: ${clinicId}, Phone: ${phone}, Error: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
 
     await this.whatsappService.sendMessage(clinicId, phone, aiResponse);
@@ -468,7 +470,9 @@ export class ZApiService {
         },
       });
     } catch (error) {
-      this.logger.error(`Failed to save conversation log: ${error}`);
+      this.logger.error(
+        `Failed to save conversation log. PatientId: ${patientId}, MessageLength: ${message.length}, Error: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 

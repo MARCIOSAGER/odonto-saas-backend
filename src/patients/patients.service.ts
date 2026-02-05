@@ -440,13 +440,14 @@ export class PatientsService {
     };
   }
 
-  async getTimeline(clinicId: string, patientId: string) {
+  async getTimeline(clinicId: string, patientId: string, limit = 50) {
     await this.findOne(clinicId, patientId);
 
     const [appointments, prescriptions, anamneses, treatmentPlans, odontogram] = await Promise.all([
       this.prisma.appointment.findMany({
         where: { clinic_id: clinicId, patient_id: patientId },
         orderBy: { date: 'desc' },
+        take: limit,
         include: {
           service: { select: { name: true, price: true } },
           dentist: { select: { name: true } },
@@ -455,6 +456,7 @@ export class PatientsService {
       this.prisma.prescription.findMany({
         where: { clinic_id: clinicId, patient_id: patientId },
         orderBy: { created_at: 'desc' },
+        take: limit,
         select: {
           id: true,
           type: true,
@@ -468,6 +470,7 @@ export class PatientsService {
       this.prisma.anamnesis.findMany({
         where: { clinic_id: clinicId, patient_id: patientId },
         orderBy: { created_at: 'desc' },
+        take: limit,
         select: {
           id: true,
           risk_classification: true,
@@ -479,6 +482,7 @@ export class PatientsService {
       this.prisma.treatmentPlan.findMany({
         where: { clinic_id: clinicId, patient_id: patientId },
         orderBy: { created_at: 'desc' },
+        take: limit,
         select: {
           id: true,
           status: true,
