@@ -15,8 +15,15 @@ export class EncryptionService {
 
   constructor(private readonly configService: ConfigService) {
     const keyHex = this.configService.get<string>('ENCRYPTION_KEY');
+    const nodeEnv = this.configService.get<string>('NODE_ENV');
 
     if (!keyHex || keyHex.length !== 64) {
+      if (nodeEnv === 'production') {
+        throw new Error(
+          'FATAL: ENCRYPTION_KEY must be set (64 hex chars) in production. ' +
+            "Generate with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"",
+        );
+      }
       this.logger.warn(
         'ENCRYPTION_KEY not set or invalid (must be 64 hex chars). Encryption disabled.',
       );

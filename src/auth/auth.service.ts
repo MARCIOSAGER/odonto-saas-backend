@@ -564,6 +564,14 @@ export class AuthService {
       },
     });
 
+    await this.auditService.log({
+      action: '2FA_DISABLED',
+      entity: 'User',
+      entityId: userId,
+      clinicId: user.clinic_id,
+      userId,
+    });
+
     return { message: '2FA desativado com sucesso' };
   }
 

@@ -156,8 +156,9 @@ model Patient {
   address          String?
   notes            String?
   status           String            @default("active")
-  portal_token     String?           @unique @default(dbgenerated("(gen_random_uuid())::text"))
-  last_visit       DateTime?         @db.Timestamp(6)
+  portal_token         String?           @unique @default(dbgenerated("(gen_random_uuid())::text"))
+  portal_token_expires DateTime?         @db.Timestamp(6)
+  last_visit           DateTime?         @db.Timestamp(6)
   phone_hash       String?
   cpf_hash         String?
   email_hash       String?
@@ -181,6 +182,8 @@ model Patient {
   @@index([phone_hash], map: "idx_patient_phone_hash")
   @@index([cpf_hash], map: "idx_patient_cpf_hash")
   @@index([email_hash], map: "idx_patient_email_hash")
+  @@index([clinic_id, status], map: "idx_patient_clinic_status")
+  @@index([clinic_id, deleted_at], map: "idx_patient_clinic_deleted")
 }
 
 model Service {
@@ -229,6 +232,11 @@ model Appointment {
   @@index([patient_id], map: "idx_appointment_patient")
   @@index([date], map: "idx_appointment_date")
   @@index([status], map: "idx_appointment_status")
+  @@index([clinic_id, date], map: "idx_appointment_clinic_date")
+  @@index([clinic_id, status], map: "idx_appointment_clinic_status")
+  @@index([clinic_id, date, status], map: "idx_appointment_clinic_date_status")
+  @@index([dentist_id], map: "idx_appointment_dentist")
+  @@index([reminder_sent, date], map: "idx_appointment_reminder_date")
 }
 
 // ============================================
@@ -279,6 +287,7 @@ model WhatsAppMessage {
   @@index([clinic_id])
   @@index([phone_hash], map: "idx_whatsapp_phone_hash")
   @@index([created_at])
+  @@index([clinic_id, created_at], map: "idx_whatsapp_clinic_created")
 }
 
 // ============================================
@@ -303,6 +312,8 @@ model AuditLog {
   @@index([clinic_id])
   @@index([entity])
   @@index([created_at])
+  @@index([clinic_id, created_at], map: "idx_audit_clinic_created")
+  @@index([user_id, created_at], map: "idx_audit_user_created")
 }
 
 // ============================================
@@ -362,6 +373,7 @@ model Subscription {
   @@index([plan_id])
   @@index([status])
   @@index([current_period_end])
+  @@index([clinic_id, status], map: "idx_subscription_clinic_status")
 }
 
 model Invoice {
@@ -400,6 +412,8 @@ model Invoice {
   @@index([status])
   @@index([due_date])
   @@index([number])
+  @@index([clinic_id, status], map: "idx_invoice_clinic_status")
+  @@index([clinic_id, due_date], map: "idx_invoice_clinic_due_date")
 }
 
 model Payment {
@@ -618,6 +632,7 @@ model Notification {
   @@index([user_id, read])
   @@index([clinic_id])
   @@index([created_at])
+  @@index([user_id, created_at], map: "idx_notification_user_created")
 }
 
 // ============================================

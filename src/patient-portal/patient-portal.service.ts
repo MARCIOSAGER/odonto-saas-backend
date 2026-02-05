@@ -18,6 +18,7 @@ export class PatientPortalService {
         email: true,
         birth_date: true,
         clinic_id: true,
+        portal_token_expires: true,
         clinic: {
           select: {
             name: true,
@@ -33,6 +34,11 @@ export class PatientPortalService {
 
     if (!patient) {
       throw new NotFoundException('Portal não encontrado');
+    }
+
+    // Check expiration if set
+    if (patient.portal_token_expires && patient.portal_token_expires < new Date()) {
+      throw new NotFoundException('Portal expirado');
     }
 
     return patient;
@@ -103,9 +109,12 @@ export class PatientPortalService {
       throw new NotFoundException('Paciente não encontrado');
     }
 
-    // Generate new UUID token via raw SQL
+    // Generate new UUID token + set 90-day expiration
+    const expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
     const updated = (await this.prisma.$queryRaw`
-      UPDATE "Patient" SET portal_token = gen_random_uuid()::text
+      UPDATE "Patient"
+      SET portal_token = gen_random_uuid()::text,
+          portal_token_expires = ${expiresAt}
       WHERE id = ${patientId}
       RETURNING portal_token
     `) as { portal_token: string }[];
@@ -132,11 +141,16 @@ export class PatientPortalService {
   private async getPatientByToken(token: string) {
     const patient = await this.prisma.patient.findUnique({
       where: { portal_token: token },
-      select: { id: true, clinic_id: true },
+      select: { id: true, clinic_id: true, portal_token_expires: true },
     });
 
     if (!patient) {
       throw new NotFoundException('Portal não encontrado');
+    }
+
+    // Check expiration if set
+    if (patient.portal_token_expires && patient.portal_token_expires < new Date()) {
+      throw new NotFoundException('Portal expirado');
     }
 
     return patient;

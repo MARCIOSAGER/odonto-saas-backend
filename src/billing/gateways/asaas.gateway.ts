@@ -175,13 +175,16 @@ export class AsaasGateway implements PaymentGateway {
     body: Buffer | string,
     headers: Record<string, string>,
   ): Promise<WebhookEvent> {
-    const payload = typeof body === 'string' ? JSON.parse(body) : JSON.parse(body.toString());
-
-    // Validate webhook token
+    // Validate webhook token BEFORE parsing body
     const expectedToken = this.configService.get<string>('ASAAS_WEBHOOK_TOKEN');
-    if (expectedToken && headers['asaas-access-token'] !== expectedToken) {
+    if (!expectedToken) {
+      throw new Error('ASAAS_WEBHOOK_TOKEN must be configured to receive webhooks');
+    }
+    if (headers['asaas-access-token'] !== expectedToken) {
       throw new Error('Invalid ASAAS webhook token');
     }
+
+    const payload = typeof body === 'string' ? JSON.parse(body) : JSON.parse(body.toString());
 
     const eventMap: Record<string, string> = {
       PAYMENT_CONFIRMED: 'payment.succeeded',

@@ -16,8 +16,29 @@ import { winstonConfig } from './logger/winston.config';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: WinstonModule.createLogger(winstonConfig),
+    rawBody: true, // Preserve raw body for Stripe webhook signature verification
   });
   const configService = app.get(ConfigService);
+  const bootstrapLogger = new Logger('Bootstrap');
+  const isProduction = configService.get<string>('NODE_ENV') === 'production';
+
+  // ── Critical env var validation ──────────────────────────────────────
+  const jwtSecret = configService.get<string>('JWT_SECRET');
+  if (!jwtSecret || jwtSecret.length < 32) {
+    bootstrapLogger.error('FATAL: JWT_SECRET must be set and at least 32 characters. Aborting.');
+    process.exit(1);
+  }
+
+  if (isProduction) {
+    const encryptionKey = configService.get<string>('ENCRYPTION_KEY');
+    if (!encryptionKey || encryptionKey.length !== 64) {
+      bootstrapLogger.error(
+        'FATAL: ENCRYPTION_KEY must be set (64 hex chars) in production. ' +
+          "Generate with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"",
+      );
+      process.exit(1);
+    }
+  }
 
   // Security headers
   app.use(
@@ -28,26 +49,27 @@ async function bootstrap() {
       referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
     }),
   );
+  // CORS — origins configurable via env (comma-separated), with safe defaults
+  const corsOrigins = configService.get<string>('CORS_ORIGINS')
+    ? configService
+        .get<string>('CORS_ORIGINS')
+        .split(',')
+        .map((o) => o.trim())
+    : ['https://odonto.marciosager.com', 'http://localhost:3000', 'http://localhost:3001'];
+
   app.enableCors({
     origin: (origin, callback) => {
-      const allowedOrigins = [
-        'https://odonto.marciosager.com',
-        'http://localhost:3000',
-        'http://localhost:3001',
-      ];
-
-      // Permitir requests sem Origin header:
-      // - Webhooks server-to-server (Z-API, Stripe) não enviam Origin
-      // - Mobile apps e Postman também não
-      // Segurança garantida pelo JWT em rotas autenticadas e @Public() em rotas abertas.
+      // Requests without Origin (server-to-server webhooks, mobile apps, curl).
+      // Security for these relies on JWT auth / webhook token verification, not CORS.
       if (!origin) {
         return callback(null, true);
       }
 
-      if (allowedOrigins.includes(origin)) {
+      if (corsOrigins.includes(origin)) {
         return callback(null, origin);
       }
 
+      bootstrapLogger.warn(`CORS blocked request from origin: ${origin}`);
       return callback(null, false);
     },
     credentials: true,
@@ -91,47 +113,50 @@ async function bootstrap() {
   // Global interceptors
   app.useGlobalInterceptors(new TransformInterceptor(), new LoggingInterceptor());
 
-  // Swagger documentation
-  const config = new DocumentBuilder()
-    .setTitle('OdontoSaaS API')
-    .setDescription('API para sistema SaaS de clínicas odontológicas multi-tenant')
-    .setVersion('1.0')
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        name: 'JWT',
-        description: 'Enter JWT token',
-        in: 'header',
-      },
-      'JWT-auth',
-    )
-    .addTag('auth', 'Autenticação e autorização')
-    .addTag('clinics', 'Gerenciamento de clínicas')
-    .addTag('patients', 'Gerenciamento de pacientes')
-    .addTag('appointments', 'Gerenciamento de agendamentos')
-    .addTag('dentists', 'Gerenciamento de dentistas')
-    .addTag('services', 'Gerenciamento de serviços')
-    .addTag('webhooks', 'Webhooks para integrações')
-    .addTag('conversations', 'Conversas do WhatsApp')
-    .addTag('health', 'Health check')
-    .build();
+  // Swagger documentation — disabled in production to avoid exposing API schema
+  if (!isProduction) {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('OdontoSaaS API')
+      .setDescription('API para sistema SaaS de clínicas odontológicas multi-tenant')
+      .setVersion('1.0')
+      .addBearerAuth(
+        {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          name: 'JWT',
+          description: 'Enter JWT token',
+          in: 'header',
+        },
+        'JWT-auth',
+      )
+      .addTag('auth', 'Autenticação e autorização')
+      .addTag('clinics', 'Gerenciamento de clínicas')
+      .addTag('patients', 'Gerenciamento de pacientes')
+      .addTag('appointments', 'Gerenciamento de agendamentos')
+      .addTag('dentists', 'Gerenciamento de dentistas')
+      .addTag('services', 'Gerenciamento de serviços')
+      .addTag('webhooks', 'Webhooks para integrações')
+      .addTag('conversations', 'Conversas do WhatsApp')
+      .addTag('health', 'Health check')
+      .build();
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document, {
-    swaggerOptions: {
-      persistAuthorization: true,
-    },
-  });
+    const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('api/docs', app, swaggerDocument, {
+      swaggerOptions: {
+        persistAuthorization: true,
+      },
+    });
+  }
 
   // Start server
   const port = configService.get('PORT', 3000);
   await app.listen(port);
 
-  const logger = new Logger('Bootstrap');
-  logger.log(`Application is running on: http://localhost:${port}`);
-  logger.log(`Swagger docs available at: http://localhost:${port}/api/docs`);
+  bootstrapLogger.log(`Application is running on: http://localhost:${port}`);
+  if (!isProduction) {
+    bootstrapLogger.log(`Swagger docs available at: http://localhost:${port}/api/docs`);
+  }
 }
 
 bootstrap();

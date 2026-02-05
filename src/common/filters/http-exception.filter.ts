@@ -44,7 +44,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
       }
     } else if (exception instanceof Error) {
       message = exception.message;
-      this.logger.error(`Unhandled error: ${exception.message}`, exception.stack);
+      // Log stack trace only in development; in production, Sentry captures the full trace
+      if (process.env.NODE_ENV !== 'production') {
+        this.logger.error(`Unhandled error: ${exception.message}`, exception.stack);
+      } else {
+        this.logger.error(`Unhandled error: ${exception.message}`);
+      }
     }
 
     const errorResponse: ErrorResponse = {

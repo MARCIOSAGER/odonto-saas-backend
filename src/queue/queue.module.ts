@@ -15,8 +15,8 @@ import { EmailModule } from '../email/email.module';
       useFactory: (configService: ConfigService) => {
         const redisHost = configService.get('REDIS_HOST');
         if (!redisHost) {
-          // When Redis is not configured, BullMQ will still try to connect
-          // but QueueService.isEnabled will be false, so no jobs are enqueued
+          // No Redis configured — BullMQ will not connect.
+          // QueueService.isEnabled returns false, so no jobs are enqueued.
           return {
             connection: {
               host: 'localhost',
@@ -24,6 +24,7 @@ import { EmailModule } from '../email/email.module';
               lazyConnect: true,
               maxRetriesPerRequest: 0,
               enableOfflineQueue: false,
+              retryStrategy: () => null, // Don't retry connection
             },
           };
         }

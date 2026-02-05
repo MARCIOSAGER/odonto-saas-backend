@@ -70,7 +70,9 @@ export class NotificationsGateway
         return;
       }
 
-      const payload = this.jwtService.verify(token);
+      const payload = this.jwtService.verify(token, {
+        secret: this.configService.get<string>('JWT_SECRET'),
+      });
       const userId = payload.sub;
 
       if (!userId) {

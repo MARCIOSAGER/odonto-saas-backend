@@ -55,14 +55,25 @@ export class ZApiController {
   @ApiOperation({ summary: 'Z-API WhatsApp webhook receiver' })
   @ApiResponse({ status: 200, description: 'Webhook processed' })
   @ApiHeader({ name: 'x-instance-id', required: false, description: 'Z-API instance ID' })
+  @ApiHeader({ name: 'client-token', required: false, description: 'Z-API client token' })
   async handleZApiWebhook(
     @Body() payload: ZApiWebhookPayload,
     @Headers('x-instance-id') instanceId?: string,
+    @Headers('client-token') clientToken?: string,
   ) {
-    this.logger.log(`Received Z-API webhook from instance: ${instanceId || payload.instanceId}`);
-    this.logger.debug(`Payload: ${JSON.stringify(payload)}`);
+    const effectiveInstanceId = payload.instanceId || instanceId;
+    this.logger.log(`Received Z-API webhook from instance: ${effectiveInstanceId}`);
 
     try {
+      // Verify webhook client token against clinic's stored token
+      const isValid = await this.zApiService.verifyWebhookToken(effectiveInstanceId, clientToken);
+      if (!isValid) {
+        this.logger.warn(
+          `Z-API webhook rejected: invalid token for instance ${effectiveInstanceId}`,
+        );
+        return { status: 'rejected', reason: 'Invalid webhook token' };
+      }
+
       if (payload.fromMe) {
         return { status: 'ignored', reason: 'Message from self' };
       }
@@ -80,7 +91,7 @@ export class ZApiController {
       }
 
       const result = await this.zApiService.processMessage(
-        payload.instanceId || instanceId,
+        effectiveInstanceId,
         payload.phone,
         messageText,
         {

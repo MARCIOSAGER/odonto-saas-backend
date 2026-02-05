@@ -43,6 +43,28 @@ export class ZApiService {
     }
   }
 
+  /**
+   * Verify Z-API webhook client token against the stored token for the clinic.
+   * Returns true if valid or if clinic has no token configured (backwards compatible).
+   */
+  async verifyWebhookToken(
+    instanceId: string | undefined,
+    clientToken: string | undefined,
+  ): Promise<boolean> {
+    if (!instanceId) return false;
+
+    const clinic = await this.prisma.clinic.findFirst({
+      where: { z_api_instance: instanceId },
+      select: { z_api_client_token: true },
+    });
+
+    if (!clinic) return false;
+    // If clinic has no client token configured, allow (backwards compatible)
+    if (!clinic.z_api_client_token) return true;
+
+    return clinic.z_api_client_token === clientToken;
+  }
+
   async processMessage(
     instanceId: string | undefined,
     phone: string,

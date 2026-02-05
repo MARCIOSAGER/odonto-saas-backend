@@ -38,7 +38,7 @@ export class TwoFactorService {
     }
 
     const code = this.generateCode();
-    const hashedCode = await bcrypt.hash(code, 10);
+    const hashedCode = await bcrypt.hash(code, 12);
 
     // Invalidate previous codes
     await this.prisma.twoFactorCode.updateMany({
@@ -76,7 +76,7 @@ export class TwoFactorService {
     if (!user) return false;
 
     const code = this.generateCode();
-    const hashedCode = await bcrypt.hash(code, 10);
+    const hashedCode = await bcrypt.hash(code, 12);
 
     await this.prisma.twoFactorCode.updateMany({
       where: { user_id: userId, used: false },
@@ -115,7 +115,7 @@ export class TwoFactorService {
       throw new UnauthorizedException('Código expirado ou inválido');
     }
 
-    if (twoFactorCode.attempts >= 5) {
+    if (twoFactorCode.attempts >= 3) {
       await this.prisma.twoFactorCode.update({
         where: { id: twoFactorCode.id },
         data: { used: true },

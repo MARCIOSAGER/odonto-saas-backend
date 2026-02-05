@@ -21,7 +21,14 @@ export class WebhookController {
   @ApiExcludeEndpoint()
   async stripeWebhook(@Req() req: Request, @Headers() headers: Record<string, string>) {
     try {
-      const event = await this.stripeGateway.parseWebhook(req.body as Buffer, headers);
+      // Use rawBody (Buffer) for Stripe signature verification.
+      // Requires rawBody: true in NestFactory.create options.
+      const rawBody = (req as any).rawBody as Buffer;
+      if (!rawBody) {
+        this.logger.error('Stripe webhook: rawBody not available');
+        return { received: false, error: 'Raw body not available' };
+      }
+      const event = await this.stripeGateway.parseWebhook(rawBody, headers);
       await this.billingService.processWebhook(event);
       return { received: true };
     } catch (error) {
