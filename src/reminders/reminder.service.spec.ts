@@ -3,6 +3,7 @@ import { ReminderService } from './reminder.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { WhatsAppService } from '../integrations/whatsapp.service';
 import { EmailService } from '../email/email.service';
+import { CronLockService } from '../common/cron-lock.service';
 import { createPrismaMock } from '../test/prisma-mock';
 
 describe('ReminderService', () => {
@@ -10,6 +11,7 @@ describe('ReminderService', () => {
   let prisma: ReturnType<typeof createPrismaMock>;
   let whatsappService: { sendMessage: jest.Mock };
   let emailService: { sendAppointmentReminder: jest.Mock };
+  let cronLock: { tryAcquire: jest.Mock; release: jest.Mock };
 
   // ──────────────────────────────────────────────────
   // Mock data
@@ -52,6 +54,7 @@ describe('ReminderService', () => {
     prisma = createPrismaMock();
     whatsappService = { sendMessage: jest.fn() };
     emailService = { sendAppointmentReminder: jest.fn() };
+    cronLock = { tryAcquire: jest.fn().mockResolvedValue(true), release: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -59,6 +62,7 @@ describe('ReminderService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: WhatsAppService, useValue: whatsappService },
         { provide: EmailService, useValue: emailService },
+        { provide: CronLockService, useValue: cronLock },
       ],
     }).compile();
 
@@ -73,9 +77,8 @@ describe('ReminderService', () => {
   // handleReminders
   // ──────────────────────────────────────────────────
   describe('handleReminders', () => {
-    it('should skip if already running', async () => {
-      // Set the private isRunning flag to true via reflection
-      (service as any).isRunning = true;
+    it('should skip if lock is held by another instance', async () => {
+      cronLock.tryAcquire.mockResolvedValue(false);
 
       await service.handleReminders();
 
@@ -93,23 +96,23 @@ describe('ReminderService', () => {
       expect(prisma.appointment.findMany).toHaveBeenCalledTimes(2);
     });
 
-    it('should reset isRunning to false after successful execution', async () => {
+    it('should release lock after successful execution', async () => {
       prisma.appointment.findMany.mockResolvedValue([]);
 
       await service.handleReminders();
 
-      expect((service as any).isRunning).toBe(false);
+      expect(cronLock.release).toHaveBeenCalledWith('reminders');
     });
 
-    it('should handle errors gracefully and reset isRunning', async () => {
+    it('should handle errors gracefully and release lock', async () => {
       // Make the first findMany throw an error to simulate a failure
       prisma.appointment.findMany.mockRejectedValueOnce(new Error('Database connection lost'));
 
       // Should not throw -- the error is caught internally
       await expect(service.handleReminders()).resolves.toBeUndefined();
 
-      // isRunning must be reset in the finally block
-      expect((service as any).isRunning).toBe(false);
+      // Lock must be released in the finally block
+      expect(cronLock.release).toHaveBeenCalledWith('reminders');
     });
 
     it('should not send anything when no appointments match', async () => {
@@ -275,7 +278,7 @@ describe('ReminderService', () => {
       await service.handleReminders();
       expect(prisma.appointment.findMany).toHaveBeenCalledTimes(2);
 
-      // Second run should also work (isRunning was reset)
+      // Second run should also work (lock was released)
       await service.handleReminders();
       expect(prisma.appointment.findMany).toHaveBeenCalledTimes(4);
     });

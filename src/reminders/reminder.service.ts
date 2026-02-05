@@ -3,16 +3,17 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { WhatsAppService } from '../integrations/whatsapp.service';
 import { EmailService } from '../email/email.service';
+import { CronLockService } from '../common/cron-lock.service';
 
 @Injectable()
 export class ReminderService {
   private readonly logger = new Logger(ReminderService.name);
-  private isRunning = false;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly whatsappService: WhatsAppService,
     private readonly emailService: EmailService,
+    private readonly cronLock: CronLockService,
   ) {}
 
   /**
@@ -20,19 +21,16 @@ export class ReminderService {
    */
   @Cron(CronExpression.EVERY_5_MINUTES)
   async handleReminders(): Promise<void> {
-    if (this.isRunning) {
-      this.logger.debug('Reminder job already running, skipping');
-      return;
-    }
+    const acquired = await this.cronLock.tryAcquire('reminders', 5);
+    if (!acquired) return;
 
-    this.isRunning = true;
     try {
       await this.send24hReminders();
       await this.send1hReminders();
     } catch (error) {
       this.logger.error(`Reminder job failed: ${error}`);
     } finally {
-      this.isRunning = false;
+      await this.cronLock.release('reminders');
     }
   }
 

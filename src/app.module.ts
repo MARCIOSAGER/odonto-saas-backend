@@ -10,6 +10,7 @@ import { StorageModule } from './storage/storage.module';
 
 import { PrismaModule } from './prisma/prisma.module';
 import { EncryptionModule } from './common/encryption/encryption.module';
+import { CronLockModule } from './common/cron-lock.module';
 import { AuthModule } from './auth/auth.module';
 import { ClinicsModule } from './clinics/clinics.module';
 import { PatientsModule } from './patients/patients.module';
@@ -79,6 +80,9 @@ import { AnamnesisModule } from './anamnesis/anamnesis.module';
 
     // Encryption (LGPD)
     EncryptionModule,
+
+    // Distributed cron locks (PostgreSQL-based)
+    CronLockModule,
 
     // Database
     PrismaModule,

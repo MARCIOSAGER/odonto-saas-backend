@@ -30,7 +30,15 @@ export class StorageService {
 
       this.logger.log(`S3 storage enabled — bucket: ${this.bucket}`);
     } else {
-      this.logger.log('S3 not configured — using local disk storage');
+      const nodeEnv = this.configService.get<string>('NODE_ENV');
+      if (nodeEnv === 'production') {
+        this.logger.warn(
+          'S3 not configured in production — using local disk storage. ' +
+            'Files will be lost on container restart. Configure S3_BUCKET for persistent storage.',
+        );
+      } else {
+        this.logger.log('S3 not configured — using local disk storage');
+      }
     }
   }
 

@@ -3,18 +3,17 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { WhatsAppService } from '../integrations/whatsapp.service';
 import { AutomationsService } from './automations.service';
+import { CronLockService } from '../common/cron-lock.service';
 
 @Injectable()
 export class AutomationSchedulerService {
   private readonly logger = new Logger(AutomationSchedulerService.name);
-  private isRunningFollowUp = false;
-  private isRunningBirthday = false;
-  private isRunningReactivation = false;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly whatsappService: WhatsAppService,
     private readonly automationsService: AutomationsService,
+    private readonly cronLock: CronLockService,
   ) {}
 
   /**
@@ -23,8 +22,8 @@ export class AutomationSchedulerService {
    */
   @Cron(CronExpression.EVERY_30_MINUTES)
   async handleFollowUp(): Promise<void> {
-    if (this.isRunningFollowUp) return;
-    this.isRunningFollowUp = true;
+    const acquired = await this.cronLock.tryAcquire('automation_follow_up', 30);
+    if (!acquired) return;
 
     try {
       const automations = await this.automationsService.getActiveByType('follow_up');
@@ -106,7 +105,7 @@ export class AutomationSchedulerService {
         }
       }
     } finally {
-      this.isRunningFollowUp = false;
+      await this.cronLock.release('automation_follow_up');
     }
   }
 
@@ -116,8 +115,8 @@ export class AutomationSchedulerService {
    */
   @Cron('0 9 * * *')
   async handleBirthdays(): Promise<void> {
-    if (this.isRunningBirthday) return;
-    this.isRunningBirthday = true;
+    const acquired = await this.cronLock.tryAcquire('automation_birthday', 60);
+    if (!acquired) return;
 
     try {
       const automations = await this.automationsService.getActiveByType('birthday');
@@ -183,7 +182,7 @@ export class AutomationSchedulerService {
         }
       }
     } finally {
-      this.isRunningBirthday = false;
+      await this.cronLock.release('automation_birthday');
     }
   }
 
@@ -193,8 +192,8 @@ export class AutomationSchedulerService {
    */
   @Cron('0 10 * * 1')
   async handleReactivation(): Promise<void> {
-    if (this.isRunningReactivation) return;
-    this.isRunningReactivation = true;
+    const acquired = await this.cronLock.tryAcquire('automation_reactivation', 60);
+    if (!acquired) return;
 
     try {
       const automations = await this.automationsService.getActiveByType('reactivation');
@@ -263,7 +262,7 @@ export class AutomationSchedulerService {
         }
       }
     } finally {
-      this.isRunningReactivation = false;
+      await this.cronLock.release('automation_reactivation');
     }
   }
 

@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Param, UseGuards, ParseUUIDPipe } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { PatientPortalService } from './patient-portal.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -14,6 +15,7 @@ export class PatientPortalController {
 
   @Get('portal/:token')
   @Public()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Get patient portal data by token' })
   @ApiResponse({ status: 200, description: 'Patient portal data' })
   async getPortalData(@Param('token') token: string) {
@@ -22,6 +24,7 @@ export class PatientPortalController {
 
   @Get('portal/:token/appointments')
   @Public()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Get patient appointments via portal' })
   async getPortalAppointments(@Param('token') token: string) {
     return this.portalService.getAppointments(token);
@@ -29,6 +32,7 @@ export class PatientPortalController {
 
   @Get('portal/:token/prescriptions')
   @Public()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Get patient prescriptions via portal' })
   async getPortalPrescriptions(@Param('token') token: string) {
     return this.portalService.getPrescriptions(token);

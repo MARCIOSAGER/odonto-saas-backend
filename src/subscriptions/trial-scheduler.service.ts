@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { CronLockService } from '../common/cron-lock.service';
 
 @Injectable()
 export class TrialSchedulerService {
@@ -12,6 +13,7 @@ export class TrialSchedulerService {
     private readonly prisma: PrismaService,
     private readonly email: EmailService,
     private readonly notifications: NotificationsService,
+    private readonly cronLock: CronLockService,
   ) {}
 
   /**
@@ -19,6 +21,9 @@ export class TrialSchedulerService {
    */
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async expireTrials() {
+    const acquired = await this.cronLock.tryAcquire('trial_expire', 30);
+    if (!acquired) return;
+
     try {
       const now = new Date();
 
@@ -74,6 +79,8 @@ export class TrialSchedulerService {
       }
     } catch (error) {
       this.logger.error(`Trial expiration cron error: ${error}`);
+    } finally {
+      await this.cronLock.release('trial_expire');
     }
   }
 
@@ -82,6 +89,9 @@ export class TrialSchedulerService {
    */
   @Cron(CronExpression.EVERY_DAY_AT_9AM)
   async sendTrialReminders() {
+    const acquired = await this.cronLock.tryAcquire('trial_reminders', 30);
+    if (!acquired) return;
+
     try {
       const now = new Date();
 
@@ -139,6 +149,8 @@ export class TrialSchedulerService {
       }
     } catch (error) {
       this.logger.error(`Trial reminder cron error: ${error}`);
+    } finally {
+      await this.cronLock.release('trial_reminders');
     }
   }
 
@@ -147,6 +159,9 @@ export class TrialSchedulerService {
    */
   @Cron(CronExpression.EVERY_DAY_AT_1AM)
   async processCancellations() {
+    const acquired = await this.cronLock.tryAcquire('trial_cancellations', 15);
+    if (!acquired) return;
+
     try {
       const now = new Date();
 
@@ -164,6 +179,8 @@ export class TrialSchedulerService {
       }
     } catch (error) {
       this.logger.error(`Cancellation cron error: ${error}`);
+    } finally {
+      await this.cronLock.release('trial_cancellations');
     }
   }
 
