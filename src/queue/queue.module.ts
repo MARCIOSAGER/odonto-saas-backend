@@ -4,7 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EmailProcessor } from './processors/email.processor';
 import { PdfProcessor } from './processors/pdf.processor';
 import { QueueService } from './queue.service';
-import { QUEUE_EMAIL, QUEUE_WHATSAPP, QUEUE_PDF } from './queue.constants';
+import { QUEUE_EMAIL, QUEUE_WHATSAPP, QUEUE_PDF, QUEUE_AI } from './queue.constants';
 import { EmailModule } from '../email/email.module';
 import { PdfGeneratorService } from '../prescriptions/pdf-generator.service';
 
@@ -39,10 +39,16 @@ import { PdfGeneratorService } from '../prescriptions/pdf-generator.service';
         };
       },
     }),
-    BullModule.registerQueue({ name: QUEUE_EMAIL }, { name: QUEUE_WHATSAPP }, { name: QUEUE_PDF }),
+    BullModule.registerQueue(
+      { name: QUEUE_EMAIL },
+      { name: QUEUE_WHATSAPP },
+      { name: QUEUE_PDF },
+      { name: QUEUE_AI }, // AI queue registered but processor not active yet
+    ),
     EmailModule,
   ],
   providers: [QueueService, EmailProcessor, PdfProcessor, PdfGeneratorService],
+  // Note: AiProcessor commented out until AI services are refactored into proper modules
   exports: [QueueService, BullModule],
 })
 export class QueueModule {}

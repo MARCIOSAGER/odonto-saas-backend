@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
-import { QUEUE_EMAIL, QUEUE_WHATSAPP, QUEUE_PDF } from './queue.constants';
+import { QUEUE_EMAIL, QUEUE_WHATSAPP, QUEUE_PDF, QUEUE_AI } from './queue.constants';
 
 export interface EmailJobData {
   type: 'generic' | 'password-reset' | 'welcome' | '2fa-code' | 'appointment-reminder';
@@ -36,6 +36,27 @@ export interface PdfJobData {
   clinicId: string;
 }
 
+export interface AiJobData {
+  type: 'webhook-message' | 'clinical-notes' | 'anamnesis' | 'treatment-plan' | 'patient-summary';
+  clinicId: string;
+  userId?: string;
+  patientId?: string;
+  // webhook-message specific
+  phone?: string;
+  message?: string;
+  messageId?: string;
+  chatName?: string;
+  // clinical-notes specific
+  freeText?: string;
+  // anamnesis specific
+  answers?: Record<string, any>;
+  // treatment-plan specific
+  diagnosis?: string;
+  findings?: any[];
+  // Response metadata
+  jobId?: string;
+}
+
 @Injectable()
 export class QueueService {
   private readonly logger = new Logger(QueueService.name);
@@ -45,6 +66,7 @@ export class QueueService {
     @InjectQueue(QUEUE_EMAIL) private readonly emailQueue: Queue,
     @InjectQueue(QUEUE_WHATSAPP) private readonly whatsappQueue: Queue,
     @InjectQueue(QUEUE_PDF) private readonly pdfQueue: Queue,
+    @InjectQueue(QUEUE_AI) private readonly aiQueue: Queue,
     private readonly configService: ConfigService,
   ) {
     this.isEnabled = !!this.configService.get('REDIS_HOST');
@@ -100,6 +122,22 @@ export class QueueService {
     } catch (error) {
       this.logger.error(`Failed to enqueue PDF job: ${error}`);
       return false;
+    }
+  }
+
+  async addAiJob(data: AiJobData): Promise<{ queued: boolean; jobId?: string }> {
+    if (!this.isEnabled) return { queued: false };
+    try {
+      const job = await this.aiQueue.add('process-ai', data, {
+        attempts: 2,
+        backoff: { type: 'exponential', delay: 3000 },
+        removeOnComplete: { count: 500 },
+        removeOnFail: { count: 1000 },
+      });
+      return { queued: true, jobId: job.id };
+    } catch (error) {
+      this.logger.error(`Failed to enqueue AI job: ${error}`);
+      return { queued: false };
     }
   }
 }
