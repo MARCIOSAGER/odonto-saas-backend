@@ -41,12 +41,46 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     await this.$connect();
     this.logger.log('Database connected successfully');
 
+    // Register query performance monitoring
+    this.registerQueryPerformanceMonitoring();
+
     if (this.encryption?.isEnabled) {
       this.registerEncryptionMiddleware();
       this.logger.log('Encryption middleware registered');
     } else {
       this.logger.warn('Encryption middleware NOT registered (ENCRYPTION_KEY not set)');
     }
+  }
+
+  private registerQueryPerformanceMonitoring() {
+    const SLOW_QUERY_THRESHOLD = 1000; // 1 second
+    const VERY_SLOW_QUERY_THRESHOLD = 3000; // 3 seconds
+
+    (this.$on as any)('query', (e: any) => {
+      const duration = e.duration;
+
+      if (duration >= VERY_SLOW_QUERY_THRESHOLD) {
+        this.logger.error(
+          `VERY SLOW QUERY (${duration}ms): ${JSON.stringify({
+            query: e.query.substring(0, 200),
+            params: e.params,
+            duration: `${duration}ms`,
+            target: e.target,
+          })}`,
+        );
+      } else if (duration >= SLOW_QUERY_THRESHOLD) {
+        this.logger.warn(
+          `Slow Query (${duration}ms): ${JSON.stringify({
+            query: e.query.substring(0, 200),
+            params: e.params,
+            duration: `${duration}ms`,
+            target: e.target,
+          })}`,
+        );
+      }
+    });
+
+    this.logger.log('Query performance monitoring enabled (threshold: 1s)');
   }
 
   async onModuleDestroy() {
