@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { RedisCacheService } from '../cache/cache.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 
@@ -8,23 +9,32 @@ interface FindAllOptions {
   status?: string;
 }
 
+const FIVE_MINUTES = 5 * 60 * 1000;
+
 @Injectable()
 export class ServicesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
+    private readonly cacheService: RedisCacheService,
   ) {}
 
   async findAll(clinicId: string, options: FindAllOptions = {}) {
-    const where: Record<string, unknown> = { clinic_id: clinicId };
+    const status = options.status || 'active';
+    const cacheKey = `services:list:${clinicId}:${status}`;
 
-    // Filtrar por status: por padrão, só retorna ativos (exclui soft-deleted)
-    where.status = options.status || 'active';
+    return this.cacheService.getOrSet(
+      cacheKey,
+      async () => {
+        const where: Record<string, unknown> = { clinic_id: clinicId, status };
 
-    return this.prisma.service.findMany({
-      where,
-      orderBy: { name: 'asc' },
-    });
+        return this.prisma.service.findMany({
+          where,
+          orderBy: { name: 'asc' },
+        });
+      },
+      FIVE_MINUTES,
+    );
   }
 
   async findOne(clinicId: string, id: string) {
@@ -71,6 +81,12 @@ export class ServicesService {
       newValues: createServiceDto,
     });
 
+    // Invalidate cache
+    await this.cacheService.invalidateMany([
+      `services:list:${clinicId}:active`,
+      `services:list:${clinicId}:all`,
+    ]);
+
     return service;
   }
 
@@ -106,6 +122,13 @@ export class ServicesService {
       newValues: updateServiceDto,
     });
 
+    // Invalidate cache
+    await this.cacheService.invalidateMany([
+      `services:list:${clinicId}:active`,
+      `services:list:${clinicId}:all`,
+      `services:list:${clinicId}:inactive`,
+    ]);
+
     return updated;
   }
 
@@ -126,6 +149,13 @@ export class ServicesService {
       oldValues: { status: service.status },
       newValues: { status: 'inactive' },
     });
+
+    // Invalidate cache
+    await this.cacheService.invalidateMany([
+      `services:list:${clinicId}:active`,
+      `services:list:${clinicId}:all`,
+      `services:list:${clinicId}:inactive`,
+    ]);
 
     return { message: 'Service deactivated successfully' };
   }

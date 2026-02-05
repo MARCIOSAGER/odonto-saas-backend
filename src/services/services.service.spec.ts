@@ -3,12 +3,14 @@ import { NotFoundException, ConflictException } from '@nestjs/common';
 import { ServicesService } from './services.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { RedisCacheService } from '../cache/cache.service';
 import { createPrismaMock } from '../test/prisma-mock';
 
 describe('ServicesService', () => {
   let service: ServicesService;
   let prisma: ReturnType<typeof createPrismaMock>;
   let auditService: { log: jest.Mock };
+  let cacheService: { getOrSet: jest.Mock; invalidateMany: jest.Mock };
 
   const clinicId = 'clinic-uuid-1';
   const userId = 'user-uuid-1';
@@ -28,12 +30,17 @@ describe('ServicesService', () => {
   beforeEach(async () => {
     prisma = createPrismaMock();
     auditService = { log: jest.fn().mockResolvedValue(undefined) };
+    cacheService = {
+      getOrSet: jest.fn().mockImplementation((_key, factory) => factory()),
+      invalidateMany: jest.fn().mockResolvedValue(undefined),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ServicesService,
         { provide: PrismaService, useValue: prisma },
         { provide: AuditService, useValue: auditService },
+        { provide: RedisCacheService, useValue: cacheService },
       ],
     }).compile();
 
