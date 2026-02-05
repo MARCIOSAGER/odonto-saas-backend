@@ -16,6 +16,8 @@ interface FindAllOptions {
   status?: string;
 }
 
+const FIVE_MINUTES = 5 * 60 * 1000;
+
 @Injectable()
 export class ClinicsService {
   private readonly logger = new Logger(ClinicsService.name);
@@ -269,63 +271,71 @@ export class ClinicsService {
   }
 
   async getAiSettings(clinicId: string) {
-    const settings = await this.prisma.clinicAiSettings.findUnique({
-      where: { clinic_id: clinicId },
-    });
+    const cacheKey = `clinic:ai-settings-public:${clinicId}`;
 
-    if (!settings) {
-      return {
-        clinic_id: clinicId,
-        ai_enabled: true,
-        ai_provider: 'anthropic',
-        ai_api_key_masked: null,
-        ai_api_key_set: false,
-        ai_model: 'claude-3-5-haiku-20241022',
-        ai_temperature: 0.7,
-        max_tokens: 800,
-        assistant_name: 'Sofia',
-        assistant_personality: 'Amigável, profissional e prestativa',
-        welcome_message:
-          'Olá! Sou a Sofia, assistente virtual da clínica. Como posso ajudar você hoje?',
-        fallback_message: 'Desculpe, não consegui entender. Pode reformular sua pergunta?',
-        out_of_hours_message: 'Estamos fora do horário de atendimento. Retornaremos em breve!',
-        transfer_keywords: [],
-        blocked_topics: [],
-        custom_instructions: null,
-        context_messages: 10,
-        auto_schedule: false,
-        auto_confirm: false,
-        auto_cancel: false,
-        notify_on_transfer: true,
-        working_hours_only: false,
-        use_welcome_menu: false,
-        use_confirmation_buttons: false,
-        use_timeslot_list: false,
-        use_satisfaction_poll: false,
-        use_send_location: false,
-        dentist_ai_enabled: false,
-        reminder_enabled: true,
-        reminder_24h: true,
-        reminder_1h: true,
-        reminder_message_24h: null,
-        reminder_message_1h: null,
-      };
-    }
+    return this.cacheService.getOrSet(
+      cacheKey,
+      async () => {
+        const settings = await this.prisma.clinicAiSettings.findUnique({
+          where: { clinic_id: clinicId },
+        });
 
-    // Mascarar a API key na resposta (nunca enviar a chave real ao frontend)
-    const result = { ...settings } as any;
-    if (result.ai_api_key) {
-      const key = result.ai_api_key;
-      result.ai_api_key_masked =
-        key.length > 8 ? key.substring(0, 4) + '****' + key.substring(key.length - 4) : '****';
-      result.ai_api_key_set = true;
-    } else {
-      result.ai_api_key_masked = null;
-      result.ai_api_key_set = false;
-    }
-    delete result.ai_api_key;
+        if (!settings) {
+          return {
+            clinic_id: clinicId,
+            ai_enabled: true,
+            ai_provider: 'anthropic',
+            ai_api_key_masked: null,
+            ai_api_key_set: false,
+            ai_model: 'claude-3-5-haiku-20241022',
+            ai_temperature: 0.7,
+            max_tokens: 800,
+            assistant_name: 'Sofia',
+            assistant_personality: 'Amigável, profissional e prestativa',
+            welcome_message:
+              'Olá! Sou a Sofia, assistente virtual da clínica. Como posso ajudar você hoje?',
+            fallback_message: 'Desculpe, não consegui entender. Pode reformular sua pergunta?',
+            out_of_hours_message: 'Estamos fora do horário de atendimento. Retornaremos em breve!',
+            transfer_keywords: [],
+            blocked_topics: [],
+            custom_instructions: null,
+            context_messages: 10,
+            auto_schedule: false,
+            auto_confirm: false,
+            auto_cancel: false,
+            notify_on_transfer: true,
+            working_hours_only: false,
+            use_welcome_menu: false,
+            use_confirmation_buttons: false,
+            use_timeslot_list: false,
+            use_satisfaction_poll: false,
+            use_send_location: false,
+            dentist_ai_enabled: false,
+            reminder_enabled: true,
+            reminder_24h: true,
+            reminder_1h: true,
+            reminder_message_24h: null,
+            reminder_message_1h: null,
+          };
+        }
 
-    return result;
+        // Mascarar a API key na resposta (nunca enviar a chave real ao frontend)
+        const result = { ...settings } as any;
+        if (result.ai_api_key) {
+          const key = result.ai_api_key;
+          result.ai_api_key_masked =
+            key.length > 8 ? key.substring(0, 4) + '****' + key.substring(key.length - 4) : '****';
+          result.ai_api_key_set = true;
+        } else {
+          result.ai_api_key_masked = null;
+          result.ai_api_key_set = false;
+        }
+        delete result.ai_api_key;
+
+        return result;
+      },
+      FIVE_MINUTES,
+    );
   }
 
   async getAiSettingsRaw(clinicId: string) {
@@ -386,6 +396,12 @@ export class ClinicsService {
         reminder_message_1h: updateDto.reminder_message_1h,
       },
     });
+
+    // Invalidate both cache keys (internal AiService + public frontend)
+    await this.cacheService.invalidateMany([
+      `clinic:ai-settings:${clinicId}`,
+      `clinic:ai-settings-public:${clinicId}`,
+    ]);
 
     await this.auditService.log({
       action: 'UPDATE',

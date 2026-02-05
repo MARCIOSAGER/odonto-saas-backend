@@ -2,6 +2,7 @@ import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { WhatsAppService } from './whatsapp.service';
+import { RedisCacheService } from '../cache/cache.service';
 import { buildDentalAssistantPrompt } from '../ai/prompts/dental-assistant.prompt';
 import axios from 'axios';
 
@@ -177,6 +178,8 @@ const TOOL_UPDATE_PATIENT = {
   },
 };
 
+const FIVE_MINUTES = 5 * 60 * 1000;
+
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
@@ -187,6 +190,7 @@ export class AiService {
     private readonly prisma: PrismaService,
     @Inject(forwardRef(() => WhatsAppService))
     private readonly whatsappService: WhatsAppService,
+    private readonly cacheService: RedisCacheService,
   ) {
     this.defaultApiKey = this.configService.get('ANTHROPIC_API_KEY', '');
   }
@@ -895,45 +899,53 @@ export class AiService {
   // ============================================
 
   private async getClinicAiSettings(clinicId: string): Promise<AiSettings> {
-    const settings = await this.prisma.clinicAiSettings.findUnique({
-      where: { clinic_id: clinicId },
-    });
+    const cacheKey = `clinic:ai-settings:${clinicId}`;
 
-    // Busca lat/lng da clínica para envio de localização
-    const clinic = await this.prisma.clinic.findUnique({
-      where: { id: clinicId },
-      select: { latitude: true, longitude: true },
-    });
+    return this.cacheService.getOrSet(
+      cacheKey,
+      async () => {
+        const settings = await this.prisma.clinicAiSettings.findUnique({
+          where: { clinic_id: clinicId },
+        });
 
-    return {
-      ai_provider: settings?.ai_provider || 'anthropic',
-      ai_api_key: settings?.ai_api_key || null,
-      ai_model: settings?.ai_model || 'claude-3-5-haiku-20241022',
-      ai_temperature: settings?.ai_temperature ? Number(settings.ai_temperature) : 0.7,
-      max_tokens: settings?.max_tokens || 800,
-      assistant_name: settings?.assistant_name || 'Sofia',
-      assistant_personality:
-        settings?.assistant_personality || 'Amigável, profissional e prestativa',
-      welcome_message: settings?.welcome_message || null,
-      fallback_message: settings?.fallback_message || null,
-      custom_instructions: settings?.custom_instructions || null,
-      context_messages: settings?.context_messages || 10,
-      blocked_topics: settings?.blocked_topics || [],
-      transfer_keywords: settings?.transfer_keywords || [],
-      auto_schedule: settings?.auto_schedule ?? false,
-      auto_confirm: settings?.auto_confirm ?? false,
-      auto_cancel: settings?.auto_cancel ?? false,
-      // Interactive messages
-      use_welcome_menu: settings?.use_welcome_menu ?? false,
-      use_confirmation_buttons: settings?.use_confirmation_buttons ?? false,
-      use_timeslot_list: settings?.use_timeslot_list ?? false,
-      use_satisfaction_poll: settings?.use_satisfaction_poll ?? false,
-      use_send_location: settings?.use_send_location ?? false,
-      clinic_latitude: clinic?.latitude || undefined,
-      clinic_longitude: clinic?.longitude || undefined,
-      // Dentist AI
-      dentist_ai_enabled: settings?.dentist_ai_enabled ?? false,
-    };
+        // Busca lat/lng da clínica para envio de localização
+        const clinic = await this.prisma.clinic.findUnique({
+          where: { id: clinicId },
+          select: { latitude: true, longitude: true },
+        });
+
+        return {
+          ai_provider: settings?.ai_provider || 'anthropic',
+          ai_api_key: settings?.ai_api_key || null,
+          ai_model: settings?.ai_model || 'claude-3-5-haiku-20241022',
+          ai_temperature: settings?.ai_temperature ? Number(settings.ai_temperature) : 0.7,
+          max_tokens: settings?.max_tokens || 800,
+          assistant_name: settings?.assistant_name || 'Sofia',
+          assistant_personality:
+            settings?.assistant_personality || 'Amigável, profissional e prestativa',
+          welcome_message: settings?.welcome_message || null,
+          fallback_message: settings?.fallback_message || null,
+          custom_instructions: settings?.custom_instructions || null,
+          context_messages: settings?.context_messages || 10,
+          blocked_topics: settings?.blocked_topics || [],
+          transfer_keywords: settings?.transfer_keywords || [],
+          auto_schedule: settings?.auto_schedule ?? false,
+          auto_confirm: settings?.auto_confirm ?? false,
+          auto_cancel: settings?.auto_cancel ?? false,
+          // Interactive messages
+          use_welcome_menu: settings?.use_welcome_menu ?? false,
+          use_confirmation_buttons: settings?.use_confirmation_buttons ?? false,
+          use_timeslot_list: settings?.use_timeslot_list ?? false,
+          use_satisfaction_poll: settings?.use_satisfaction_poll ?? false,
+          use_send_location: settings?.use_send_location ?? false,
+          clinic_latitude: clinic?.latitude || undefined,
+          clinic_longitude: clinic?.longitude || undefined,
+          // Dentist AI
+          dentist_ai_enabled: settings?.dentist_ai_enabled ?? false,
+        };
+      },
+      FIVE_MINUTES,
+    );
   }
 
   // ============================================
