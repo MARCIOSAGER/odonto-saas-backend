@@ -4,9 +4,10 @@ import { ZApiService } from './z-api.service';
 import { IntegrationsModule } from '../integrations/integrations.module';
 import { PatientsModule } from '../patients/patients.module';
 import { AppointmentsModule } from '../appointments/appointments.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [IntegrationsModule, PatientsModule, AppointmentsModule],
+  imports: [IntegrationsModule, PatientsModule, AppointmentsModule, NotificationsModule],
   controllers: [ZApiController],
   providers: [ZApiService],
   exports: [ZApiService],

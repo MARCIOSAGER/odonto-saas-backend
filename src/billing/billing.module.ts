@@ -8,9 +8,10 @@ import { AsaasGateway } from './gateways/asaas.gateway';
 import { NfseService } from './nfse/nfse.service';
 import { PlanLimitGuard } from './guards/plan-limit.guard';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [SubscriptionsModule],
+  imports: [SubscriptionsModule, NotificationsModule],
   controllers: [BillingController, WebhookController],
   providers: [
     BillingService,

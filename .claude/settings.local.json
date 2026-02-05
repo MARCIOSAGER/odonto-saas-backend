@@ -35,7 +35,12 @@
       "Bash(saas)",
       "Bash(front \")",
       "Bash(git status:*)",
-      "Bash(git ls-tree:*)"
+      "Bash(git ls-tree:*)",
+      "WebFetch(domain:coolify.marciosager.com)",
+      "Bash(npx eslint:*)",
+      "Bash(npm pkg:*)",
+      "Bash(npx jest:*)",
+      "Bash(git restore:*)"
     ]
   }
 }

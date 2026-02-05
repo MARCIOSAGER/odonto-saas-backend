@@ -3,9 +3,10 @@ import { NpsService } from './nps.service';
 import { NpsController } from './nps.controller';
 import { IntegrationsModule } from '../integrations/integrations.module';
 import { EmailModule } from '../email/email.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [IntegrationsModule, EmailModule],
+  imports: [IntegrationsModule, EmailModule, NotificationsModule],
   controllers: [NpsController],
   providers: [NpsService],
   exports: [NpsService],
