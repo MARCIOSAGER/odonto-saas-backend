@@ -5,6 +5,8 @@ import { AsaasGateway } from './gateways/asaas.gateway';
 import { CouponService } from './coupon.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { NfseService } from './nfse/nfse.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { CheckoutDto } from './dto/checkout.dto';
 import { PaymentGateway, WebhookEvent } from './gateways/payment-gateway.interface';
 
@@ -19,7 +21,28 @@ export class BillingService {
     private readonly couponService: CouponService,
     private readonly subscriptionsService: SubscriptionsService,
     private readonly nfseService: NfseService,
+    private readonly notificationsService: NotificationsService,
+    private readonly notificationsGateway: NotificationsGateway,
   ) {}
+
+  private async notifyClinicUsers(
+    clinicId: string,
+    type: string,
+    title: string,
+    body: string,
+    data?: Record<string, unknown>,
+  ) {
+    const notifications = await this.notificationsService.notifyClinic(
+      clinicId,
+      type,
+      title,
+      body,
+      data,
+    );
+    for (const notif of notifications) {
+      this.notificationsGateway.sendToUser(notif.user_id, notif);
+    }
+  }
 
   private getGateway(name: string): PaymentGateway {
     switch (name) {
@@ -221,6 +244,14 @@ export class BillingService {
     this.logger.log(
       `Payment confirmed for clinic ${subscription.clinic_id}, invoice ${invoice.number}`,
     );
+
+    await this.notifyClinicUsers(
+      subscription.clinic_id,
+      'payment_received',
+      'Pagamento confirmado',
+      `Pagamento de R$ ${amount.toFixed(2)} confirmado — ${subscription.plan.display_name || subscription.plan.name}`,
+      { link: '/settings/billing' },
+    );
   }
 
   private async handlePaymentFailed(event: WebhookEvent) {
@@ -232,6 +263,14 @@ export class BillingService {
       if (subscription) {
         await this.subscriptionsService.markPastDue(subscription.id);
         this.logger.log(`Marked subscription ${subscription.id} as past_due`);
+
+        await this.notifyClinicUsers(
+          subscription.clinic_id,
+          'payment_failed',
+          'Pagamento falhou',
+          'Houve uma falha no processamento do pagamento da sua assinatura',
+          { link: '/settings/billing' },
+        );
       }
     }
   }
@@ -251,6 +290,14 @@ export class BillingService {
           },
         });
         this.logger.log(`Subscription ${subscription.id} cancelled via webhook`);
+
+        await this.notifyClinicUsers(
+          subscription.clinic_id,
+          'subscription_cancelled',
+          'Assinatura cancelada',
+          'Sua assinatura foi cancelada pelo gateway de pagamento',
+          { link: '/settings/billing' },
+        );
       }
     }
   }

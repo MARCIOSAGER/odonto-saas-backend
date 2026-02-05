@@ -4,6 +4,8 @@ import { PatientsService } from './patients.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { EncryptionService } from '../common/encryption/encryption.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { createPrismaMock } from '../test/prisma-mock';
 
 describe('PatientsService', () => {
@@ -41,12 +43,20 @@ describe('PatientsService', () => {
       isEnabled: true,
     };
 
+    const notificationsService = {
+      create: jest.fn().mockResolvedValue({}),
+      notifyClinic: jest.fn().mockResolvedValue([]),
+    };
+    const notificationsGateway = { sendToUser: jest.fn(), sendUnreadCount: jest.fn() };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PatientsService,
         { provide: PrismaService, useValue: prisma },
         { provide: AuditService, useValue: auditService },
         { provide: EncryptionService, useValue: encryptionService },
+        { provide: NotificationsService, useValue: notificationsService },
+        { provide: NotificationsGateway, useValue: notificationsGateway },
       ],
     }).compile();
 

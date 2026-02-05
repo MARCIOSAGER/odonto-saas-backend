@@ -2,6 +2,8 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { WhatsAppService } from '../integrations/whatsapp.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
 
 @Injectable()
 export class NpsService {
@@ -10,7 +12,28 @@ export class NpsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly whatsapp: WhatsAppService,
+    private readonly notificationsService: NotificationsService,
+    private readonly notificationsGateway: NotificationsGateway,
   ) {}
+
+  private async notifyClinicUsers(
+    clinicId: string,
+    type: string,
+    title: string,
+    body: string,
+    data?: Record<string, unknown>,
+  ) {
+    const notifications = await this.notificationsService.notifyClinic(
+      clinicId,
+      type,
+      title,
+      body,
+      data,
+    );
+    for (const notif of notifications) {
+      this.notificationsGateway.sendToUser(notif.user_id, notif);
+    }
+  }
 
   /**
    * Send NPS survey to a patient after appointment
@@ -81,6 +104,15 @@ export class NpsService {
         answered_at: new Date(),
       },
     });
+
+    const scoreLabel = score >= 9 ? 'Promotor' : score >= 7 ? 'Neutro' : 'Detrator';
+    await this.notifyClinicUsers(
+      survey.clinic_id,
+      'nps_response',
+      'Resposta NPS recebida',
+      `${survey.patient.name} avaliou com nota ${score} (${scoreLabel})${feedback ? ` — "${feedback.substring(0, 60)}"` : ''}`,
+      { link: '/nps' },
+    );
 
     return updated;
   }

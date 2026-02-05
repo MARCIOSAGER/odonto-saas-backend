@@ -3,6 +3,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AiService } from '../integrations/ai.service';
 import { WhatsAppService } from '../integrations/whatsapp.service';
 import { EncryptionService } from '../common/encryption/encryption.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
 
 interface MessageContext {
   messageId?: string;
@@ -18,7 +20,28 @@ export class ZApiService {
     private readonly aiService: AiService,
     private readonly whatsappService: WhatsAppService,
     private readonly encryption: EncryptionService,
+    private readonly notificationsService: NotificationsService,
+    private readonly notificationsGateway: NotificationsGateway,
   ) {}
+
+  private async notifyClinicUsers(
+    clinicId: string,
+    type: string,
+    title: string,
+    body: string,
+    data?: Record<string, unknown>,
+  ) {
+    const notifications = await this.notificationsService.notifyClinic(
+      clinicId,
+      type,
+      title,
+      body,
+      data,
+    );
+    for (const notif of notifications) {
+      this.notificationsGateway.sendToUser(notif.user_id, notif);
+    }
+  }
 
   async processMessage(
     instanceId: string | undefined,
@@ -73,6 +96,14 @@ export class ZApiService {
       // Salva no histórico de conversação
       await this.saveConversationLog(patient.id, message, logText);
     }
+
+    await this.notifyClinicUsers(
+      clinic.id,
+      'whatsapp_message',
+      'Nova mensagem WhatsApp',
+      `${patient.name}: ${message.substring(0, 80)}${message.length > 80 ? '...' : ''}`,
+      { link: '/conversations' },
+    );
 
     return {
       processed: true,

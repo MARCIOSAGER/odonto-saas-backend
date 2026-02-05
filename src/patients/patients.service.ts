@@ -2,6 +2,8 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { EncryptionService } from '../common/encryption/encryption.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { CreatePatientDto } from './dto/create-patient.dto';
 import { UpdatePatientDto } from './dto/update-patient.dto';
 
@@ -19,7 +21,28 @@ export class PatientsService {
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
     private readonly encryption: EncryptionService,
+    private readonly notificationsService: NotificationsService,
+    private readonly notificationsGateway: NotificationsGateway,
   ) {}
+
+  private async notifyClinicUsers(
+    clinicId: string,
+    type: string,
+    title: string,
+    body: string,
+    data?: Record<string, unknown>,
+  ) {
+    const notifications = await this.notificationsService.notifyClinic(
+      clinicId,
+      type,
+      title,
+      body,
+      data,
+    );
+    for (const notif of notifications) {
+      this.notificationsGateway.sendToUser(notif.user_id, notif);
+    }
+  }
 
   async findAll(clinicId: string, options: FindAllOptions = {}) {
     const limit = Math.min(100, Math.max(1, Number(options.limit) || 10));
@@ -214,6 +237,14 @@ export class PatientsService {
       userId,
       newValues: createPatientDto,
     });
+
+    await this.notifyClinicUsers(
+      clinicId,
+      'patient_created',
+      'Novo paciente cadastrado',
+      `${createPatientDto.name} foi cadastrado(a) como paciente`,
+      { link: `/patients/${patient.id}` },
+    );
 
     return patient;
   }

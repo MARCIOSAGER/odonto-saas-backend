@@ -3,6 +3,8 @@ import { NotFoundException, ConflictException, BadRequestException } from '@nest
 import { AppointmentsService } from './appointments.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { createPrismaMock } from '../test/prisma-mock';
 
 describe('AppointmentsService', () => {
@@ -61,11 +63,19 @@ describe('AppointmentsService', () => {
     prisma = createPrismaMock();
     auditService = { log: jest.fn().mockResolvedValue(undefined) };
 
+    const notificationsService = {
+      create: jest.fn().mockResolvedValue({}),
+      notifyClinic: jest.fn().mockResolvedValue([]),
+    };
+    const notificationsGateway = { sendToUser: jest.fn(), sendUnreadCount: jest.fn() };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AppointmentsService,
         { provide: PrismaService, useValue: prisma },
         { provide: AuditService, useValue: auditService },
+        { provide: NotificationsService, useValue: notificationsService },
+        { provide: NotificationsGateway, useValue: notificationsGateway },
       ],
     }).compile();
 

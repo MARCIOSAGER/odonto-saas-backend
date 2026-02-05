@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 
@@ -24,7 +26,28 @@ export class AppointmentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
+    private readonly notificationsService: NotificationsService,
+    private readonly notificationsGateway: NotificationsGateway,
   ) {}
+
+  private async notifyClinicUsers(
+    clinicId: string,
+    type: string,
+    title: string,
+    body: string,
+    data?: Record<string, unknown>,
+  ) {
+    const notifications = await this.notificationsService.notifyClinic(
+      clinicId,
+      type,
+      title,
+      body,
+      data,
+    );
+    for (const notif of notifications) {
+      this.notificationsGateway.sendToUser(notif.user_id, notif);
+    }
+  }
 
   async findAll(clinicId: string, options: FindAllOptions = {}) {
     const limit = Math.min(100, Math.max(1, Number(options.limit) || 10));
@@ -274,6 +297,14 @@ export class AppointmentsService {
       newValues: createAppointmentDto,
     });
 
+    await this.notifyClinicUsers(
+      clinicId,
+      'new_appointment',
+      'Novo agendamento',
+      `${appointment.patient.name} — ${appointment.time} em ${createAppointmentDto.date}`,
+      { link: '/appointments' },
+    );
+
     return appointment;
   }
 
@@ -324,6 +355,14 @@ export class AppointmentsService {
       newValues: updateAppointmentDto,
     });
 
+    await this.notifyClinicUsers(
+      clinicId,
+      'appointment_updated',
+      'Agendamento atualizado',
+      `Agendamento de ${updated.patient.name} foi atualizado`,
+      { link: '/appointments' },
+    );
+
     return updated;
   }
 
@@ -353,6 +392,14 @@ export class AppointmentsService {
       newValues: { status: 'cancelled', cancel_reason: reason },
     });
 
+    await this.notifyClinicUsers(
+      clinicId,
+      'appointment_cancelled',
+      'Agendamento cancelado',
+      `Agendamento de ${appointment.patient.name} às ${appointment.time} foi cancelado`,
+      { link: '/appointments' },
+    );
+
     return updated;
   }
 
@@ -380,6 +427,14 @@ export class AppointmentsService {
       oldValues: { status: appointment.status },
       newValues: { status: 'confirmed' },
     });
+
+    await this.notifyClinicUsers(
+      clinicId,
+      'appointment_confirmed',
+      'Agendamento confirmado',
+      `Agendamento de ${appointment.patient.name} às ${appointment.time} foi confirmado`,
+      { link: '/appointments' },
+    );
 
     return updated;
   }
@@ -413,6 +468,14 @@ export class AppointmentsService {
       oldValues: { status: appointment.status },
       newValues: { status: 'completed' },
     });
+
+    await this.notifyClinicUsers(
+      clinicId,
+      'appointment_completed',
+      'Atendimento concluído',
+      `Atendimento de ${appointment.patient.name} foi concluído`,
+      { link: '/appointments' },
+    );
 
     return updated;
   }

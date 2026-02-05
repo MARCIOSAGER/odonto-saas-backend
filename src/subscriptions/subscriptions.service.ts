@@ -5,12 +5,37 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { ChangePlanDto } from './dto/change-plan.dto';
 
 @Injectable()
 export class SubscriptionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+    private readonly notificationsGateway: NotificationsGateway,
+  ) {}
+
+  private async notifyClinicUsers(
+    clinicId: string,
+    type: string,
+    title: string,
+    body: string,
+    data?: Record<string, unknown>,
+  ) {
+    const notifications = await this.notificationsService.notifyClinic(
+      clinicId,
+      type,
+      title,
+      body,
+      data,
+    );
+    for (const notif of notifications) {
+      this.notificationsGateway.sendToUser(notif.user_id, notif);
+    }
+  }
 
   /**
    * Get current active subscription for a clinic
@@ -146,6 +171,14 @@ export class SubscriptionsService {
       include: { plan: true },
     });
 
+    await this.notifyClinicUsers(
+      clinicId,
+      'subscription_created',
+      'Assinatura criada',
+      `Plano ${plan.display_name || plan.name} ativado com sucesso`,
+      { link: '/settings/billing' },
+    );
+
     return subscription;
   }
 
@@ -201,6 +234,14 @@ export class SubscriptionsService {
       include: { plan: true },
     });
 
+    await this.notifyClinicUsers(
+      clinicId,
+      'plan_changed',
+      'Plano alterado',
+      `Plano alterado para ${newPlan.display_name || newPlan.name}`,
+      { link: '/settings/billing' },
+    );
+
     return subscription;
   }
 
@@ -217,6 +258,14 @@ export class SubscriptionsService {
         cancelled_at: new Date(),
       },
     });
+
+    await this.notifyClinicUsers(
+      clinicId,
+      'subscription_cancelled',
+      'Assinatura cancelada',
+      'A assinatura será cancelada ao final do período atual',
+      { link: '/settings/billing' },
+    );
 
     return {
       message: 'Subscription will be cancelled at the end of the current period',
@@ -241,6 +290,14 @@ export class SubscriptionsService {
         cancelled_at: null,
       },
     });
+
+    await this.notifyClinicUsers(
+      clinicId,
+      'subscription_reactivated',
+      'Assinatura reativada',
+      'A assinatura foi reativada com sucesso',
+      { link: '/settings/billing' },
+    );
 
     return { message: 'Subscription reactivated successfully' };
   }

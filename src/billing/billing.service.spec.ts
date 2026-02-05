@@ -7,6 +7,8 @@ import { AsaasGateway } from './gateways/asaas.gateway';
 import { CouponService } from './coupon.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { NfseService } from './nfse/nfse.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { createPrismaMock } from '../test/prisma-mock';
 
 describe('BillingService', () => {
@@ -96,6 +98,12 @@ describe('BillingService', () => {
       emit: jest.fn().mockResolvedValue(undefined),
     };
 
+    const notificationsService = {
+      create: jest.fn().mockResolvedValue({}),
+      notifyClinic: jest.fn().mockResolvedValue([]),
+    };
+    const notificationsGateway = { sendToUser: jest.fn(), sendUnreadCount: jest.fn() };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BillingService,
@@ -105,6 +113,8 @@ describe('BillingService', () => {
         { provide: CouponService, useValue: couponService },
         { provide: SubscriptionsService, useValue: subscriptionsService },
         { provide: NfseService, useValue: nfseService },
+        { provide: NotificationsService, useValue: notificationsService },
+        { provide: NotificationsGateway, useValue: notificationsGateway },
       ],
     }).compile();
 
