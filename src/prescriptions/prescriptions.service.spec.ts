@@ -3,6 +3,7 @@ import { NotFoundException } from '@nestjs/common';
 import { PrescriptionsService } from './prescriptions.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PdfGeneratorService } from './pdf-generator.service';
+import { QueueService } from '../queue/queue.service';
 import { createPrismaMock } from '../test/prisma-mock';
 
 describe('PrescriptionsService', () => {
@@ -52,6 +53,7 @@ describe('PrescriptionsService', () => {
         PrescriptionsService,
         { provide: PrismaService, useValue: prisma },
         { provide: PdfGeneratorService, useValue: pdfGenerator },
+        { provide: QueueService, useValue: { addPdfJob: jest.fn().mockResolvedValue(false) } },
       ],
     }).compile();
 

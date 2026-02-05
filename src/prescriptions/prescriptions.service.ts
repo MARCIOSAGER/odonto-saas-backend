@@ -1,13 +1,17 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 import { PdfGeneratorService } from './pdf-generator.service';
+import { QueueService } from '../queue/queue.service';
 
 @Injectable()
 export class PrescriptionsService {
+  private readonly logger = new Logger(PrescriptionsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly pdfGenerator: PdfGeneratorService,
+    private readonly queueService: QueueService,
   ) {}
 
   async create(clinicId: string, dto: CreatePrescriptionDto) {
@@ -25,8 +29,16 @@ export class PrescriptionsService {
       },
     });
 
-    // Generate PDF in background (don't block the response)
-    this.pdfGenerator.generatePdf(prescription.id, clinicId).catch(() => {});
+    // Generate PDF via queue (async) or fall back to synchronous generation
+    const queued = await this.queueService.addPdfJob({
+      prescriptionId: prescription.id,
+      clinicId,
+    });
+    if (!queued) {
+      this.pdfGenerator.generatePdf(prescription.id, clinicId).catch((err) => {
+        this.logger.error(`PDF generation failed for ${prescription.id}: ${err}`);
+      });
+    }
 
     return prescription;
   }

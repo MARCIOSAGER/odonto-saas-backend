@@ -20,7 +20,14 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   constructor(
     @Optional() @Inject(EncryptionService) private readonly encryption?: EncryptionService,
   ) {
+    const databaseUrl = process.env.DATABASE_URL || '';
+    const hasParams = databaseUrl.includes('?');
+    const poolParams = 'connection_limit=10&pool_timeout=30';
+
     super({
+      ...(databaseUrl
+        ? { datasourceUrl: `${databaseUrl}${hasParams ? '&' : '?'}${poolParams}` }
+        : {}),
       log: [
         { emit: 'event', level: 'query' },
         { emit: 'stdout', level: 'info' },

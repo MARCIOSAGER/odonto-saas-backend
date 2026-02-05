@@ -2,9 +2,11 @@ import { Module, Global } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EmailProcessor } from './processors/email.processor';
+import { PdfProcessor } from './processors/pdf.processor';
 import { QueueService } from './queue.service';
 import { QUEUE_EMAIL, QUEUE_WHATSAPP, QUEUE_PDF } from './queue.constants';
 import { EmailModule } from '../email/email.module';
+import { PdfGeneratorService } from '../prescriptions/pdf-generator.service';
 
 @Global()
 @Module({
@@ -40,7 +42,7 @@ import { EmailModule } from '../email/email.module';
     BullModule.registerQueue({ name: QUEUE_EMAIL }, { name: QUEUE_WHATSAPP }, { name: QUEUE_PDF }),
     EmailModule,
   ],
-  providers: [QueueService, EmailProcessor],
+  providers: [QueueService, EmailProcessor, PdfProcessor, PdfGeneratorService],
   exports: [QueueService, BullModule],
 })
 export class QueueModule {}

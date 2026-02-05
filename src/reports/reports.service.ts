@@ -15,7 +15,7 @@ export class ReportsService {
   ) {}
 
   /**
-   * Revenue report (by period, dentist, service)
+   * Revenue report (by period, dentist, service) — SQL aggregation
    */
   async getRevenue(clinicId: string, startDate: Date, endDate: Date) {
     const startKey = startDate.toISOString().split('T')[0];
@@ -24,64 +24,60 @@ export class ReportsService {
     return this.cacheService.getOrSet(
       `reports:revenue:${clinicId}:${startKey}:${endKey}`,
       async () => {
-        const appointments = await this.prisma.appointment.findMany({
-          where: {
-            clinic_id: clinicId,
-            status: 'completed',
-            date: { gte: startDate, lte: endDate },
-          },
-          include: {
-            service: { select: { name: true, price: true } },
-            dentist: { select: { id: true, name: true } },
-          },
-        });
+        const [totals, byDentist, byService, byMonth] = await Promise.all([
+          this.prisma.$queryRaw<{ total_revenue: number; total_appointments: number }[]>`
+            SELECT COALESCE(SUM(s.price), 0)::float as total_revenue,
+                   COUNT(*)::int as total_appointments
+            FROM "Appointment" a
+            JOIN "Service" s ON a.service_id = s.id
+            WHERE a.clinic_id = ${clinicId} AND a.status = 'completed'
+              AND a.date >= ${startDate} AND a.date <= ${endDate}
+          `,
+          this.prisma.$queryRaw<{ name: string; revenue: number; count: number }[]>`
+            SELECT COALESCE(d.name, 'Sem dentista') as name,
+                   COALESCE(SUM(s.price), 0)::float as revenue,
+                   COUNT(*)::int as count
+            FROM "Appointment" a
+            JOIN "Service" s ON a.service_id = s.id
+            LEFT JOIN "Dentist" d ON a.dentist_id = d.id
+            WHERE a.clinic_id = ${clinicId} AND a.status = 'completed'
+              AND a.date >= ${startDate} AND a.date <= ${endDate}
+            GROUP BY d.id, d.name ORDER BY revenue DESC
+          `,
+          this.prisma.$queryRaw<{ name: string; revenue: number; count: number }[]>`
+            SELECT s.name,
+                   COALESCE(SUM(s.price), 0)::float as revenue,
+                   COUNT(*)::int as count
+            FROM "Appointment" a
+            JOIN "Service" s ON a.service_id = s.id
+            WHERE a.clinic_id = ${clinicId} AND a.status = 'completed'
+              AND a.date >= ${startDate} AND a.date <= ${endDate}
+            GROUP BY s.name ORDER BY revenue DESC
+          `,
+          this.prisma.$queryRaw<{ month: string; revenue: number }[]>`
+            SELECT TO_CHAR(a.date, 'YYYY-MM') as month,
+                   COALESCE(SUM(s.price), 0)::float as revenue
+            FROM "Appointment" a
+            JOIN "Service" s ON a.service_id = s.id
+            WHERE a.clinic_id = ${clinicId} AND a.status = 'completed'
+              AND a.date >= ${startDate} AND a.date <= ${endDate}
+            GROUP BY TO_CHAR(a.date, 'YYYY-MM') ORDER BY month
+          `,
+        ]);
 
-        let totalRevenue = 0;
-        const byDentist = new Map<string, { name: string; revenue: number; count: number }>();
-        const byService = new Map<string, { name: string; revenue: number; count: number }>();
-        const byMonth = new Map<string, number>();
-
-        for (const apt of appointments) {
-          const price = Number(apt.service.price || 0);
-          totalRevenue += price;
-
-          // By dentist
-          if (apt.dentist) {
-            const d = byDentist.get(apt.dentist.id) || {
-              name: apt.dentist.name,
-              revenue: 0,
-              count: 0,
-            };
-            d.revenue += price;
-            d.count++;
-            byDentist.set(apt.dentist.id, d);
-          }
-
-          // By service
-          const s = byService.get(apt.service.name) || {
-            name: apt.service.name,
-            revenue: 0,
-            count: 0,
-          };
-          s.revenue += price;
-          s.count++;
-          byService.set(apt.service.name, s);
-
-          // By month
-          const monthKey = `${apt.date.getFullYear()}-${String(apt.date.getMonth() + 1).padStart(2, '0')}`;
-          byMonth.set(monthKey, (byMonth.get(monthKey) || 0) + price);
-        }
+        const { total_revenue, total_appointments } = totals[0] || {
+          total_revenue: 0,
+          total_appointments: 0,
+        };
 
         return {
-          total_revenue: totalRevenue,
-          total_appointments: appointments.length,
+          total_revenue,
+          total_appointments,
           average_ticket:
-            appointments.length > 0 ? Math.round(totalRevenue / appointments.length) : 0,
-          by_dentist: Array.from(byDentist.values()).sort((a, b) => b.revenue - a.revenue),
-          by_service: Array.from(byService.values()).sort((a, b) => b.revenue - a.revenue),
-          by_month: Array.from(byMonth.entries())
-            .map(([month, revenue]) => ({ month, revenue }))
-            .sort((a, b) => a.month.localeCompare(b.month)),
+            total_appointments > 0 ? Math.round(total_revenue / total_appointments) : 0,
+          by_dentist: byDentist,
+          by_service: byService,
+          by_month: byMonth,
         };
       },
       TEN_MINUTES,
@@ -89,7 +85,7 @@ export class ReportsService {
   }
 
   /**
-   * Appointments report (attendance, no-shows, cancellations)
+   * Appointments report (attendance, no-shows, cancellations) — SQL aggregation
    */
   async getAppointments(clinicId: string, startDate: Date, endDate: Date) {
     const startKey = startDate.toISOString().split('T')[0];
@@ -98,30 +94,40 @@ export class ReportsService {
     return this.cacheService.getOrSet(
       `reports:appointments:${clinicId}:${startKey}:${endKey}`,
       async () => {
-        const appointments = await this.prisma.appointment.findMany({
-          where: {
-            clinic_id: clinicId,
-            date: { gte: startDate, lte: endDate },
-          },
-          select: { status: true, date: true },
-        });
+        const [statusRows, monthRows] = await Promise.all([
+          this.prisma.$queryRaw<{ status: string; count: number }[]>`
+            SELECT status, COUNT(*)::int as count
+            FROM "Appointment"
+            WHERE clinic_id = ${clinicId}
+              AND date >= ${startDate} AND date <= ${endDate}
+            GROUP BY status
+          `,
+          this.prisma.$queryRaw<{ month: string; status: string; count: number }[]>`
+            SELECT TO_CHAR(date, 'YYYY-MM') as month, status, COUNT(*)::int as count
+            FROM "Appointment"
+            WHERE clinic_id = ${clinicId}
+              AND date >= ${startDate} AND date <= ${endDate}
+            GROUP BY TO_CHAR(date, 'YYYY-MM'), status
+            ORDER BY month
+          `,
+        ]);
 
         const statusCounts: Record<string, number> = {};
-        const byMonth = new Map<string, Record<string, number>>();
-
-        for (const apt of appointments) {
-          statusCounts[apt.status] = (statusCounts[apt.status] || 0) + 1;
-
-          const monthKey = `${apt.date.getFullYear()}-${String(apt.date.getMonth() + 1).padStart(2, '0')}`;
-          if (!byMonth.has(monthKey)) byMonth.set(monthKey, {});
-          const m = byMonth.get(monthKey)!;
-          m[apt.status] = (m[apt.status] || 0) + 1;
+        for (const row of statusRows) {
+          statusCounts[row.status] = row.count;
         }
 
-        const total = appointments.length;
+        const total = Object.values(statusCounts).reduce((a, b) => a + b, 0);
         const completed = statusCounts['completed'] || 0;
         const cancelled = statusCounts['cancelled'] || 0;
         const noShow = statusCounts['no_show'] || 0;
+
+        // Group month rows by month
+        const monthMap = new Map<string, Record<string, number>>();
+        for (const row of monthRows) {
+          if (!monthMap.has(row.month)) monthMap.set(row.month, {});
+          monthMap.get(row.month)![row.status] = row.count;
+        }
 
         return {
           total,
@@ -133,7 +139,7 @@ export class ReportsService {
           attendance_rate: total > 0 ? Math.round((completed / total) * 100) : 0,
           cancellation_rate: total > 0 ? Math.round((cancelled / total) * 100) : 0,
           no_show_rate: total > 0 ? Math.round((noShow / total) * 100) : 0,
-          by_month: Array.from(byMonth.entries())
+          by_month: Array.from(monthMap.entries())
             .map(([month, statuses]) => ({ month, ...statuses }))
             .sort((a, b) => a.month.localeCompare(b.month)),
         };
@@ -305,7 +311,7 @@ export class ReportsService {
   }
 
   /**
-   * Cashflow projection (30/60/90 days)
+   * Cashflow projection (30/60/90 days) — SQL aggregation
    */
   async getCashflow(clinicId: string) {
     return this.cacheService.getOrSet(
@@ -319,44 +325,40 @@ export class ReportsService {
         const days90 = new Date(now);
         days90.setDate(days90.getDate() + 90);
 
-        // Upcoming appointments as projected revenue
-        const [next30, next60, next90] = await Promise.all([
-          this.prisma.appointment.findMany({
-            where: {
-              clinic_id: clinicId,
-              status: { in: ['scheduled', 'confirmed'] },
-              date: { gte: now, lte: days30 },
-            },
-            include: { service: { select: { price: true } } },
-          }),
-          this.prisma.appointment.findMany({
-            where: {
-              clinic_id: clinicId,
-              status: { in: ['scheduled', 'confirmed'] },
-              date: { gte: days30, lte: days60 },
-            },
-            include: { service: { select: { price: true } } },
-          }),
-          this.prisma.appointment.findMany({
-            where: {
-              clinic_id: clinicId,
-              status: { in: ['scheduled', 'confirmed'] },
-              date: { gte: days60, lte: days90 },
-            },
-            include: { service: { select: { price: true } } },
-          }),
+        type Projection = { appointments: number; revenue: number }[];
+
+        const [p30, p60, p90] = await Promise.all([
+          this.prisma.$queryRaw<Projection>`
+            SELECT COUNT(*)::int as appointments, COALESCE(SUM(s.price), 0)::float as revenue
+            FROM "Appointment" a JOIN "Service" s ON a.service_id = s.id
+            WHERE a.clinic_id = ${clinicId} AND a.status IN ('scheduled', 'confirmed')
+              AND a.date >= ${now} AND a.date <= ${days30}
+          `,
+          this.prisma.$queryRaw<Projection>`
+            SELECT COUNT(*)::int as appointments, COALESCE(SUM(s.price), 0)::float as revenue
+            FROM "Appointment" a JOIN "Service" s ON a.service_id = s.id
+            WHERE a.clinic_id = ${clinicId} AND a.status IN ('scheduled', 'confirmed')
+              AND a.date > ${days30} AND a.date <= ${days60}
+          `,
+          this.prisma.$queryRaw<Projection>`
+            SELECT COUNT(*)::int as appointments, COALESCE(SUM(s.price), 0)::float as revenue
+            FROM "Appointment" a JOIN "Service" s ON a.service_id = s.id
+            WHERE a.clinic_id = ${clinicId} AND a.status IN ('scheduled', 'confirmed')
+              AND a.date > ${days60} AND a.date <= ${days90}
+          `,
         ]);
 
-        const sum = (apts: typeof next30) =>
-          apts.reduce((acc, a) => acc + Number(a.service.price || 0), 0);
+        const r30 = p30[0] || { appointments: 0, revenue: 0 };
+        const r60 = p60[0] || { appointments: 0, revenue: 0 };
+        const r90 = p90[0] || { appointments: 0, revenue: 0 };
 
         return {
-          projection_30d: { appointments: next30.length, revenue: sum(next30) },
-          projection_60d: { appointments: next60.length, revenue: sum(next60) },
-          projection_90d: { appointments: next90.length, revenue: sum(next90) },
+          projection_30d: r30,
+          projection_60d: r60,
+          projection_90d: r90,
           total_projected: {
-            appointments: next30.length + next60.length + next90.length,
-            revenue: sum(next30) + sum(next60) + sum(next90),
+            appointments: r30.appointments + r60.appointments + r90.appointments,
+            revenue: r30.revenue + r60.revenue + r90.revenue,
           },
         };
       },
