@@ -94,15 +94,17 @@ export class AuthService {
     });
 
     // Send welcome email (fire and forget, uses clinic SMTP if configured)
-    this.emailService.sendWelcomeEmail(
-      result.user.email,
-      result.user.name,
-      result.clinic.name,
-      result.clinic.id,
-    ).catch(() => {});
+    this.emailService
+      .sendWelcomeEmail(result.user.email, result.user.name, result.clinic.name, result.clinic.id)
+      .catch(() => {});
 
     // Generate tokens
-    const tokens = await this.generateTokens(result.user.id, result.clinic.id, result.user.role, result.user.permissions || []);
+    const tokens = await this.generateTokens(
+      result.user.id,
+      result.clinic.id,
+      result.user.role,
+      result.user.permissions || [],
+    );
 
     return {
       user: {
@@ -141,10 +143,7 @@ export class AuthService {
 
     // Check if 2FA is enabled
     if (user.two_factor_enabled && user.two_factor_method) {
-      const twoFactorToken = this.twoFactorService.generateTwoFactorToken(
-        user.id,
-        user.clinic_id,
-      );
+      const twoFactorToken = this.twoFactorService.generateTwoFactorToken(user.id, user.clinic_id);
 
       // Auto-send code for WhatsApp method (with email fallback)
       let codeSent = true;
@@ -182,7 +181,12 @@ export class AuthService {
       userAgent: meta?.userAgent,
     });
 
-    const tokens = await this.generateTokens(user.id, user.clinic_id, user.role, user.permissions || []);
+    const tokens = await this.generateTokens(
+      user.id,
+      user.clinic_id,
+      user.role,
+      user.permissions || [],
+    );
 
     return {
       user: {
@@ -201,12 +205,7 @@ export class AuthService {
     };
   }
 
-  async verify2fa(
-    twoFactorToken: string,
-    code: string,
-    method?: string,
-    meta?: RequestMeta,
-  ) {
+  async verify2fa(twoFactorToken: string, code: string, method?: string, meta?: RequestMeta) {
     const { userId } = this.twoFactorService.verifyTwoFactorToken(twoFactorToken);
 
     const user = await this.prisma.user.findUnique({
@@ -244,7 +243,12 @@ export class AuthService {
       userAgent: meta?.userAgent,
     });
 
-    const tokens = await this.generateTokens(user.id, user.clinic_id, user.role, user.permissions || []);
+    const tokens = await this.generateTokens(
+      user.id,
+      user.clinic_id,
+      user.role,
+      user.permissions || [],
+    );
 
     return {
       user: {
@@ -284,7 +288,10 @@ export class AuthService {
             'Não foi possível enviar o código. Tente novamente mais tarde.',
           );
         }
-        return { message: 'Código enviado por e-mail (WhatsApp indisponível)', delivery_method: 'email' };
+        return {
+          message: 'Código enviado por e-mail (WhatsApp indisponível)',
+          delivery_method: 'email',
+        };
       }
     } else if (user.two_factor_method === 'totp') {
       throw new BadRequestException('TOTP não requer reenvio de código');
@@ -321,7 +328,12 @@ export class AuthService {
     const resetLink = `${frontendUrl}/forgot-password/reset?token=${rawToken}`;
 
     // Send email (uses clinic SMTP if configured, otherwise global)
-    await this.emailService.sendPasswordResetEmail(user.email, user.name, resetLink, user.clinic_id ?? undefined);
+    await this.emailService.sendPasswordResetEmail(
+      user.email,
+      user.name,
+      resetLink,
+      user.clinic_id ?? undefined,
+    );
 
     return { message: 'Se o email existir, enviaremos um link de redefinição' };
   }
@@ -408,10 +420,7 @@ export class AuthService {
 
     // Check 2FA
     if (user.two_factor_enabled && user.two_factor_method) {
-      const twoFactorToken = this.twoFactorService.generateTwoFactorToken(
-        user.id,
-        user.clinic_id,
-      );
+      const twoFactorToken = this.twoFactorService.generateTwoFactorToken(user.id, user.clinic_id);
 
       let codeSent = true;
       let codeDeliveryMethod = user.two_factor_method;
@@ -448,7 +457,12 @@ export class AuthService {
       userAgent: meta?.userAgent,
     });
 
-    const tokens = await this.generateTokens(user.id, user.clinic_id, user.role, user.permissions || []);
+    const tokens = await this.generateTokens(
+      user.id,
+      user.clinic_id,
+      user.role,
+      user.permissions || [],
+    );
 
     return {
       user: {
@@ -656,7 +670,12 @@ export class AuthService {
     return methods;
   }
 
-  private async generateTokens(userId: string, clinicId: string | null, role: string, permissions: string[] = []) {
+  private async generateTokens(
+    userId: string,
+    clinicId: string | null,
+    role: string,
+    permissions: string[] = [],
+  ) {
     const payload = {
       sub: userId,
       clinicId,

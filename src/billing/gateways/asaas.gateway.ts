@@ -19,9 +19,7 @@ export class AsaasGateway implements PaymentGateway {
   constructor(private readonly configService: ConfigService) {
     const apiKey = this.configService.get<string>('ASAAS_API_KEY');
     const sandbox = this.configService.get<string>('ASAAS_SANDBOX') === 'true';
-    const baseURL = sandbox
-      ? 'https://sandbox.asaas.com/api/v3'
-      : 'https://api.asaas.com/api/v3';
+    const baseURL = sandbox ? 'https://sandbox.asaas.com/api/v3' : 'https://api.asaas.com/api/v3';
 
     if (apiKey) {
       this.client = axios.create({
@@ -110,9 +108,7 @@ export class AsaasGateway implements PaymentGateway {
 
     if (billingType === 'PIX' && payment.id) {
       try {
-        const { data: pix } = await client.get(
-          `/payments/${payment.id}/pixQrCode`,
-        );
+        const { data: pix } = await client.get(`/payments/${payment.id}/pixQrCode`);
         result.pix_qr_code = pix.encodedImage;
         result.pix_copy_paste = pix.payload;
       } catch (e) {
@@ -131,9 +127,7 @@ export class AsaasGateway implements PaymentGateway {
     return result;
   }
 
-  async createSubscription(
-    params: CreateSubscriptionParams,
-  ): Promise<GatewaySubscriptionResult> {
+  async createSubscription(params: CreateSubscriptionParams): Promise<GatewaySubscriptionResult> {
     const client = this.ensureConfigured();
 
     const customerId = await this.findOrCreateCustomer(
@@ -181,13 +175,10 @@ export class AsaasGateway implements PaymentGateway {
     body: Buffer | string,
     headers: Record<string, string>,
   ): Promise<WebhookEvent> {
-    const payload =
-      typeof body === 'string' ? JSON.parse(body) : JSON.parse(body.toString());
+    const payload = typeof body === 'string' ? JSON.parse(body) : JSON.parse(body.toString());
 
     // Validate webhook token
-    const expectedToken = this.configService.get<string>(
-      'ASAAS_WEBHOOK_TOKEN',
-    );
+    const expectedToken = this.configService.get<string>('ASAAS_WEBHOOK_TOKEN');
     if (expectedToken && headers['asaas-access-token'] !== expectedToken) {
       throw new Error('Invalid ASAAS webhook token');
     }
@@ -211,9 +202,7 @@ export class AsaasGateway implements PaymentGateway {
       gateway_event_id: payload.id,
       gateway_subscription_id: payload.payment?.subscription || undefined,
       gateway_payment_id: payload.payment?.id || undefined,
-      amount: payload.payment?.value
-        ? Math.round(payload.payment.value * 100)
-        : undefined,
+      amount: payload.payment?.value ? Math.round(payload.payment.value * 100) : undefined,
       status: payload.payment?.status?.toLowerCase() || undefined,
       metadata: {
         externalReference: payload.payment?.externalReference,
@@ -222,9 +211,7 @@ export class AsaasGateway implements PaymentGateway {
     };
   }
 
-  private mapPaymentMethod(
-    method?: string,
-  ): 'CREDIT_CARD' | 'PIX' | 'BOLETO' {
+  private mapPaymentMethod(method?: string): 'CREDIT_CARD' | 'PIX' | 'BOLETO' {
     switch (method) {
       case 'credit_card':
         return 'CREDIT_CARD';

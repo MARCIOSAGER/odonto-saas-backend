@@ -128,6 +128,7 @@ model Dentist {
   specialty     String?
   phone         String?
   email         String?
+  phone_hash    String?
   commission_rate Decimal?        @default(0) @db.Decimal(5, 2)
   status          String          @default("active")
   created_at      DateTime        @default(now()) @db.Timestamp(6)
@@ -141,6 +142,7 @@ model Dentist {
   @@unique([clinic_id, cro])
   @@index([clinic_id])
   @@index([cro])
+  @@index([phone_hash], map: "idx_dentist_phone_hash")
 }
 
 model Patient {
@@ -156,6 +158,9 @@ model Patient {
   status           String            @default("active")
   portal_token     String?           @unique @default(dbgenerated("(gen_random_uuid())::text"))
   last_visit       DateTime?         @db.Timestamp(6)
+  phone_hash       String?
+  cpf_hash         String?
+  email_hash       String?
   created_at       DateTime          @default(now()) @db.Timestamp(6)
   updated_at       DateTime          @default(now()) @updatedAt @db.Timestamp(6)
   clinic           Clinic            @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
@@ -173,6 +178,9 @@ model Patient {
   @@unique([clinic_id, phone], map: "unique_clinic_phone")
   @@index([clinic_id], map: "idx_patient_clinic")
   @@index([phone], map: "idx_patient_phone")
+  @@index([phone_hash], map: "idx_patient_phone_hash")
+  @@index([cpf_hash], map: "idx_patient_cpf_hash")
+  @@index([email_hash], map: "idx_patient_email_hash")
 }
 
 model Service {
@@ -231,7 +239,7 @@ model Conversation {
   id         String   @id @default(dbgenerated("(gen_random_uuid())::text"))
   clinic_id  String
   patient_id String
-  messages   Json?
+  messages   String?  @db.Text // encrypted JSON
   created_at DateTime @default(now()) @db.Timestamp(6)
   clinic     Clinic   @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
   patient    Patient  @relation(fields: [patient_id], references: [id], onDelete: Cascade)
@@ -258,17 +266,18 @@ model WhatsAppMessage {
   clinic_id   String
   patient_id  String?
   phone       String
-  message     String
+  phone_hash  String?
+  message     String   @db.Text
   direction   String // 'incoming' or 'outgoing'
   status      String   @default("sent")
   message_id  String? // Z-API message ID
-  raw_payload Json?
+  raw_payload String?  @db.Text // encrypted JSON
   created_at  DateTime @default(now()) @db.Timestamp(6)
   clinic      Clinic   @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
   patient     Patient? @relation(fields: [patient_id], references: [id], onDelete: SetNull)
 
   @@index([clinic_id])
-  @@index([phone])
+  @@index([phone_hash], map: "idx_whatsapp_phone_hash")
   @@index([created_at])
 }
 
@@ -283,8 +292,8 @@ model AuditLog {
   action     String
   entity     String
   entity_id  String?
-  old_values Json?
-  new_values Json?
+  old_values String?  @db.Text // encrypted JSON
+  new_values String?  @db.Text // encrypted JSON
   ip_address String?
   user_agent String?
   created_at DateTime @default(now()) @db.Timestamp(6)
@@ -712,7 +721,7 @@ model Prescription {
   dentist_id String
   clinic_id  String
   type       String // prescription, certificate, referral
-  content    Json // { medications: [...] } ou { text: "..." }
+  content    String  @db.Text // encrypted JSON: { medications: [...] } ou { text: "..." }
   pdf_url    String?
   sent_at    DateTime? @db.Timestamp(6)
   sent_via   String? // whatsapp, email
@@ -757,18 +766,18 @@ model Anamnesis {
   patient_id          String
   clinic_id           String
   filled_by_id        String?
-  allergies           String[]
-  medications         String[]
-  conditions          String[]
-  surgeries           String?
-  habits              Json?
+  allergies           String?  @db.Text @default("[]")
+  medications         String?  @db.Text @default("[]")
+  conditions          String?  @db.Text @default("[]")
+  surgeries           String?  @db.Text
+  habits              String?  @db.Text
   risk_classification String?
-  contraindications   String[]
-  alerts              String[]
-  warnings            String[]
-  ai_notes            String?
-  ai_recommendations  String?
-  raw_answers         Json?
+  contraindications   String?  @db.Text @default("[]")
+  alerts              String?  @db.Text @default("[]")
+  warnings            String?  @db.Text @default("[]")
+  ai_notes            String?  @db.Text
+  ai_recommendations  String?  @db.Text
+  raw_answers         String?  @db.Text
   created_at          DateTime @default(now()) @db.Timestamp(6)
   updated_at          DateTime @default(now()) @updatedAt @db.Timestamp(6)
   patient             Patient  @relation(fields: [patient_id], references: [id], onDelete: Cascade)
@@ -788,7 +797,7 @@ model TreatmentPlan {
   created_by      String?
   status          String              @default("pending") // pending, in_progress, completed, cancelled
   patient_summary String?
-  phases          Json?
+  phases          String?  @db.Text
   total_cost      Decimal?            @db.Decimal(10, 2)
   total_sessions  Int?
   recommendations String?

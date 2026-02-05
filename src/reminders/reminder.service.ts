@@ -105,11 +105,7 @@ export class ReminderService {
 
       // Tenta WhatsApp primeiro
       if (apt.patient.phone) {
-        sent = await this.whatsappService.sendMessage(
-          apt.clinic_id,
-          apt.patient.phone,
-          message,
-        );
+        sent = await this.whatsappService.sendMessage(apt.clinic_id, apt.patient.phone, message);
       }
 
       // Fallback: email se WhatsApp falhou ou paciente não tem phone
@@ -212,11 +208,7 @@ export class ReminderService {
       let sent = false;
 
       if (apt.patient.phone) {
-        sent = await this.whatsappService.sendMessage(
-          apt.clinic_id,
-          apt.patient.phone,
-          message,
-        );
+        sent = await this.whatsappService.sendMessage(apt.clinic_id, apt.patient.phone, message);
       }
 
       // Fallback: email se WhatsApp falhou ou paciente não tem phone
@@ -274,10 +266,7 @@ export class ReminderService {
   /**
    * Substitui variáveis de template: {patientName}, {date}, {time}, etc.
    */
-  private replaceTemplateVars(
-    template: string,
-    vars: Record<string, string>,
-  ): string {
+  private replaceTemplateVars(template: string, vars: Record<string, string>): string {
     let result = template;
     for (const [key, value] of Object.entries(vars)) {
       result = result.replace(new RegExp(`\\{${key}\\}`, 'g'), value);

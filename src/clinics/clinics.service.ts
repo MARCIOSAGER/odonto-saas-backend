@@ -223,41 +223,37 @@ export class ClinicsService {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
-    const [
-      totalPatients,
-      appointmentsToday,
-      appointmentsPending,
-      completedAppointmentsThisMonth,
-    ] = await Promise.all([
-      this.prisma.patient.count({ where: { clinic_id: clinicId, status: 'active' } }),
-      this.prisma.appointment.count({
-        where: {
-          clinic_id: clinicId,
-          date: {
-            gte: startOfDay,
-            lte: endOfDay,
+    const [totalPatients, appointmentsToday, appointmentsPending, completedAppointmentsThisMonth] =
+      await Promise.all([
+        this.prisma.patient.count({ where: { clinic_id: clinicId, status: 'active' } }),
+        this.prisma.appointment.count({
+          where: {
+            clinic_id: clinicId,
+            date: {
+              gte: startOfDay,
+              lte: endOfDay,
+            },
           },
-        },
-      }),
-      this.prisma.appointment.count({
-        where: { clinic_id: clinicId, status: 'scheduled' },
-      }),
-      this.prisma.appointment.findMany({
-        where: {
-          clinic_id: clinicId,
-          status: 'completed',
-          date: {
-            gte: startOfMonth,
-            lte: endOfMonth,
+        }),
+        this.prisma.appointment.count({
+          where: { clinic_id: clinicId, status: 'scheduled' },
+        }),
+        this.prisma.appointment.findMany({
+          where: {
+            clinic_id: clinicId,
+            status: 'completed',
+            date: {
+              gte: startOfMonth,
+              lte: endOfMonth,
+            },
           },
-        },
-        include: {
-          service: {
-            select: { price: true },
+          include: {
+            service: {
+              select: { price: true },
+            },
           },
-        },
-      }),
-    ]);
+        }),
+      ]);
 
     const revenueMonth = completedAppointmentsThisMonth.reduce((total, appointment) => {
       const price = appointment.service?.price ? Number(appointment.service.price) : 0;
@@ -289,7 +285,8 @@ export class ClinicsService {
         max_tokens: 800,
         assistant_name: 'Sofia',
         assistant_personality: 'Amigável, profissional e prestativa',
-        welcome_message: 'Olá! Sou a Sofia, assistente virtual da clínica. Como posso ajudar você hoje?',
+        welcome_message:
+          'Olá! Sou a Sofia, assistente virtual da clínica. Como posso ajudar você hoje?',
         fallback_message: 'Desculpe, não consegui entender. Pode reformular sua pergunta?',
         out_of_hours_message: 'Estamos fora do horário de atendimento. Retornaremos em breve!',
         transfer_keywords: [],
@@ -319,9 +316,8 @@ export class ClinicsService {
     const result = { ...settings } as any;
     if (result.ai_api_key) {
       const key = result.ai_api_key;
-      result.ai_api_key_masked = key.length > 8
-        ? key.substring(0, 4) + '****' + key.substring(key.length - 4)
-        : '****';
+      result.ai_api_key_masked =
+        key.length > 8 ? key.substring(0, 4) + '****' + key.substring(key.length - 4) : '****';
       result.ai_api_key_set = true;
     } else {
       result.ai_api_key_masked = null;
@@ -507,12 +503,22 @@ export class ClinicsService {
     try {
       const response = await axios.get(
         `https://api.z-api.io/instances/${clinic.z_api_instance}/token/${clinic.z_api_token}/disconnect`,
-        { timeout: 10000, headers: { 'Client-Token': clinic.z_api_client_token || this.zApiClientToken } },
+        {
+          timeout: 10000,
+          headers: { 'Client-Token': clinic.z_api_client_token || this.zApiClientToken },
+        },
       );
-      return { success: true, message: 'WhatsApp desconectado com sucesso.', details: response.data };
+      return {
+        success: true,
+        message: 'WhatsApp desconectado com sucesso.',
+        details: response.data,
+      };
     } catch (error: any) {
       this.logger.error(`Error disconnecting WhatsApp: ${error}`);
-      return { success: false, message: error?.response?.data?.message || 'Erro ao desconectar WhatsApp' };
+      return {
+        success: false,
+        message: error?.response?.data?.message || 'Erro ao desconectar WhatsApp',
+      };
     }
   }
 
@@ -529,12 +535,22 @@ export class ClinicsService {
     try {
       const response = await axios.get(
         `https://api.z-api.io/instances/${clinic.z_api_instance}/token/${clinic.z_api_token}/restart`,
-        { timeout: 15000, headers: { 'Client-Token': clinic.z_api_client_token || this.zApiClientToken } },
+        {
+          timeout: 15000,
+          headers: { 'Client-Token': clinic.z_api_client_token || this.zApiClientToken },
+        },
       );
-      return { success: true, message: 'Instância reiniciada. Não é necessário escanear QR Code novamente.', details: response.data };
+      return {
+        success: true,
+        message: 'Instância reiniciada. Não é necessário escanear QR Code novamente.',
+        details: response.data,
+      };
     } catch (error: any) {
       this.logger.error(`Error restarting WhatsApp: ${error}`);
-      return { success: false, message: error?.response?.data?.message || 'Erro ao reiniciar instância' };
+      return {
+        success: false,
+        message: error?.response?.data?.message || 'Erro ao reiniciar instância',
+      };
     }
   }
 
@@ -551,12 +567,18 @@ export class ClinicsService {
     try {
       const response = await axios.get(
         `https://api.z-api.io/instances/${clinic.z_api_instance}/token/${clinic.z_api_token}/restore-session`,
-        { timeout: 15000, headers: { 'Client-Token': clinic.z_api_client_token || this.zApiClientToken } },
+        {
+          timeout: 15000,
+          headers: { 'Client-Token': clinic.z_api_client_token || this.zApiClientToken },
+        },
       );
       return { success: true, message: 'Sessão restaurada com sucesso.', details: response.data };
     } catch (error: any) {
       this.logger.error(`Error restoring WhatsApp session: ${error}`);
-      return { success: false, message: error?.response?.data?.message || 'Erro ao restaurar sessão' };
+      return {
+        success: false,
+        message: error?.response?.data?.message || 'Erro ao restaurar sessão',
+      };
     }
   }
 
@@ -653,7 +675,8 @@ export class ClinicsService {
       return { success: false, message: `Provedor desconhecido: ${provider}`, provider };
     } catch (error: any) {
       const status = error?.response?.status;
-      const errorMsg = error?.response?.data?.error?.message || error?.message || 'Erro desconhecido';
+      const errorMsg =
+        error?.response?.data?.error?.message || error?.message || 'Erro desconhecido';
       this.logger.error(`AI test failed for ${provider} (${status}): ${errorMsg}`);
 
       if (status === 401 || status === 403) {
@@ -919,7 +942,14 @@ export class ClinicsService {
   async testEmailConnection(clinicId: string, userId: string) {
     const clinic = await this.prisma.clinic.findUnique({
       where: { id: clinicId },
-      select: { smtp_host: true, smtp_port: true, smtp_user: true, smtp_pass: true, smtp_from: true, smtp_secure: true },
+      select: {
+        smtp_host: true,
+        smtp_port: true,
+        smtp_user: true,
+        smtp_pass: true,
+        smtp_from: true,
+        smtp_secure: true,
+      },
     });
 
     const user = await this.prisma.user.findUnique({
@@ -933,7 +963,7 @@ export class ClinicsService {
 
     const host = clinic?.smtp_host || this.configService.get('SMTP_HOST', 'smtp.hostinger.com');
     const port = clinic?.smtp_port || parseInt(this.configService.get('SMTP_PORT', '465'), 10);
-    const secure = clinic?.smtp_secure ?? (this.configService.get('SMTP_SECURE', 'true') === 'true');
+    const secure = clinic?.smtp_secure ?? this.configService.get('SMTP_SECURE', 'true') === 'true';
     const smtpUser = clinic?.smtp_user || this.configService.get('SMTP_USER') || '';
     const smtpPass = clinic?.smtp_pass || this.configService.get('SMTP_PASS') || '';
     const from = clinic?.smtp_from || this.configService.get('SMTP_FROM') || smtpUser;
@@ -979,10 +1009,16 @@ export class ClinicsService {
         return { success: false, message: 'Autenticação falhou. Verifique usuário e senha SMTP.' };
       }
       if (error.code === 'ECONNREFUSED') {
-        return { success: false, message: `Conexão recusada em ${host}:${port}. Verifique host e porta.` };
+        return {
+          success: false,
+          message: `Conexão recusada em ${host}:${port}. Verifique host e porta.`,
+        };
       }
       if (error.code === 'ESOCKET') {
-        return { success: false, message: `Erro de conexão. Verifique se SSL/TLS está correto para a porta ${port}.` };
+        return {
+          success: false,
+          message: `Erro de conexão. Verifique se SSL/TLS está correto para a porta ${port}.`,
+        };
       }
 
       return { success: false, message: `Erro: ${error.message}` };

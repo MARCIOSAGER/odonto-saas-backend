@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeGateway } from './gateways/stripe.gateway';
 import { AsaasGateway } from './gateways/asaas.gateway';
@@ -150,8 +145,7 @@ export class BillingService {
   private async handlePaymentSuccess(event: WebhookEvent) {
     const metadata = event.metadata || {};
     const subscriptionId =
-      (metadata.subscription_id as string) ||
-      (metadata.externalReference as string);
+      (metadata.subscription_id as string) || (metadata.externalReference as string);
 
     if (!subscriptionId) {
       this.logger.warn('Payment success webhook without subscription_id');
@@ -160,18 +154,13 @@ export class BillingService {
 
     const subscription = await this.prisma.subscription.findFirst({
       where: {
-        OR: [
-          { id: subscriptionId },
-          { external_id: event.gateway_subscription_id || '' },
-        ],
+        OR: [{ id: subscriptionId }, { external_id: event.gateway_subscription_id || '' }],
       },
       include: { clinic: true, plan: true },
     });
 
     if (!subscription) {
-      this.logger.warn(
-        `Subscription not found for webhook: ${subscriptionId}`,
-      );
+      this.logger.warn(`Subscription not found for webhook: ${subscriptionId}`);
       return;
     }
 
@@ -242,9 +231,7 @@ export class BillingService {
 
       if (subscription) {
         await this.subscriptionsService.markPastDue(subscription.id);
-        this.logger.log(
-          `Marked subscription ${subscription.id} as past_due`,
-        );
+        this.logger.log(`Marked subscription ${subscription.id} as past_due`);
       }
     }
   }
@@ -271,11 +258,7 @@ export class BillingService {
   /**
    * Get invoices for admin (all clinics)
    */
-  async getAdminInvoices(
-    page = 1,
-    limit = 20,
-    filters?: { status?: string; clinic_id?: string },
-  ) {
+  async getAdminInvoices(page = 1, limit = 20, filters?: { status?: string; clinic_id?: string }) {
     const skip = (page - 1) * limit;
     const take = Math.min(limit, 100);
     const where: Record<string, unknown> = {};

@@ -23,12 +23,14 @@ export const winstonConfig: WinstonModuleOptions = {
             winston.format.timestamp({ format: 'HH:mm:ss' }),
             winston.format.errors({ stack: true }),
             winston.format.colorize({ all: true }),
-            winston.format.printf(({ timestamp, level, message, context, correlationId, ...meta }) => {
-              const ctx = context ? `[${context}] ` : '';
-              const cid = correlationId ? ` (${correlationId})` : '';
-              const extra = Object.keys(meta).length ? ` ${JSON.stringify(meta)}` : '';
-              return `${timestamp} ${level} ${ctx}${message}${cid}${extra}`;
-            }),
+            winston.format.printf(
+              ({ timestamp, level, message, context, correlationId, ...meta }) => {
+                const ctx = context ? `[${context}] ` : '';
+                const cid = correlationId ? ` (${correlationId})` : '';
+                const extra = Object.keys(meta).length ? ` ${JSON.stringify(meta)}` : '';
+                return `${timestamp} ${level} ${ctx}${message}${cid}${extra}`;
+              },
+            ),
           ),
     }),
   ],

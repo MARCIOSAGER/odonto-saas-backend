@@ -1,13 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsBoolean,
-  IsIn,
-  IsInt,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  Matches,
-} from 'class-validator';
+import { IsBoolean, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Matches } from 'class-validator';
 
 export class UpdateLegendDto {
   @ApiProperty({

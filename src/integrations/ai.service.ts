@@ -225,11 +225,27 @@ export class AiService {
       );
 
       if (provider === 'anthropic') {
-        return await this.callAnthropicWithTools(apiKey, settings, systemPrompt, messages, tools, clinicId, patientId);
+        return await this.callAnthropicWithTools(
+          apiKey,
+          settings,
+          systemPrompt,
+          messages,
+          tools,
+          clinicId,
+          patientId,
+        );
       }
 
       if (provider === 'openai') {
-        return await this.callOpenAIWithTools(apiKey, settings, systemPrompt, messages, tools, clinicId, patientId);
+        return await this.callOpenAIWithTools(
+          apiKey,
+          settings,
+          systemPrompt,
+          messages,
+          tools,
+          clinicId,
+          patientId,
+        );
       }
 
       if (provider === 'google') {
@@ -300,7 +316,16 @@ export class AiService {
 
     // Se a IA quer usar uma ferramenta
     if (stopReason === 'tool_use') {
-      return await this.handleAnthropicToolUse(apiKey, settings, systemPrompt, messages, tools, content, clinicId, patientId);
+      return await this.handleAnthropicToolUse(
+        apiKey,
+        settings,
+        systemPrompt,
+        messages,
+        tools,
+        content,
+        clinicId,
+        patientId,
+      );
     }
 
     // Resposta normal (só texto)
@@ -319,10 +344,7 @@ export class AiService {
     patientId?: string,
   ): Promise<string | null> {
     // Adicionar a resposta do assistente (com tool_use) ao histórico
-    const updatedMessages = [
-      ...messages,
-      { role: 'assistant', content: assistantContent },
-    ];
+    const updatedMessages = [...messages, { role: 'assistant', content: assistantContent }];
 
     // Executar cada tool_use e coletar resultados
     const toolResults: any[] = [];
@@ -415,7 +437,15 @@ export class AiService {
 
     // Se a IA quer usar tools
     if (msg?.tool_calls && msg.tool_calls.length > 0) {
-      return await this.handleOpenAIToolUse(apiKey, settings, openaiMessages, body.tools, msg, clinicId, patientId);
+      return await this.handleOpenAIToolUse(
+        apiKey,
+        settings,
+        openaiMessages,
+        body.tools,
+        msg,
+        clinicId,
+        patientId,
+      );
     }
 
     return msg?.content || null;
@@ -882,7 +912,8 @@ export class AiService {
       ai_temperature: settings?.ai_temperature ? Number(settings.ai_temperature) : 0.7,
       max_tokens: settings?.max_tokens || 800,
       assistant_name: settings?.assistant_name || 'Sofia',
-      assistant_personality: settings?.assistant_personality || 'Amigável, profissional e prestativa',
+      assistant_personality:
+        settings?.assistant_personality || 'Amigável, profissional e prestativa',
       welcome_message: settings?.welcome_message || null,
       fallback_message: settings?.fallback_message || null,
       custom_instructions: settings?.custom_instructions || null,
@@ -917,7 +948,11 @@ export class AiService {
   // FALLBACK (quando API não está disponível)
   // ============================================
 
-  private getFallbackResponse(message: string, context: PatientContext, settings: AiSettings): string {
+  private getFallbackResponse(
+    message: string,
+    context: PatientContext,
+    settings: AiSettings,
+  ): string {
     const name = settings.assistant_name || 'Sofia';
     const lowerMessage = message.toLowerCase();
 
@@ -976,12 +1011,32 @@ Ou me conte o que você precisa!`;
   }
 
   private isGreeting(message: string): boolean {
-    const greetings = ['oi', 'olá', 'ola', 'bom dia', 'boa tarde', 'boa noite', 'hey', 'hello', 'eae', 'e aí'];
+    const greetings = [
+      'oi',
+      'olá',
+      'ola',
+      'bom dia',
+      'boa tarde',
+      'boa noite',
+      'hey',
+      'hello',
+      'eae',
+      'e aí',
+    ];
     return greetings.some((g) => message.includes(g));
   }
 
   private wantsToSchedule(message: string): boolean {
-    const keywords = ['agendar', 'marcar', 'consulta', 'horário', 'horario', 'disponível', 'disponivel', 'vaga'];
+    const keywords = [
+      'agendar',
+      'marcar',
+      'consulta',
+      'horário',
+      'horario',
+      'disponível',
+      'disponivel',
+      'vaga',
+    ];
     return keywords.some((k) => message.includes(k));
   }
 

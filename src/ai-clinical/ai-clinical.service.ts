@@ -79,10 +79,7 @@ Regras:
   /**
    * Sugere plano de tratamento baseado no odontograma e histórico.
    */
-  async suggestTreatmentPlan(
-    clinicId: string,
-    patientId: string,
-  ) {
+  async suggestTreatmentPlan(clinicId: string, patientId: string) {
     const settings = await this.getAiSettings(clinicId);
 
     // Busca dados do paciente
@@ -237,15 +234,9 @@ ${JSON.stringify(services, null, 2)}`;
       return { error: 'Paciente não encontrado' };
     }
 
-    const completedCount = appointments.filter(
-      (a) => a.status === 'completed',
-    ).length;
-    const cancelledCount = appointments.filter(
-      (a) => a.status === 'cancelled',
-    ).length;
-    const noShowCount = appointments.filter(
-      (a) => a.status === 'no_show',
-    ).length;
+    const completedCount = appointments.filter((a) => a.status === 'completed').length;
+    const cancelledCount = appointments.filter((a) => a.status === 'cancelled').length;
+    const noShowCount = appointments.filter((a) => a.status === 'no_show').length;
     const totalSpent = appointments
       .filter((a) => a.status === 'completed')
       .reduce((sum, a) => sum + Number(a.service.price), 0);
@@ -273,7 +264,13 @@ Consultas: ${completedCount} realizadas, ${cancelledCount} canceladas, ${noShowC
 Total investido: R$ ${totalSpent.toFixed(2)}
 
 Histórico recente:
-${appointments.slice(0, 10).map((a) => `- ${a.date.toISOString().split('T')[0]} ${a.time}: ${a.service.name} (${a.status})${a.dentist ? ` - Dr(a). ${a.dentist.name}` : ''}`).join('\n')}
+${appointments
+  .slice(0, 10)
+  .map(
+    (a) =>
+      `- ${a.date.toISOString().split('T')[0]} ${a.time}: ${a.service.name} (${a.status})${a.dentist ? ` - Dr(a). ${a.dentist.name}` : ''}`,
+  )
+  .join('\n')}
 
 Problemas odontológicos atuais:
 ${odontogram?.entries.length ? odontogram.entries.map((e) => `- Dente ${e.tooth_number}: ${e.status_code} [${e.surfaces.join(',')}]${e.notes ? ` (${e.notes})` : ''}`).join('\n') : 'Nenhum registrado'}`;
@@ -347,10 +344,7 @@ Responda em JSON:
 
     return {
       ai_provider: settings.ai_provider,
-      ai_api_key:
-        settings.ai_api_key ||
-        this.configService.get('ANTHROPIC_API_KEY') ||
-        null,
+      ai_api_key: settings.ai_api_key || this.configService.get('ANTHROPIC_API_KEY') || null,
       ai_model: settings.ai_model,
       ai_temperature: Number(settings.ai_temperature),
       max_tokens: Math.max(settings.max_tokens, 2000),
@@ -362,13 +356,10 @@ Responda em JSON:
     systemPrompt: string,
     userMessage: string,
   ): Promise<string> {
-    const { ai_provider, ai_api_key, ai_model, ai_temperature, max_tokens } =
-      settings;
+    const { ai_provider, ai_api_key, ai_model, ai_temperature, max_tokens } = settings;
 
     if (!ai_api_key) {
-      throw new Error(
-        'API key não configurada. Configure nas configurações de IA.',
-      );
+      throw new Error('API key não configurada. Configure nas configurações de IA.');
     }
 
     try {
@@ -433,18 +424,14 @@ Responda em JSON:
           },
           { timeout: 60000 },
         );
-        return (
-          response.data.candidates?.[0]?.content?.parts?.[0]?.text || ''
-        );
+        return response.data.candidates?.[0]?.content?.parts?.[0]?.text || '';
       }
 
       throw new Error(`Provedor de IA não suportado: ${ai_provider}`);
     } catch (error: any) {
       this.logger.error(`AI API error: ${error.message}`);
       if (error.response?.data) {
-        this.logger.error(
-          `AI API response: ${JSON.stringify(error.response.data)}`,
-        );
+        this.logger.error(`AI API response: ${JSON.stringify(error.response.data)}`);
       }
       throw new Error('Erro ao processar com IA. Tente novamente.');
     }

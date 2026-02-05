@@ -1,10 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  IsIn,
-} from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsIn } from 'class-validator';
 
 export class CreateSubscriptionDto {
   @ApiProperty({ example: 'plan-uuid-here' })

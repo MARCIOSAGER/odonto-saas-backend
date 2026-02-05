@@ -14,11 +14,7 @@ import Redis from 'ioredis';
 
 @WebSocketGateway({
   cors: {
-    origin: [
-      'https://odonto.marciosager.com',
-      'http://localhost:3000',
-      'http://localhost:3001',
-    ],
+    origin: ['https://odonto.marciosager.com', 'http://localhost:3000', 'http://localhost:3001'],
     credentials: true,
   },
   namespace: '/notifications',
@@ -54,9 +50,7 @@ export class NotificationsGateway
         server.adapter(createAdapter(pubClient, subClient) as any);
         this.logger.log('Socket.IO Redis adapter configured');
       } catch (error) {
-        this.logger.warn(
-          `Failed to configure Redis adapter, using in-memory: ${error}`,
-        );
+        this.logger.warn(`Failed to configure Redis adapter, using in-memory: ${error}`);
       }
     } else {
       this.logger.log('Socket.IO using in-memory adapter (no REDIS_HOST set)');
@@ -94,9 +88,7 @@ export class NotificationsGateway
       client.join(`user:${userId}`);
       this.logger.log(`Client connected: ${client.id} (user: ${userId})`);
     } catch {
-      this.logger.warn(
-        `Connection rejected: token verification failed (${client.id})`,
-      );
+      this.logger.warn(`Connection rejected: token verification failed (${client.id})`);
       client.disconnect();
     }
   }

@@ -64,11 +64,7 @@ export class EmailProcessor extends WorkerHost {
             data.html || '',
           );
         }
-        return this.emailService.sendMail(
-          data.to,
-          data.subject || '',
-          data.html || '',
-        );
+        return this.emailService.sendMail(data.to, data.subject || '', data.html || '');
     }
   }
 }

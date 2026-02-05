@@ -73,10 +73,7 @@ export class PdfGeneratorService {
       const primaryColor = clinic?.primary_color || '#0EA5E9';
 
       // ---- HEADER ----
-      doc
-        .fillColor(primaryColor)
-        .rect(0, 0, doc.page.width, 3)
-        .fill();
+      doc.fillColor(primaryColor).rect(0, 0, doc.page.width, 3).fill();
 
       doc.moveDown(0.5);
 
@@ -137,11 +134,7 @@ export class PdfGeneratorService {
       doc.moveDown(1);
 
       // ---- PATIENT INFO ----
-      doc
-        .fontSize(10)
-        .fillColor(primaryColor)
-        .font('Helvetica-Bold')
-        .text('PACIENTE');
+      doc.fontSize(10).fillColor(primaryColor).font('Helvetica-Bold').text('PACIENTE');
 
       doc
         .strokeColor(primaryColor)
@@ -166,14 +159,10 @@ export class PdfGeneratorService {
       doc.moveDown(1);
 
       // ---- CONTENT ----
-      const content = prescription.content as Record<string, any>;
+      const content = prescription.content as unknown as Record<string, any>;
 
       if (prescription.type === 'prescription' && content?.medications) {
-        doc
-          .fontSize(10)
-          .fillColor(primaryColor)
-          .font('Helvetica-Bold')
-          .text('MEDICAMENTOS');
+        doc.fontSize(10).fillColor(primaryColor).font('Helvetica-Bold').text('MEDICAMENTOS');
 
         doc
           .strokeColor(primaryColor)
@@ -221,9 +210,7 @@ export class PdfGeneratorService {
           .fontSize(10)
           .fillColor(primaryColor)
           .font('Helvetica-Bold')
-          .text(
-            prescription.type === 'certificate' ? 'DECLARAÇÃO' : 'DESCRIÇÃO',
-          );
+          .text(prescription.type === 'certificate' ? 'DECLARAÇÃO' : 'DESCRIÇÃO');
 
         doc
           .strokeColor(primaryColor)
@@ -234,11 +221,7 @@ export class PdfGeneratorService {
 
         doc.moveDown(0.5);
 
-        doc
-          .fontSize(11)
-          .fillColor('#374151')
-          .font('Helvetica')
-          .text(content.text, { lineGap: 4 });
+        doc.fontSize(11).fillColor('#374151').font('Helvetica').text(content.text, { lineGap: 4 });
       }
 
       // ---- FOOTER ----
@@ -267,10 +250,7 @@ export class PdfGeneratorService {
         .fontSize(10)
         .fillColor('#374151')
         .font('Helvetica')
-        .text(
-          `${clinic?.city || 'Local'}, ${dateStr}`,
-          { align: 'center' },
-        );
+        .text(`${clinic?.city || 'Local'}, ${dateStr}`, { align: 'center' });
 
       doc.moveDown(2);
 
@@ -309,20 +289,14 @@ export class PdfGeneratorService {
       passThrough.on('end', async () => {
         try {
           const buffer = Buffer.concat(chunks);
-          const pdfUrl = await this.storageService.upload(
-            buffer,
-            storageKey,
-            'application/pdf',
-          );
+          const pdfUrl = await this.storageService.upload(buffer, storageKey, 'application/pdf');
 
           await this.prisma.prescription.update({
             where: { id: prescriptionId },
             data: { pdf_url: pdfUrl },
           });
 
-          this.logger.log(
-            `PDF generated for prescription ${prescriptionId}: ${pdfUrl}`,
-          );
+          this.logger.log(`PDF generated for prescription ${prescriptionId}: ${pdfUrl}`);
           resolve(pdfUrl);
         } catch (err) {
           this.logger.error(`Failed to upload PDF: ${(err as Error).message}`);

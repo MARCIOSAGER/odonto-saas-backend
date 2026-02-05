@@ -1,19 +1,5 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Param,
-  Body,
-  UseGuards,
-  ParseUUIDPipe,
-} from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-} from '@nestjs/swagger';
+import { Controller, Get, Post, Put, Param, Body, UseGuards, ParseUUIDPipe } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AnamnesisService } from './anamnesis.service';
 import { CreateAnamnesisDto } from './dto/create-anamnesis.dto';
 import { UpdateAnamnesisDto } from './dto/update-anamnesis.dto';

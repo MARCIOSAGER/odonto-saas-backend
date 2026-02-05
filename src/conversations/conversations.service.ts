@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { WhatsAppService } from '../integrations/whatsapp.service';
+import { EncryptionService } from '../common/encryption/encryption.service';
 
 interface FindAllOptions {
   page?: number;
@@ -12,6 +13,7 @@ export class ConversationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly whatsAppService: WhatsAppService,
+    private readonly encryption: EncryptionService,
   ) {}
 
   async findAll(clinicId: string, options: FindAllOptions = {}) {
@@ -19,9 +21,10 @@ export class ConversationsService {
     const limit = Number(options.limit) || 20;
     const skip = Math.max(0, (page - 1) * limit);
 
-    // Buscar conversas agrupadas por telefone com a última mensagem
+    // Buscar conversas agrupadas por phone_hash (blind index determinístico)
     const conversations = await this.prisma.$queryRaw<
       Array<{
+        phone_hash: string;
         phone: string;
         patient_id: string | null;
         patient_name: string | null;
@@ -32,12 +35,13 @@ export class ConversationsService {
       }>
     >`
       SELECT
-        wm.phone,
+        wm.phone_hash,
+        (SELECT phone FROM "WhatsAppMessage" WHERE phone_hash = wm.phone_hash AND clinic_id = ${clinicId} ORDER BY created_at DESC LIMIT 1) as phone,
         wm.patient_id,
         p.name as patient_name,
         (
           SELECT message FROM "WhatsAppMessage"
-          WHERE phone = wm.phone AND clinic_id = ${clinicId}
+          WHERE phone_hash = wm.phone_hash AND clinic_id = ${clinicId}
           ORDER BY created_at DESC LIMIT 1
         ) as last_message,
         MAX(wm.created_at) as last_message_at,
@@ -46,14 +50,14 @@ export class ConversationsService {
       FROM "WhatsAppMessage" wm
       LEFT JOIN "Patient" p ON wm.patient_id = p.id
       WHERE wm.clinic_id = ${clinicId}
-      GROUP BY wm.phone, wm.patient_id, p.name
+      GROUP BY wm.phone_hash, wm.patient_id, p.name
       ORDER BY last_message_at DESC
       LIMIT ${limit} OFFSET ${skip}
     `;
 
-    // Contar total de conversas distintas
+    // Contar total de conversas distintas (por phone_hash)
     const totalResult = await this.prisma.$queryRaw<[{ count: bigint }]>`
-      SELECT COUNT(DISTINCT phone)::int as count
+      SELECT COUNT(DISTINCT phone_hash)::int as count
       FROM "WhatsAppMessage"
       WHERE clinic_id = ${clinicId}
     `;
@@ -61,10 +65,10 @@ export class ConversationsService {
 
     return {
       data: conversations.map((conv) => ({
-        phone: conv.phone,
+        phone: this.encryption.decrypt(conv.phone),
         patient_id: conv.patient_id,
         patient_name: conv.patient_name || 'Desconhecido',
-        last_message: conv.last_message,
+        last_message: this.encryption.decrypt(conv.last_message),
         last_message_at: conv.last_message_at,
         unread_count: conv.unread_count,
         total_messages: conv.total_messages,
@@ -83,15 +87,16 @@ export class ConversationsService {
     const limit = Number(options.limit) || 50;
     const skip = Math.max(0, (page - 1) * limit);
 
-    // Normalizar telefone (remover caracteres não numéricos)
+    // Normalizar telefone e gerar hash
     const normalizedPhone = phone.replace(/\D/g, '');
+    const phoneHash = this.encryption.hmac(normalizedPhone);
 
-    // Buscar mensagens da conversa
+    // Buscar mensagens da conversa via blind index
     const [messages, total] = await Promise.all([
       this.prisma.whatsAppMessage.findMany({
         where: {
           clinic_id: clinicId,
-          phone: { contains: normalizedPhone },
+          phone_hash: phoneHash,
         },
         orderBy: { created_at: 'desc' },
         skip,
@@ -105,16 +110,14 @@ export class ConversationsService {
       this.prisma.whatsAppMessage.count({
         where: {
           clinic_id: clinicId,
-          phone: { contains: normalizedPhone },
+          phone_hash: phoneHash,
         },
       }),
     ]);
-
-    // Buscar informações do paciente se existir
     const patient = await this.prisma.patient.findFirst({
       where: {
         clinic_id: clinicId,
-        phone: { contains: normalizedPhone },
+        phone_hash: phoneHash,
       },
       select: {
         id: true,
@@ -142,11 +145,12 @@ export class ConversationsService {
 
   async markAsRead(clinicId: string, phone: string) {
     const normalizedPhone = phone.replace(/\D/g, '');
+    const phoneHash = this.encryption.hmac(normalizedPhone);
 
     await this.prisma.whatsAppMessage.updateMany({
       where: {
         clinic_id: clinicId,
-        phone: { contains: normalizedPhone },
+        phone_hash: phoneHash,
         direction: 'incoming',
         status: 'sent',
       },
@@ -172,11 +176,12 @@ export class ConversationsService {
       throw new BadRequestException('Falha ao enviar mensagem. Verifique a conexão do WhatsApp.');
     }
 
-    // Buscar patient_id pelo telefone (se existir)
+    // Buscar patient_id pelo telefone (se existir) via blind index
+    const phoneHash = this.encryption.hmac(normalizedPhone);
     const patient = await this.prisma.patient.findFirst({
       where: {
         clinic_id: clinicId,
-        phone: { contains: normalizedPhone },
+        phone_hash: phoneHash,
       },
       select: { id: true },
     });

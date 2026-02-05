@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma } from '@prisma/client';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 import { PdfGeneratorService } from './pdf-generator.service';
 
@@ -18,7 +17,7 @@ export class PrescriptionsService {
         patient_id: dto.patient_id,
         dentist_id: dto.dentist_id,
         type: dto.type,
-        content: dto.content as Prisma.InputJsonValue,
+        content: dto.content as any,
       },
       include: {
         patient: { select: { name: true, phone: true, cpf: true } },

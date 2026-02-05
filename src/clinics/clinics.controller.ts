@@ -14,7 +14,15 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiQuery,
+  ApiConsumes,
+  ApiBody,
+} from '@nestjs/swagger';
 import { ClinicsService } from './clinics.service';
 import { CreateClinicDto } from './dto/create-clinic.dto';
 import { UpdateClinicDto } from './dto/update-clinic.dto';
@@ -237,7 +245,11 @@ export class ClinicsController {
     @Body() updateEmailSettingsDto: UpdateEmailSettingsDto,
     @CurrentUser() user: { userId: string; clinicId: string },
   ) {
-    return this.clinicsService.updateEmailSettings(user.clinicId, updateEmailSettingsDto, user.userId);
+    return this.clinicsService.updateEmailSettings(
+      user.clinicId,
+      updateEmailSettingsDto,
+      user.userId,
+    );
   }
 
   @Post('my/test-email')

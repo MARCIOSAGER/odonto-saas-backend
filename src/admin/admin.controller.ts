@@ -58,7 +58,14 @@ export class AdminController {
     @Query('status') status?: string,
     @Query('clinic_id') clinic_id?: string,
   ) {
-    return this.adminService.findAllUsers({ page: +(page ?? 1), limit: +(limit ?? 20), search, role, status, clinic_id });
+    return this.adminService.findAllUsers({
+      page: +(page ?? 1),
+      limit: +(limit ?? 20),
+      search,
+      role,
+      status,
+      clinic_id,
+    });
   }
 
   @Get('users/:id')
@@ -112,7 +119,12 @@ export class AdminController {
     @Query('search') search?: string,
     @Query('status') status?: string,
   ) {
-    return this.adminService.findAllClinics({ page: +(page ?? 1), limit: +(limit ?? 20), search, status });
+    return this.adminService.findAllClinics({
+      page: +(page ?? 1),
+      limit: +(limit ?? 20),
+      search,
+      status,
+    });
   }
 
   @Patch('clinics/:id/status')

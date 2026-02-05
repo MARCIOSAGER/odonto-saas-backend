@@ -300,11 +300,7 @@ describe('NotificationsService', () => {
   // ──────────────────────────────────────────────────
   describe('notifyClinic', () => {
     it('should create a notification for each active user in the clinic', async () => {
-      const users = [
-        { id: 'user-uuid-1' },
-        { id: 'user-uuid-2' },
-        { id: 'user-uuid-3' },
-      ];
+      const users = [{ id: 'user-uuid-1' }, { id: 'user-uuid-2' }, { id: 'user-uuid-3' }];
       prisma.user.findMany.mockResolvedValue(users);
       prisma.notification.create
         .mockResolvedValueOnce({ ...mockNotification, id: 'notif-1', user_id: 'user-uuid-1' })
@@ -346,13 +342,7 @@ describe('NotificationsService', () => {
       prisma.notification.create.mockResolvedValue(mockNotification);
 
       const extraData = { action: 'maintenance', duration: '2h' };
-      await service.notifyClinic(
-        clinicId,
-        'system',
-        'Aviso',
-        'Manutencao programada',
-        extraData,
-      );
+      await service.notifyClinic(clinicId, 'system', 'Aviso', 'Manutencao programada', extraData);
 
       expect(prisma.notification.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
@@ -364,12 +354,7 @@ describe('NotificationsService', () => {
     it('should return empty array when clinic has no active users', async () => {
       prisma.user.findMany.mockResolvedValue([]);
 
-      const result = await service.notifyClinic(
-        clinicId,
-        'system',
-        'Aviso',
-        'Sem usuarios ativos',
-      );
+      const result = await service.notifyClinic(clinicId, 'system', 'Aviso', 'Sem usuarios ativos');
 
       expect(result).toEqual([]);
       expect(prisma.notification.create).not.toHaveBeenCalled();

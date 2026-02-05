@@ -27,7 +27,10 @@ export class UpdateEmailSettingsDto {
   @MaxLength(255)
   smtp_pass?: string;
 
-  @ApiPropertyOptional({ description: 'From address for outgoing emails', example: 'Clinica <noreply@clinica.com>' })
+  @ApiPropertyOptional({
+    description: 'From address for outgoing emails',
+    example: 'Clinica <noreply@clinica.com>',
+  })
   @IsString()
   @IsOptional()
   @MaxLength(255)

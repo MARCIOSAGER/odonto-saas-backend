@@ -20,12 +20,14 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
 
   // Security headers
-  app.use(helmet({
-    crossOriginResourcePolicy: { policy: 'cross-origin' }, // Necessário: frontend e backend em domínios diferentes, /uploads precisa ser acessível cross-origin
-    frameguard: { action: 'deny' }, // Previne clickjacking
-    hsts: { maxAge: 31536000, includeSubDomains: true }, // Force HTTPS por 1 ano
-    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-  }));
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' }, // Necessário: frontend e backend em domínios diferentes, /uploads precisa ser acessível cross-origin
+      frameguard: { action: 'deny' }, // Previne clickjacking
+      hsts: { maxAge: 31536000, includeSubDomains: true }, // Force HTTPS por 1 ano
+      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    }),
+  );
   app.enableCors({
     origin: (origin, callback) => {
       const allowedOrigins = [

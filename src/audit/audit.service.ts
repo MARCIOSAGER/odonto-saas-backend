@@ -1,6 +1,22 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+
+const SENSITIVE_FIELDS = [
+  'password',
+  'smtp_pass',
+  'z_api_token',
+  'z_api_client_token',
+  'ai_api_key',
+  'totp_secret',
+  'cpf',
+  'phone',
+  'email',
+  'address',
+  'allergies',
+  'medications',
+  'conditions',
+  'content',
+];
 
 interface AuditLogParams {
   action: string;
@@ -20,11 +36,16 @@ export class AuditService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  private toJsonValue(value: unknown): Prisma.InputJsonValue | typeof Prisma.JsonNull {
-    if (value === undefined || value === null) {
-      return Prisma.JsonNull;
+  private sanitize(value: unknown): unknown {
+    if (value === undefined || value === null) return null;
+    if (typeof value !== 'object') return value;
+    const obj = JSON.parse(JSON.stringify(value));
+    for (const key of Object.keys(obj)) {
+      if (SENSITIVE_FIELDS.includes(key)) {
+        obj[key] = '[REDACTED]';
+      }
     }
-    return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+    return obj;
   }
 
   async log(params: AuditLogParams): Promise<void> {
@@ -36,8 +57,8 @@ export class AuditService {
           entity_id: params.entityId,
           clinic_id: params.clinicId || null,
           user_id: params.userId || null,
-          old_values: this.toJsonValue(params.oldValues),
-          new_values: this.toJsonValue(params.newValues),
+          old_values: this.sanitize(params.oldValues) as any,
+          new_values: this.sanitize(params.newValues) as any,
           ip_address: params.ipAddress,
           user_agent: params.userAgent,
         },

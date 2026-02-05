@@ -223,17 +223,17 @@ describe('AnamnesisService', () => {
     it('should throw NotFoundException when anamnesis not found', async () => {
       prisma.anamnesis.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.findById(clinicId, 'non-existent-id'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.findById(clinicId, 'non-existent-id')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw NotFoundException with correct message', async () => {
       prisma.anamnesis.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.findById(clinicId, 'non-existent-id'),
-      ).rejects.toThrow('Anamnese não encontrada');
+      await expect(service.findById(clinicId, 'non-existent-id')).rejects.toThrow(
+        'Anamnese não encontrada',
+      );
     });
   });
 
@@ -381,7 +381,12 @@ describe('AnamnesisService', () => {
       prisma.anamnesis.update.mockResolvedValue(updatedAnamnesis);
       auditService.log.mockResolvedValue(undefined);
 
-      const result = await service.update(clinicId, 'anamnesis-uuid-1', fullUpdateDto as any, userId);
+      const result = await service.update(
+        clinicId,
+        'anamnesis-uuid-1',
+        fullUpdateDto as any,
+        userId,
+      );
 
       expect(result).toEqual(updatedAnamnesis);
       expect(prisma.anamnesis.update).toHaveBeenCalledWith({

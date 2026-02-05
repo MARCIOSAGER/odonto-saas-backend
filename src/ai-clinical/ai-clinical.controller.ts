@@ -1,18 +1,5 @@
-import {
-  Controller,
-  Post,
-  Get,
-  Body,
-  Param,
-  UseGuards,
-  ParseUUIDPipe,
-} from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-} from '@nestjs/swagger';
+import { Controller, Post, Get, Body, Param, UseGuards, ParseUUIDPipe } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AiClinicalService } from './ai-clinical.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -46,10 +33,7 @@ export class AiClinicalController {
     @CurrentUser() user: { clinicId: string },
     @Param('patientId', ParseUUIDPipe) patientId: string,
   ) {
-    return this.aiClinicalService.suggestTreatmentPlan(
-      user.clinicId,
-      patientId,
-    );
+    return this.aiClinicalService.suggestTreatmentPlan(user.clinicId, patientId);
   }
 
   @Get('patient-summary/:patientId')
@@ -59,10 +43,7 @@ export class AiClinicalController {
     @CurrentUser() user: { clinicId: string },
     @Param('patientId', ParseUUIDPipe) patientId: string,
   ) {
-    return this.aiClinicalService.getPatientSummary(
-      user.clinicId,
-      patientId,
-    );
+    return this.aiClinicalService.getPatientSummary(user.clinicId, patientId);
   }
 
   @Post('anamnesis')

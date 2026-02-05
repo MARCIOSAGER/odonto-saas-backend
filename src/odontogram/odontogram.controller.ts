@@ -57,11 +57,7 @@ export class OdontogramController {
     @CurrentUser() user: { userId: string; clinicId: string },
     @Query('dentition_type') dentitionType?: DentitionType,
   ) {
-    return this.odontogramService.getOrCreate(
-      user.clinicId,
-      patientId,
-      dentitionType,
-    );
+    return this.odontogramService.getOrCreate(user.clinicId, patientId, dentitionType);
   }
 
   @Get('patients/:patientId/odontogram/history')
@@ -74,11 +70,7 @@ export class OdontogramController {
     @CurrentUser() user: { userId: string; clinicId: string },
     @Query() query: OdontogramQueryDto,
   ) {
-    return this.odontogramService.getHistory(
-      user.clinicId,
-      patientId,
-      query,
-    );
+    return this.odontogramService.getHistory(user.clinicId, patientId, query);
   }
 
   @Post('patients/:patientId/odontogram/entries')
@@ -92,16 +84,8 @@ export class OdontogramController {
     @Body() dto: CreateEntryDto,
     @CurrentUser() user: { userId: string; clinicId: string },
   ) {
-    const odontogram = await this.odontogramService.getOrCreate(
-      user.clinicId,
-      patientId,
-    );
-    return this.odontogramService.createEntry(
-      user.clinicId,
-      user.userId,
-      odontogram.id,
-      dto,
-    );
+    const odontogram = await this.odontogramService.getOrCreate(user.clinicId, patientId);
+    return this.odontogramService.createEntry(user.clinicId, user.userId, odontogram.id, dto);
   }
 
   @Patch('patients/:patientId/odontogram/entries/:entryId/supersede')
@@ -118,12 +102,7 @@ export class OdontogramController {
     @Body() dto: SupersedeEntryDto,
     @CurrentUser() user: { userId: string; clinicId: string },
   ) {
-    return this.odontogramService.supersedeEntry(
-      user.clinicId,
-      user.userId,
-      entryId,
-      dto,
-    );
+    return this.odontogramService.supersedeEntry(user.clinicId, user.userId, entryId, dto);
   }
 
   // ============================================
@@ -133,9 +112,7 @@ export class OdontogramController {
   @Get('odontogram/legend')
   @ApiOperation({ summary: 'Get odontogram legend for the clinic' })
   @ApiResponse({ status: 200, description: 'Legend items list' })
-  async getLegend(
-    @CurrentUser() user: { userId: string; clinicId: string },
-  ) {
+  async getLegend(@CurrentUser() user: { userId: string; clinicId: string }) {
     return this.odontogramService.getLegend(user.clinicId);
   }
 

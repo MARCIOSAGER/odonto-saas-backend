@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { CreateEntryDto } from './dto/create-entry.dto';
@@ -21,21 +17,63 @@ interface DefaultLegendEntry {
 
 const DEFAULT_LEGEND: DefaultLegendEntry[] = [
   { code: 'HEALTHY', label: 'Saudavel', color: '#FFFFFF', category: 'finding', sort_order: 0 },
-  { code: 'CARIES_SUSPECTED', label: 'Carie Suspeita', color: '#EF4444', category: 'finding', sort_order: 1 },
-  { code: 'CARIES_ACTIVE', label: 'Carie Ativa', color: '#DC2626', category: 'finding', sort_order: 2 },
-  { code: 'RESTORATION_COMPOSITE', label: 'Restauracao Resina', color: '#3B82F6', category: 'procedure', sort_order: 3 },
-  { code: 'RESTORATION_AMALGAM', label: 'Restauracao Amalgama', color: '#6366F1', category: 'procedure', sort_order: 4 },
+  {
+    code: 'CARIES_SUSPECTED',
+    label: 'Carie Suspeita',
+    color: '#EF4444',
+    category: 'finding',
+    sort_order: 1,
+  },
+  {
+    code: 'CARIES_ACTIVE',
+    label: 'Carie Ativa',
+    color: '#DC2626',
+    category: 'finding',
+    sort_order: 2,
+  },
+  {
+    code: 'RESTORATION_COMPOSITE',
+    label: 'Restauracao Resina',
+    color: '#3B82F6',
+    category: 'procedure',
+    sort_order: 3,
+  },
+  {
+    code: 'RESTORATION_AMALGAM',
+    label: 'Restauracao Amalgama',
+    color: '#6366F1',
+    category: 'procedure',
+    sort_order: 4,
+  },
   { code: 'EXTRACTION', label: 'Extracao', color: '#9CA3AF', category: 'procedure', sort_order: 5 },
   { code: 'IMPLANT', label: 'Implante', color: '#10B981', category: 'procedure', sort_order: 6 },
   { code: 'CROWN', label: 'Coroa', color: '#F59E0B', category: 'procedure', sort_order: 7 },
   { code: 'BRIDGE', label: 'Ponte', color: '#8B5CF6', category: 'procedure', sort_order: 8 },
-  { code: 'ROOT_CANAL', label: 'Tratamento de Canal', color: '#F97316', category: 'procedure', sort_order: 9 },
+  {
+    code: 'ROOT_CANAL',
+    label: 'Tratamento de Canal',
+    color: '#F97316',
+    category: 'procedure',
+    sort_order: 9,
+  },
   { code: 'FRACTURE', label: 'Fratura', color: '#EC4899', category: 'finding', sort_order: 10 },
   { code: 'MISSING', label: 'Ausente', color: '#E5E7EB', category: 'finding', sort_order: 11 },
   { code: 'SEALANT', label: 'Selante', color: '#06B6D4', category: 'procedure', sort_order: 12 },
   { code: 'PROSTHESIS', label: 'Protese', color: '#A855F7', category: 'procedure', sort_order: 13 },
-  { code: 'ORTHODONTIC_BRACKET', label: 'Braquete Ortodontico', color: '#F43F5E', category: 'procedure', sort_order: 14 },
-  { code: 'PERIAPICAL_LESION', label: 'Lesao Periapical', color: '#B91C1C', category: 'finding', sort_order: 15 },
+  {
+    code: 'ORTHODONTIC_BRACKET',
+    label: 'Braquete Ortodontico',
+    color: '#F43F5E',
+    category: 'procedure',
+    sort_order: 14,
+  },
+  {
+    code: 'PERIAPICAL_LESION',
+    label: 'Lesao Periapical',
+    color: '#B91C1C',
+    category: 'finding',
+    sort_order: 15,
+  },
 ];
 
 @Injectable()
@@ -49,11 +87,7 @@ export class OdontogramService {
    * Get or create odontogram for a patient.
    * Returns the odontogram with active (non-superseded) entries.
    */
-  async getOrCreate(
-    clinicId: string,
-    patientId: string,
-    dentitionType?: DentitionType,
-  ) {
+  async getOrCreate(clinicId: string, patientId: string, dentitionType?: DentitionType) {
     await this.validatePatientBelongsToClinic(clinicId, patientId);
 
     const type = dentitionType || DentitionType.PERMANENT;
@@ -67,10 +101,7 @@ export class OdontogramService {
       include: {
         entries: {
           where: { superseded_at: null },
-          orderBy: [
-            { tooth_number: 'asc' },
-            { created_at: 'desc' },
-          ],
+          orderBy: [{ tooth_number: 'asc' }, { created_at: 'desc' }],
         },
         treatmentPlans: {
           include: {
@@ -92,10 +123,7 @@ export class OdontogramService {
         include: {
           entries: {
             where: { superseded_at: null },
-            orderBy: [
-              { tooth_number: 'asc' },
-              { created_at: 'desc' },
-            ],
+            orderBy: [{ tooth_number: 'asc' }, { created_at: 'desc' }],
           },
           treatmentPlans: {
             include: {
@@ -114,11 +142,7 @@ export class OdontogramService {
   /**
    * Get entry history for a patient's odontogram with optional filters and pagination.
    */
-  async getHistory(
-    clinicId: string,
-    patientId: string,
-    filters?: OdontogramQueryDto,
-  ) {
+  async getHistory(clinicId: string, patientId: string, filters?: OdontogramQueryDto) {
     await this.validatePatientBelongsToClinic(clinicId, patientId);
 
     const odontogram = await this.prisma.odontogram.findFirst({
@@ -155,10 +179,7 @@ export class OdontogramService {
     const [entries, total] = await Promise.all([
       this.prisma.odontogramEntry.findMany({
         where,
-        orderBy: [
-          { tooth_number: 'asc' },
-          { created_at: 'desc' },
-        ],
+        orderBy: [{ tooth_number: 'asc' }, { created_at: 'desc' }],
         skip,
         take: limit,
         include: {
@@ -182,12 +203,7 @@ export class OdontogramService {
    * If entry_type is FINDING and no treatment_plan_item_id is provided,
    * auto-creates a TreatmentPlanItem with status PLANNED.
    */
-  async createEntry(
-    clinicId: string,
-    userId: string,
-    odontogramId: string,
-    dto: CreateEntryDto,
-  ) {
+  async createEntry(clinicId: string, userId: string, odontogramId: string, dto: CreateEntryDto) {
     const odontogram = await this.prisma.odontogram.findFirst({
       where: { id: odontogramId, clinic_id: clinicId },
     });
@@ -196,10 +212,7 @@ export class OdontogramService {
       throw new NotFoundException('Odontogram not found');
     }
 
-    const surfaces =
-      dto.surfaces && dto.surfaces.length > 0
-        ? dto.surfaces
-        : [ToothSurface.WHOLE];
+    const surfaces = dto.surfaces && dto.surfaces.length > 0 ? dto.surfaces : [ToothSurface.WHOLE];
 
     let treatmentPlanItemId = dto.treatment_plan_item_id || null;
 
@@ -285,12 +298,7 @@ export class OdontogramService {
    * Supersede an existing entry by marking it as superseded and creating a corrected entry.
    * Uses a Prisma transaction to ensure atomicity.
    */
-  async supersedeEntry(
-    clinicId: string,
-    userId: string,
-    entryId: string,
-    dto?: SupersedeEntryDto,
-  ) {
+  async supersedeEntry(clinicId: string, userId: string, entryId: string, dto?: SupersedeEntryDto) {
     const existingEntry = await this.prisma.odontogramEntry.findFirst({
       where: { id: entryId },
       include: {
@@ -461,10 +469,7 @@ export class OdontogramService {
   /**
    * Validate that a patient belongs to the given clinic.
    */
-  private async validatePatientBelongsToClinic(
-    clinicId: string,
-    patientId: string,
-  ) {
+  private async validatePatientBelongsToClinic(clinicId: string, patientId: string) {
     const patient = await this.prisma.patient.findFirst({
       where: { id: patientId, clinic_id: clinicId },
     });

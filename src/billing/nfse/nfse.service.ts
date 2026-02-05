@@ -27,9 +27,7 @@ export class NfseService {
 
     if (apiKey) {
       const baseURL =
-        this.provider === 'enotas'
-          ? 'https://api.enotas.com.br/v2'
-          : 'https://api.nfe.io/v1';
+        this.provider === 'enotas' ? 'https://api.enotas.com.br/v2' : 'https://api.nfe.io/v1';
 
       this.client = axios.create({
         baseURL,
@@ -39,9 +37,7 @@ export class NfseService {
         },
       });
     } else {
-      this.logger.warn(
-        'NFSE_API_KEY not configured — NFS-e emission disabled',
-      );
+      this.logger.warn('NFSE_API_KEY not configured — NFS-e emission disabled');
     }
   }
 
@@ -96,10 +92,7 @@ export class NfseService {
   /**
    * Cancel a NFS-e
    */
-  async cancel(
-    invoiceId: string,
-    reason: string,
-  ): Promise<{ status: string }> {
+  async cancel(invoiceId: string, reason: string): Promise<{ status: string }> {
     if (!this.client) {
       return { status: 'disabled' };
     }
@@ -114,9 +107,7 @@ export class NfseService {
 
     try {
       if (this.provider === 'enotas') {
-        await this.client.delete(
-          `/empresas/${invoice.clinic_id}/nfes/${invoice.nfse_id}`,
-        );
+        await this.client.delete(`/empresas/${invoice.clinic_id}/nfes/${invoice.nfse_id}`);
       } else {
         await this.client.delete(
           `/companies/${invoice.clinic_id}/serviceinvoices/${invoice.nfse_id}`,
@@ -175,28 +166,22 @@ export class NfseService {
   }
 
   private async emitViaEnotas(params: EmitNfseParams): Promise<string> {
-    const { data } = await this.client!.post(
-      `/empresas/${params.clinic_cnpj}/nfes`,
-      {
-        tipo: 'NFS-e',
-        valorTotal: params.amount,
-        servico: {
-          descricao: params.description,
-        },
+    const { data } = await this.client!.post(`/empresas/${params.clinic_cnpj}/nfes`, {
+      tipo: 'NFS-e',
+      valorTotal: params.amount,
+      servico: {
+        descricao: params.description,
       },
-    );
+    });
     return data.nfeId || data.id;
   }
 
   private async emitViaNfeio(params: EmitNfseParams): Promise<string> {
-    const { data } = await this.client!.post(
-      `/companies/${params.clinic_cnpj}/serviceinvoices`,
-      {
-        cityServiceCode: '1.05',
-        description: params.description,
-        servicesAmount: params.amount,
-      },
-    );
+    const { data } = await this.client!.post(`/companies/${params.clinic_cnpj}/serviceinvoices`, {
+      cityServiceCode: '1.05',
+      description: params.description,
+      servicesAmount: params.amount,
+    });
     return data.id;
   }
 }

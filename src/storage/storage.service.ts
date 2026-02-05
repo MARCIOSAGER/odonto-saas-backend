@@ -1,10 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {
-  S3Client,
-  PutObjectCommand,
-  DeleteObjectCommand,
-} from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -45,11 +41,7 @@ export class StorageService {
   /**
    * Upload a file. Returns the URL (S3 public URL or local /uploads/... path).
    */
-  async upload(
-    file: Buffer,
-    key: string,
-    contentType: string,
-  ): Promise<string> {
+  async upload(file: Buffer, key: string, contentType: string): Promise<string> {
     if (this.s3Client) {
       return this.uploadToS3(file, key, contentType);
     }
@@ -80,11 +72,7 @@ export class StorageService {
     }
   }
 
-  private async uploadToS3(
-    file: Buffer,
-    key: string,
-    contentType: string,
-  ): Promise<string> {
+  private async uploadToS3(file: Buffer, key: string, contentType: string): Promise<string> {
     const normalizedKey = key.startsWith('/') ? key.slice(1) : key;
 
     await this.s3Client!.send(

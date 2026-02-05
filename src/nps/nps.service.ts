@@ -137,7 +137,10 @@ export class NpsService {
     const npsScore = Math.round(((promoters - detractors) / total) * 100);
 
     // Monthly breakdown
-    const monthlyMap = new Map<string, { promoters: number; passives: number; detractors: number; total: number }>();
+    const monthlyMap = new Map<
+      string,
+      { promoters: number; passives: number; detractors: number; total: number }
+    >();
     for (const s of surveys) {
       const key = `${s.sent_at.getFullYear()}-${String(s.sent_at.getMonth() + 1).padStart(2, '0')}`;
       if (!monthlyMap.has(key)) {

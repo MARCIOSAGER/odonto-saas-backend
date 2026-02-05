@@ -27,28 +27,20 @@ export class AutomationSchedulerService {
     this.isRunningFollowUp = true;
 
     try {
-      const automations =
-        await this.automationsService.getActiveByType('follow_up');
+      const automations = await this.automationsService.getActiveByType('follow_up');
 
       for (const automation of automations) {
         try {
           const config = automation.trigger_config as Record<string, unknown>;
-          const actionConfig = automation.action_config as Record<
-            string,
-            unknown
-          >;
+          const actionConfig = automation.action_config as Record<string, unknown>;
           const hoursAfter = (config.hours_after as number) || 2;
           const template =
             (actionConfig.template as string) ||
             'Olá {patientName}! Como você está se sentindo após o procedimento de {service}? Se tiver qualquer dúvida ou desconforto, não hesite em nos contatar. Equipe {clinicName}';
 
           const now = new Date();
-          const targetTimeFrom = new Date(
-            now.getTime() - (hoursAfter + 0.5) * 60 * 60 * 1000,
-          );
-          const targetTimeTo = new Date(
-            now.getTime() - (hoursAfter - 0.5) * 60 * 60 * 1000,
-          );
+          const targetTimeFrom = new Date(now.getTime() - (hoursAfter + 0.5) * 60 * 60 * 1000);
+          const targetTimeTo = new Date(now.getTime() - (hoursAfter - 0.5) * 60 * 60 * 1000);
 
           // Busca consultas concluídas na janela de tempo que não receberam follow-up
           const appointments = await this.prisma.appointment.findMany({
@@ -95,9 +87,7 @@ export class AutomationSchedulerService {
               await this.prisma.appointment.update({
                 where: { id: apt.id },
                 data: {
-                  notes: currentNotes
-                    ? `${currentNotes}\n[FOLLOWUP_SENT]`
-                    : '[FOLLOWUP_SENT]',
+                  notes: currentNotes ? `${currentNotes}\n[FOLLOWUP_SENT]` : '[FOLLOWUP_SENT]',
                 },
               });
               sentCount++;
@@ -111,14 +101,8 @@ export class AutomationSchedulerService {
           }
           await this.automationsService.updateRunStatus(automation.id, true);
         } catch (error) {
-          this.logger.error(
-            `Follow-up error for automation ${automation.id}: ${error}`,
-          );
-          await this.automationsService.updateRunStatus(
-            automation.id,
-            false,
-            String(error),
-          );
+          this.logger.error(`Follow-up error for automation ${automation.id}: ${error}`);
+          await this.automationsService.updateRunStatus(automation.id, false, String(error));
         }
       }
     } finally {
@@ -136,15 +120,11 @@ export class AutomationSchedulerService {
     this.isRunningBirthday = true;
 
     try {
-      const automations =
-        await this.automationsService.getActiveByType('birthday');
+      const automations = await this.automationsService.getActiveByType('birthday');
 
       for (const automation of automations) {
         try {
-          const actionConfig = automation.action_config as Record<
-            string,
-            unknown
-          >;
+          const actionConfig = automation.action_config as Record<string, unknown>;
           const template =
             (actionConfig.template as string) ||
             'Feliz aniversário, {patientName}! 🎂🎉 A equipe {clinicName} deseja um dia maravilhoso! Aproveite para cuidar do seu sorriso com condições especiais neste mês.';
@@ -173,10 +153,7 @@ export class AutomationSchedulerService {
             if (!patient.birth_date || !patient.phone) continue;
 
             const birthDate = new Date(patient.birth_date);
-            if (
-              birthDate.getMonth() + 1 !== month ||
-              birthDate.getDate() !== day
-            ) {
+            if (birthDate.getMonth() + 1 !== month || birthDate.getDate() !== day) {
               continue;
             }
 
@@ -201,14 +178,8 @@ export class AutomationSchedulerService {
           }
           await this.automationsService.updateRunStatus(automation.id, true);
         } catch (error) {
-          this.logger.error(
-            `Birthday error for automation ${automation.id}: ${error}`,
-          );
-          await this.automationsService.updateRunStatus(
-            automation.id,
-            false,
-            String(error),
-          );
+          this.logger.error(`Birthday error for automation ${automation.id}: ${error}`);
+          await this.automationsService.updateRunStatus(automation.id, false, String(error));
         }
       }
     } finally {
@@ -226,16 +197,12 @@ export class AutomationSchedulerService {
     this.isRunningReactivation = true;
 
     try {
-      const automations =
-        await this.automationsService.getActiveByType('reactivation');
+      const automations = await this.automationsService.getActiveByType('reactivation');
 
       for (const automation of automations) {
         try {
           const config = automation.trigger_config as Record<string, unknown>;
-          const actionConfig = automation.action_config as Record<
-            string,
-            unknown
-          >;
+          const actionConfig = automation.action_config as Record<string, unknown>;
           const monthsInactive = (config.months_inactive as number) || 3;
           const maxPerRun = (config.max_per_run as number) || 20;
           const template =
@@ -291,14 +258,8 @@ export class AutomationSchedulerService {
           }
           await this.automationsService.updateRunStatus(automation.id, true);
         } catch (error) {
-          this.logger.error(
-            `Reactivation error for automation ${automation.id}: ${error}`,
-          );
-          await this.automationsService.updateRunStatus(
-            automation.id,
-            false,
-            String(error),
-          );
+          this.logger.error(`Reactivation error for automation ${automation.id}: ${error}`);
+          await this.automationsService.updateRunStatus(automation.id, false, String(error));
         }
       }
     } finally {
@@ -306,10 +267,7 @@ export class AutomationSchedulerService {
     }
   }
 
-  private replaceTemplateVars(
-    template: string,
-    vars: Record<string, string>,
-  ): string {
+  private replaceTemplateVars(template: string, vars: Record<string, string>): string {
     let result = template;
     for (const [key, value] of Object.entries(vars)) {
       result = result.replace(new RegExp(`\\{${key}\\}`, 'g'), value);

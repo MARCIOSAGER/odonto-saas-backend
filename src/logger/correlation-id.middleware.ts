@@ -12,8 +12,7 @@ import * as crypto from 'crypto';
 export class CorrelationIdMiddleware implements NestMiddleware {
   use(req: Request, _res: Response, next: NextFunction) {
     const correlationId =
-      (req.headers['x-correlation-id'] as string) ||
-      crypto.randomBytes(8).toString('hex');
+      (req.headers['x-correlation-id'] as string) || crypto.randomBytes(8).toString('hex');
 
     (req as any).correlationId = correlationId;
     next();

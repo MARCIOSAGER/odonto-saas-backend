@@ -17,7 +17,10 @@ export class UpdateAiSettingsDto {
   @IsOptional()
   ai_enabled?: boolean;
 
-  @ApiPropertyOptional({ description: 'AI provider (anthropic, openai, google)', example: 'anthropic' })
+  @ApiPropertyOptional({
+    description: 'AI provider (anthropic, openai, google)',
+    example: 'anthropic',
+  })
   @IsString()
   @IsOptional()
   ai_provider?: string;
@@ -52,37 +55,55 @@ export class UpdateAiSettingsDto {
   @MaxLength(50)
   assistant_name?: string;
 
-  @ApiPropertyOptional({ description: 'Assistant personality description', example: 'Amigável e profissional' })
+  @ApiPropertyOptional({
+    description: 'Assistant personality description',
+    example: 'Amigável e profissional',
+  })
   @IsString()
   @IsOptional()
   @MaxLength(500)
   assistant_personality?: string;
 
-  @ApiPropertyOptional({ description: 'Welcome message', example: 'Olá! Sou a Sofia, assistente virtual. Como posso ajudar?' })
+  @ApiPropertyOptional({
+    description: 'Welcome message',
+    example: 'Olá! Sou a Sofia, assistente virtual. Como posso ajudar?',
+  })
   @IsString()
   @IsOptional()
   @MaxLength(500)
   welcome_message?: string;
 
-  @ApiPropertyOptional({ description: 'Fallback message when AI cannot understand', example: 'Desculpe, não entendi. Pode reformular?' })
+  @ApiPropertyOptional({
+    description: 'Fallback message when AI cannot understand',
+    example: 'Desculpe, não entendi. Pode reformular?',
+  })
   @IsString()
   @IsOptional()
   @MaxLength(500)
   fallback_message?: string;
 
-  @ApiPropertyOptional({ description: 'Message sent outside working hours', example: 'Estamos fora do horário de atendimento.' })
+  @ApiPropertyOptional({
+    description: 'Message sent outside working hours',
+    example: 'Estamos fora do horário de atendimento.',
+  })
   @IsString()
   @IsOptional()
   @MaxLength(500)
   out_of_hours_message?: string;
 
-  @ApiPropertyOptional({ description: 'Keywords that trigger transfer to human', example: ['urgente', 'humano', 'atendente'] })
+  @ApiPropertyOptional({
+    description: 'Keywords that trigger transfer to human',
+    example: ['urgente', 'humano', 'atendente'],
+  })
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
   transfer_keywords?: string[];
 
-  @ApiPropertyOptional({ description: 'Topics AI should not discuss', example: ['política', 'religião'] })
+  @ApiPropertyOptional({
+    description: 'Topics AI should not discuss',
+    example: ['política', 'religião'],
+  })
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
@@ -101,7 +122,10 @@ export class UpdateAiSettingsDto {
   @Max(50)
   context_messages?: number;
 
-  @ApiPropertyOptional({ description: 'AI can schedule appointments automatically', default: false })
+  @ApiPropertyOptional({
+    description: 'AI can schedule appointments automatically',
+    default: false,
+  })
   @IsBoolean()
   @IsOptional()
   auto_schedule?: boolean;
@@ -132,7 +156,10 @@ export class UpdateAiSettingsDto {
   @IsOptional()
   use_welcome_menu?: boolean;
 
-  @ApiPropertyOptional({ description: 'Use interactive buttons for appointment confirmation', default: false })
+  @ApiPropertyOptional({
+    description: 'Use interactive buttons for appointment confirmation',
+    default: false,
+  })
   @IsBoolean()
   @IsOptional()
   use_confirmation_buttons?: boolean;
@@ -153,7 +180,10 @@ export class UpdateAiSettingsDto {
   use_send_location?: boolean;
 
   // Dentist AI interaction
-  @ApiPropertyOptional({ description: 'Dentists can interact with AI via WhatsApp', default: false })
+  @ApiPropertyOptional({
+    description: 'Dentists can interact with AI via WhatsApp',
+    default: false,
+  })
   @IsBoolean()
   @IsOptional()
   dentist_ai_enabled?: boolean;
@@ -174,13 +204,19 @@ export class UpdateAiSettingsDto {
   @IsOptional()
   reminder_1h?: boolean;
 
-  @ApiPropertyOptional({ description: 'Custom 24h reminder message. Variables: {patientName}, {date}, {time}, {service}, {dentist}, {clinicName}' })
+  @ApiPropertyOptional({
+    description:
+      'Custom 24h reminder message. Variables: {patientName}, {date}, {time}, {service}, {dentist}, {clinicName}',
+  })
   @IsString()
   @IsOptional()
   @MaxLength(500)
   reminder_message_24h?: string;
 
-  @ApiPropertyOptional({ description: 'Custom 1h reminder message. Variables: {patientName}, {date}, {time}, {service}, {dentist}, {clinicName}' })
+  @ApiPropertyOptional({
+    description:
+      'Custom 1h reminder message. Variables: {patientName}, {date}, {time}, {service}, {dentist}, {clinicName}',
+  })
   @IsString()
   @IsOptional()
   @MaxLength(500)

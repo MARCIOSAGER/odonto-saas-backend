@@ -1,18 +1,5 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-  ApiQuery,
-} from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Query, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { SubscriptionsService } from './subscriptions.service';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { ChangePlanDto } from './dto/change-plan.dto';
@@ -47,10 +34,7 @@ export class SubscriptionsController {
   @Roles('admin', 'superadmin')
   @ApiOperation({ summary: 'Create subscription' })
   @ApiResponse({ status: 201, description: 'Subscription created' })
-  async create(
-    @Body() dto: CreateSubscriptionDto,
-    @CurrentUser() user: { clinicId: string },
-  ) {
+  async create(@Body() dto: CreateSubscriptionDto, @CurrentUser() user: { clinicId: string }) {
     return this.subscriptionsService.create(user.clinicId, dto);
   }
 
@@ -58,10 +42,7 @@ export class SubscriptionsController {
   @Roles('admin', 'superadmin')
   @ApiOperation({ summary: 'Change plan (upgrade/downgrade)' })
   @ApiResponse({ status: 200, description: 'Plan changed' })
-  async changePlan(
-    @Body() dto: ChangePlanDto,
-    @CurrentUser() user: { clinicId: string },
-  ) {
+  async changePlan(@Body() dto: ChangePlanDto, @CurrentUser() user: { clinicId: string }) {
     return this.subscriptionsService.changePlan(user.clinicId, dto);
   }
 

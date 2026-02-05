@@ -30,7 +30,9 @@ export class TrialSchedulerService {
         include: {
           clinic: {
             select: { id: true, name: true },
-            include: { users: { where: { role: 'owner' }, select: { id: true, name: true, email: true } } },
+            include: {
+              users: { where: { role: 'owner' }, select: { id: true, name: true, email: true } },
+            },
           },
         },
       });
@@ -100,7 +102,9 @@ export class TrialSchedulerService {
           include: {
             clinic: {
               select: { id: true, name: true },
-              include: { users: { where: { role: 'owner' }, select: { id: true, name: true, email: true } } },
+              include: {
+                users: { where: { role: 'owner' }, select: { id: true, name: true, email: true } },
+              },
             },
           },
         });

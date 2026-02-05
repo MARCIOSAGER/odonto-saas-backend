@@ -3,12 +3,14 @@ import { NotFoundException, ConflictException } from '@nestjs/common';
 import { PatientsService } from './patients.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { EncryptionService } from '../common/encryption/encryption.service';
 import { createPrismaMock } from '../test/prisma-mock';
 
 describe('PatientsService', () => {
   let service: PatientsService;
   let prisma: ReturnType<typeof createPrismaMock>;
   let auditService: { log: jest.Mock };
+  let encryptionService: { hmac: jest.Mock; isEnabled: boolean };
 
   const clinicId = 'clinic-uuid-1';
   const userId = 'user-uuid-1';
@@ -34,12 +36,17 @@ describe('PatientsService', () => {
   beforeEach(async () => {
     prisma = createPrismaMock();
     auditService = { log: jest.fn().mockResolvedValue(undefined) };
+    encryptionService = {
+      hmac: jest.fn((value: string) => `hmac_${value}`),
+      isEnabled: true,
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PatientsService,
         { provide: PrismaService, useValue: prisma },
         { provide: AuditService, useValue: auditService },
+        { provide: EncryptionService, useValue: encryptionService },
       ],
     }).compile();
 
@@ -85,7 +92,7 @@ describe('PatientsService', () => {
       });
     });
 
-    it('should apply search filter with OR conditions', async () => {
+    it('should apply search filter with name-only for text search', async () => {
       prisma.patient.findMany.mockResolvedValue([]);
       prisma.patient.count.mockResolvedValue(0);
 
@@ -94,12 +101,43 @@ describe('PatientsService', () => {
       expect(prisma.patient.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            OR: [
-              { name: { contains: 'Maria', mode: 'insensitive' } },
-              { phone: { contains: 'Maria' } },
-              { email: { contains: 'Maria', mode: 'insensitive' } },
-              { cpf: { contains: 'Maria' } },
-            ],
+            OR: [{ name: { contains: 'Maria', mode: 'insensitive' } }],
+          }),
+        }),
+      );
+    });
+
+    it('should search by phone/cpf hash when digits are provided', async () => {
+      prisma.patient.findMany.mockResolvedValue([]);
+      prisma.patient.count.mockResolvedValue(0);
+
+      await service.findAll(clinicId, { search: '11999999999' });
+
+      expect(encryptionService.hmac).toHaveBeenCalledWith('11999999999');
+      expect(prisma.patient.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            OR: expect.arrayContaining([
+              { name: { contains: '11999999999', mode: 'insensitive' } },
+              { phone_hash: 'hmac_11999999999' },
+              { cpf_hash: 'hmac_11999999999' },
+            ]),
+          }),
+        }),
+      );
+    });
+
+    it('should search by email hash when @ is present', async () => {
+      prisma.patient.findMany.mockResolvedValue([]);
+      prisma.patient.count.mockResolvedValue(0);
+
+      await service.findAll(clinicId, { search: 'maria@example.com' });
+
+      expect(encryptionService.hmac).toHaveBeenCalledWith('maria@example.com');
+      expect(prisma.patient.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            OR: expect.arrayContaining([{ email_hash: 'hmac_maria@example.com' }]),
           }),
         }),
       );
@@ -149,9 +187,7 @@ describe('PatientsService', () => {
     it('should throw NotFoundException when patient not found', async () => {
       prisma.patient.findFirst.mockResolvedValue(null);
 
-      await expect(service.findOne(clinicId, 'non-existent-id')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.findOne(clinicId, 'non-existent-id')).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -187,10 +223,11 @@ describe('PatientsService', () => {
       const result = await service.create(clinicId, createDto as any, userId);
 
       expect(result).toEqual(createdPatient);
+      expect(encryptionService.hmac).toHaveBeenCalledWith('11988887777');
       expect(prisma.patient.findFirst).toHaveBeenCalledWith({
         where: {
           clinic_id: clinicId,
-          phone: '11988887777',
+          phone_hash: 'hmac_11988887777',
           deleted_at: null,
         },
       });
@@ -215,9 +252,9 @@ describe('PatientsService', () => {
     it('should throw ConflictException on duplicate phone', async () => {
       prisma.patient.findFirst.mockResolvedValue(mockPatient); // existing patient
 
-      await expect(
-        service.create(clinicId, createDto as any, userId),
-      ).rejects.toThrow(ConflictException);
+      await expect(service.create(clinicId, createDto as any, userId)).rejects.toThrow(
+        ConflictException,
+      );
 
       expect(prisma.patient.create).not.toHaveBeenCalled();
       expect(auditService.log).not.toHaveBeenCalled();
@@ -259,9 +296,9 @@ describe('PatientsService', () => {
     it('should throw NotFoundException if patient does not exist', async () => {
       prisma.patient.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.remove(clinicId, 'non-existent-id', userId),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.remove(clinicId, 'non-existent-id', userId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -310,9 +347,9 @@ describe('PatientsService', () => {
     it('should throw NotFoundException when patient not found or not deleted', async () => {
       prisma.patient.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.restore(clinicId, 'non-existent-id', userId),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.restore(clinicId, 'non-existent-id', userId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

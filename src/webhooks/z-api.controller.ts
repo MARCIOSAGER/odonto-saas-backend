@@ -108,13 +108,17 @@ export class ZApiController {
 
     // Resposta de botão interativo
     if (payload.buttonResponse) {
-      this.logger.log(`Button response: ${payload.buttonResponse.selectedButtonId} - ${payload.buttonResponse.selectedButtonText}`);
+      this.logger.log(
+        `Button response: ${payload.buttonResponse.selectedButtonId} - ${payload.buttonResponse.selectedButtonText}`,
+      );
       return payload.buttonResponse.selectedButtonText;
     }
 
     // Resposta de lista interativa
     if (payload.listResponse) {
-      this.logger.log(`List response: ${payload.listResponse.selectedRowId} - ${payload.listResponse.title}`);
+      this.logger.log(
+        `List response: ${payload.listResponse.selectedRowId} - ${payload.listResponse.title}`,
+      );
       return payload.listResponse.title;
     }
 

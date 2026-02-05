@@ -103,9 +103,7 @@ describe('ReminderService', () => {
 
     it('should handle errors gracefully and reset isRunning', async () => {
       // Make the first findMany throw an error to simulate a failure
-      prisma.appointment.findMany.mockRejectedValueOnce(
-        new Error('Database connection lost'),
-      );
+      prisma.appointment.findMany.mockRejectedValueOnce(new Error('Database connection lost'));
 
       // Should not throw -- the error is caught internally
       await expect(service.handleReminders()).resolves.toBeUndefined();
@@ -137,9 +135,7 @@ describe('ReminderService', () => {
       };
 
       // First findMany (24h) returns the appointment, second (1h) returns empty
-      prisma.appointment.findMany
-        .mockResolvedValueOnce([apt24h])
-        .mockResolvedValueOnce([]);
+      prisma.appointment.findMany.mockResolvedValueOnce([apt24h]).mockResolvedValueOnce([]);
 
       whatsappService.sendMessage.mockResolvedValue(true);
       prisma.appointment.update.mockResolvedValue({});
@@ -168,9 +164,7 @@ describe('ReminderService', () => {
           aptDate.getMinutes().toString().padStart(2, '0'),
       };
 
-      prisma.appointment.findMany
-        .mockResolvedValueOnce([apt24h])
-        .mockResolvedValueOnce([]);
+      prisma.appointment.findMany.mockResolvedValueOnce([apt24h]).mockResolvedValueOnce([]);
 
       // WhatsApp returns false (send failed)
       whatsappService.sendMessage.mockResolvedValue(false);
@@ -215,9 +209,7 @@ describe('ReminderService', () => {
           aptDate.getMinutes().toString().padStart(2, '0'),
       };
 
-      prisma.appointment.findMany
-        .mockResolvedValueOnce([apt24h])
-        .mockResolvedValueOnce([]);
+      prisma.appointment.findMany.mockResolvedValueOnce([apt24h]).mockResolvedValueOnce([]);
 
       whatsappService.sendMessage.mockResolvedValue(false);
       emailService.sendAppointmentReminder.mockResolvedValue(false);
@@ -246,9 +238,7 @@ describe('ReminderService', () => {
         },
       };
 
-      prisma.appointment.findMany
-        .mockResolvedValueOnce([aptDisabled])
-        .mockResolvedValueOnce([]);
+      prisma.appointment.findMany.mockResolvedValueOnce([aptDisabled]).mockResolvedValueOnce([]);
 
       await service.handleReminders();
 
@@ -269,9 +259,7 @@ describe('ReminderService', () => {
         patient: { name: 'Maria', phone: null, email: null },
       };
 
-      prisma.appointment.findMany
-        .mockResolvedValueOnce([aptNoContact])
-        .mockResolvedValueOnce([]);
+      prisma.appointment.findMany.mockResolvedValueOnce([aptNoContact]).mockResolvedValueOnce([]);
 
       await service.handleReminders();
 
@@ -307,9 +295,7 @@ describe('ReminderService', () => {
       };
 
       // First findMany (24h) returns empty, second (1h) returns the appointment
-      prisma.appointment.findMany
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([apt1h]);
+      prisma.appointment.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([apt1h]);
 
       whatsappService.sendMessage.mockResolvedValue(true);
       prisma.appointment.update.mockResolvedValue({});

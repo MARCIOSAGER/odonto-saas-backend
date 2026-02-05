@@ -35,10 +35,14 @@ export function appointmentReminderTemplate(
                   <td style="color:#64748b;font-size:13px;">Servi&ccedil;o:</td>
                   <td style="color:#1e293b;font-size:15px;font-weight:600;">${serviceName}</td>
                 </tr>
-                ${dentistName ? `<tr>
+                ${
+                  dentistName
+                    ? `<tr>
                   <td style="color:#64748b;font-size:13px;">Dentista:</td>
                   <td style="color:#1e293b;font-size:15px;font-weight:600;">${dentistName}</td>
-                </tr>` : ''}
+                </tr>`
+                    : ''
+                }
               </table>
             </td></tr>
           </table>

@@ -31,7 +31,9 @@ export class RegisterDto {
   @ApiProperty({ example: '12345678000199', description: 'CPF (11 digits) or CNPJ (14 digits)' })
   @IsString()
   @IsNotEmpty()
-  @Matches(/^(\d{11}|\d{14})$/, { message: 'Documento deve ser CPF (11 dígitos) ou CNPJ (14 dígitos)' })
+  @Matches(/^(\d{11}|\d{14})$/, {
+    message: 'Documento deve ser CPF (11 dígitos) ou CNPJ (14 dígitos)',
+  })
   cnpj: string;
 
   @ApiProperty({ example: '11999999999', description: 'Phone number' })

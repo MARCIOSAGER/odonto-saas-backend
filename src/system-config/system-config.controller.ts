@@ -92,11 +92,7 @@ export class SystemConfigController {
     if (!file) throw new BadRequestException('File is required');
     const key = getStorageKey('platform', file.originalname);
     const logoUrl = await this.storageService.upload(file.buffer, key, file.mimetype);
-    await this.systemConfigService.upsert(
-      'platform_logo_url',
-      logoUrl,
-      user.userId,
-    );
+    await this.systemConfigService.upsert('platform_logo_url', logoUrl, user.userId);
     return { logo_url: logoUrl };
   }
 
@@ -126,11 +122,7 @@ export class SystemConfigController {
     if (!file) throw new BadRequestException('File is required');
     const key = getStorageKey('platform', file.originalname);
     const faviconUrl = await this.storageService.upload(file.buffer, key, file.mimetype);
-    await this.systemConfigService.upsert(
-      'platform_favicon_url',
-      faviconUrl,
-      user.userId,
-    );
+    await this.systemConfigService.upsert('platform_favicon_url', faviconUrl, user.userId);
     return { favicon_url: faviconUrl };
   }
 }

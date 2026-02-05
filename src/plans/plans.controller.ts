@@ -10,13 +10,7 @@ import {
   UseGuards,
   ParseUUIDPipe,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-  ApiQuery,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { PlansService } from './plans.service';
 import { CreatePlanDto } from './dto/create-plan.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
@@ -66,10 +60,7 @@ export class PlansController {
   @ApiOperation({ summary: 'Update plan (superadmin)' })
   @ApiResponse({ status: 200, description: 'Plan updated' })
   @ApiResponse({ status: 404, description: 'Plan not found' })
-  async update(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() updatePlanDto: UpdatePlanDto,
-  ) {
+  async update(@Param('id', ParseUUIDPipe) id: string, @Body() updatePlanDto: UpdatePlanDto) {
     return this.plansService.update(id, updatePlanDto);
   }
 

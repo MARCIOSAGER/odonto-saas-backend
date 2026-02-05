@@ -42,9 +42,7 @@ export class ReportPdfService {
       const pageWidth = 495; // A4 minus margins
 
       // ── Header ──
-      doc
-        .rect(0, 0, 595, 70)
-        .fill(primaryColor);
+      doc.rect(0, 0, 595, 70).fill(primaryColor);
 
       doc
         .fillColor('#FFFFFF')
@@ -98,9 +96,7 @@ export class ReportPdfService {
         let y = doc.y + 5;
 
         // Table header
-        doc
-          .rect(50, y, pageWidth, 20)
-          .fill('#F3F4F6');
+        doc.rect(50, y, pageWidth, 20).fill('#F3F4F6');
 
         doc.fillColor('#374151').fontSize(8).font('Helvetica-Bold');
         for (let i = 0; i < colCount; i++) {
@@ -140,7 +136,10 @@ export class ReportPdfService {
         doc
           .fontSize(7)
           .fillColor('#9CA3AF')
-          .text(`Total: ${data.rows.length} registro(s)`, 50, doc.y, { width: pageWidth, align: 'right' });
+          .text(`Total: ${data.rows.length} registro(s)`, 50, doc.y, {
+            width: pageWidth,
+            align: 'right',
+          });
       }
 
       // ── Footer ──

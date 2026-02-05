@@ -314,9 +314,7 @@ describe('AiClinicalService', () => {
     });
 
     it('should handle AI API errors gracefully', async () => {
-      mockedAxios.post.mockRejectedValue(
-        new Error('Request failed with status code 500'),
-      );
+      mockedAxios.post.mockRejectedValue(new Error('Request failed with status code 500'));
 
       await expect(
         service.generateClinicalNotes(clinicId, {

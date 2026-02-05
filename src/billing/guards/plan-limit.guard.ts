@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  CanActivate,
-  ExecutionContext,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -28,10 +23,7 @@ export class PlanLimitGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const resource = this.reflector.get<string>(
-      PLAN_LIMIT_KEY,
-      context.getHandler(),
-    );
+    const resource = this.reflector.get<string>(PLAN_LIMIT_KEY, context.getHandler());
 
     if (!resource) {
       return true; // No plan limit check required
@@ -106,11 +98,7 @@ export class PlanLimitGuard implements CanActivate {
 
       case 'appointments': {
         if (plan.max_appointments_month === null) return true;
-        const startOfMonth = new Date(
-          new Date().getFullYear(),
-          new Date().getMonth(),
-          1,
-        );
+        const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
         const count = await this.prisma.appointment.count({
           where: {
             clinic_id: user.clinicId,

@@ -52,11 +52,7 @@ export class SubscriptionsService {
         where: {
           clinic_id: clinicId,
           date: {
-            gte: new Date(
-              new Date().getFullYear(),
-              new Date().getMonth(),
-              1,
-            ),
+            gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
           },
         },
       }),
@@ -73,24 +69,18 @@ export class SubscriptionsService {
         patients: {
           current: patientCount,
           limit: plan.max_patients,
-          percentage: plan.max_patients
-            ? Math.round((patientCount / plan.max_patients) * 100)
-            : 0,
+          percentage: plan.max_patients ? Math.round((patientCount / plan.max_patients) * 100) : 0,
         },
         dentists: {
           current: dentistCount,
           limit: plan.max_dentists,
-          percentage: plan.max_dentists
-            ? Math.round((dentistCount / plan.max_dentists) * 100)
-            : 0,
+          percentage: plan.max_dentists ? Math.round((dentistCount / plan.max_dentists) * 100) : 0,
         },
         appointments_month: {
           current: appointmentCount,
           limit: plan.max_appointments_month,
           percentage: plan.max_appointments_month
-            ? Math.round(
-                (appointmentCount / plan.max_appointments_month) * 100,
-              )
+            ? Math.round((appointmentCount / plan.max_appointments_month) * 100)
             : 0,
         },
       },
@@ -134,8 +124,7 @@ export class SubscriptionsService {
     }
 
     // Determine if trial (free plan or first subscription)
-    const isTrial =
-      Number(plan.price_monthly) === 0 || !dto.payment_gateway;
+    const isTrial = Number(plan.price_monthly) === 0 || !dto.payment_gateway;
     const trialEnd = isTrial ? new Date(now) : null;
     if (trialEnd) {
       trialEnd.setDate(trialEnd.getDate() + 14); // 14-day trial

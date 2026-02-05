@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiService } from '../integrations/ai.service';
 import { WhatsAppService } from '../integrations/whatsapp.service';
+import { EncryptionService } from '../common/encryption/encryption.service';
 
 interface MessageContext {
   messageId?: string;
@@ -16,6 +17,7 @@ export class ZApiService {
     private readonly prisma: PrismaService,
     private readonly aiService: AiService,
     private readonly whatsappService: WhatsAppService,
+    private readonly encryption: EncryptionService,
   ) {}
 
   async processMessage(
@@ -54,7 +56,12 @@ export class ZApiService {
     const fullContext = await this.buildFullContext(clinic, patient, normalizedPhone);
 
     // Processa com IA (multi-provedor: usa configurações da clínica)
-    const aiResponse = await this.aiService.processMessage(clinic.id, message, fullContext, patient.id);
+    const aiResponse = await this.aiService.processMessage(
+      clinic.id,
+      message,
+      fullContext,
+      patient.id,
+    );
 
     if (aiResponse) {
       // Tenta enviar como mensagem interativa; se não for JSON, envia como texto
@@ -321,8 +328,7 @@ export class ZApiService {
       if (dayOfWeek === 0) continue;
 
       // Sábado tem horário reduzido
-      const daySlots =
-        dayOfWeek === 6 ? ['08:00', '09:00', '10:00', '11:00'] : [...businessSlots];
+      const daySlots = dayOfWeek === 6 ? ['08:00', '09:00', '10:00', '11:00'] : [...businessSlots];
 
       // Para hoje: filtra horários que já passaram (mínimo 1h de antecedência)
       const isToday = currentDate.toDateString() === now.toDateString();
@@ -353,11 +359,13 @@ export class ZApiService {
       const bookedTimes = existingAppointments.map((a) => a.time);
       const freeSlots = availableSlots.filter((slot) => !bookedTimes.includes(slot));
 
-      const label = isToday ? 'hoje' : currentDate.toLocaleDateString('pt-BR', {
-        weekday: 'long',
-        day: '2-digit',
-        month: '2-digit',
-      });
+      const label = isToday
+        ? 'hoje'
+        : currentDate.toLocaleDateString('pt-BR', {
+            weekday: 'long',
+            day: '2-digit',
+            month: '2-digit',
+          });
 
       slots.push({
         date: label,
@@ -447,11 +455,14 @@ export class ZApiService {
   }
 
   private async findOrCreatePatient(clinicId: string, phone: string, name?: string) {
-    // Tenta encontrar paciente existente
+    // Tenta encontrar paciente existente via blind index
+    const phoneDigits = phone.replace(/\D/g, '');
+    const phoneHash = this.encryption.hmac(phoneDigits);
+
     let patient = await this.prisma.patient.findFirst({
       where: {
         clinic_id: clinicId,
-        phone: phone,
+        phone_hash: phoneHash,
       },
     });
 
@@ -479,9 +490,11 @@ export class ZApiService {
     messageId?: string,
   ) {
     try {
-      // Busca paciente para vincular
+      // Busca paciente para vincular via blind index
+      const phoneDigits = phone.replace(/\D/g, '');
+      const phoneHash = this.encryption.hmac(phoneDigits);
       const patient = await this.prisma.patient.findFirst({
-        where: { clinic_id: clinicId, phone },
+        where: { clinic_id: clinicId, phone_hash: phoneHash },
       });
 
       await this.prisma.whatsAppMessage.create({
@@ -505,23 +518,22 @@ export class ZApiService {
   // ============================================
 
   private async findDentistByPhone(clinicId: string, phone: string) {
-    // Busca dentista pelo telefone (com e sem código do país)
+    // Busca dentista pelo telefone via blind index (com e sem código do país)
+    const phoneDigits = phone.replace(/\D/g, '');
+    const hash1 = this.encryption.hmac(phoneDigits);
+    const hash2 = this.encryption.hmac(`55${phoneDigits}`);
+
     const dentist = await this.prisma.dentist.findFirst({
       where: {
         clinic_id: clinicId,
         status: 'active',
-        phone: { in: [phone, `55${phone}`] },
+        phone_hash: { in: [hash1, hash2] },
       },
     });
     return dentist;
   }
 
-  private async processDentistMessage(
-    clinic: any,
-    dentist: any,
-    phone: string,
-    message: string,
-  ) {
+  private async processDentistMessage(clinic: any, dentist: any, phone: string, message: string) {
     // Verifica se dentist_ai_enabled está ativado
     const aiSettings = await this.prisma.clinicAiSettings.findUnique({
       where: { clinic_id: clinic.id },
@@ -532,7 +544,12 @@ export class ZApiService {
       // Se não habilitado, trata como paciente normal
       const patient = await this.findOrCreatePatient(clinic.id, phone);
       const fullContext = await this.buildFullContext(clinic, patient, phone);
-      const aiResponse = await this.aiService.processMessage(clinic.id, message, fullContext, patient.id);
+      const aiResponse = await this.aiService.processMessage(
+        clinic.id,
+        message,
+        fullContext,
+        patient.id,
+      );
       if (aiResponse) {
         const logText = await this.sendInteractiveOrText(clinic.id, phone, aiResponse);
         await this.logMessage(clinic.id, phone, 'outgoing', logText);
@@ -559,11 +576,7 @@ export class ZApiService {
     };
   }
 
-  private async handleDentistRequest(
-    clinic: any,
-    dentist: any,
-    message: string,
-  ): Promise<string> {
+  private async handleDentistRequest(clinic: any, dentist: any, message: string): Promise<string> {
     const lower = message.toLowerCase().trim();
 
     // Agenda de hoje
@@ -592,14 +605,16 @@ export class ZApiService {
     }
 
     // Menu de ajuda
-    return `Ola Dr(a). ${dentist.name}! Sou a assistente da ${clinic.name}.\n\n` +
+    return (
+      `Ola Dr(a). ${dentist.name}! Sou a assistente da ${clinic.name}.\n\n` +
       `Posso ajudar com:\n` +
       `- "agenda" - Ver consultas de hoje\n` +
       `- "semana" - Ver consultas da semana\n` +
       `- "proximo" - Ver proximo paciente\n` +
       `- "cancelar [paciente]" - Cancelar consulta\n` +
       `- "reagendar" - Reagendar consulta\n\n` +
-      `O que precisa?`;
+      `O que precisa?`
+    );
   }
 
   private async getDentistTodaySchedule(clinicId: string, dentist: any): Promise<string> {
@@ -702,14 +717,20 @@ export class ZApiService {
       return `Dr(a). ${dentist.name}, voce nao tem mais consultas para hoje.`;
     }
 
-    return `Dr(a). ${dentist.name}, seu proximo paciente:\n\n` +
+    return (
+      `Dr(a). ${dentist.name}, seu proximo paciente:\n\n` +
       `Paciente: ${nextApt.patient.name}\n` +
       `Horario: ${nextApt.time}\n` +
       `Servico: ${nextApt.service.name} (${nextApt.service.duration} min)\n` +
-      `Status: ${this.translateStatus(nextApt.status)}`;
+      `Status: ${this.translateStatus(nextApt.status)}`
+    );
   }
 
-  private async handleDentistCancel(clinicId: string, dentist: any, message: string): Promise<string> {
+  private async handleDentistCancel(
+    clinicId: string,
+    dentist: any,
+    message: string,
+  ): Promise<string> {
     // Tenta extrair nome do paciente da mensagem
     // Formato esperado: "cancelar João Silva" ou "cancela consulta do João"
     const lower = message.toLowerCase();
@@ -798,11 +819,13 @@ export class ZApiService {
       await this.whatsappService.sendMessage(clinicId, appointment.patient.phone, patientMsg);
     }
 
-    return `Consulta cancelada com sucesso!\n\n` +
+    return (
+      `Consulta cancelada com sucesso!\n\n` +
       `Paciente: ${appointment.patient.name}\n` +
       `Data: ${dateStr} as ${appointment.time}\n` +
       `Servico: ${appointment.service.name}\n\n` +
-      `O paciente foi notificado sobre o cancelamento.`;
+      `O paciente foi notificado sobre o cancelamento.`
+    );
   }
 
   // ============================================

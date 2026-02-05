@@ -205,9 +205,7 @@ function buildServicesSection(
   return section;
 }
 
-function buildDentistsSection(
-  dentists: { name: string; specialty?: string }[],
-): string {
+function buildDentistsSection(dentists: { name: string; specialty?: string }[]): string {
   if (dentists.length === 0) return '';
 
   let section = `# DENTISTAS DISPONIVEIS`;
@@ -217,9 +215,7 @@ function buildDentistsSection(
   return section;
 }
 
-function buildAvailableSlotsSection(
-  slots: { date: string; slots: string[] }[],
-): string {
+function buildAvailableSlotsSection(slots: { date: string; slots: string[] }[]): string {
   if (slots.length === 0) return '';
 
   let section = `# HORARIOS DISPONIVEIS (proximos dias)`;
@@ -452,7 +448,9 @@ function detectPersonalityHints(personality: string): string {
   }
 
   if (matches(lower, ['amigavel', 'amigável', 'descontraid', 'divertid', 'leve', 'informal'])) {
-    hints.push('Use linguagem leve e acolhedora, trate pelo primeiro nome, use emojis com moderacao.');
+    hints.push(
+      'Use linguagem leve e acolhedora, trate pelo primeiro nome, use emojis com moderacao.',
+    );
   }
 
   if (matches(lower, ['profissional', 'tecnic', 'objetiv'])) {
@@ -460,7 +458,9 @@ function detectPersonalityHints(personality: string): string {
   }
 
   if (matches(lower, ['empatic', 'acolhedo', 'carinho', 'cuidados'])) {
-    hints.push('Demonstre empatia e cuidado genuino com o paciente, valide sentimentos e preocupacoes.');
+    hints.push(
+      'Demonstre empatia e cuidado genuino com o paciente, valide sentimentos e preocupacoes.',
+    );
   }
 
   if (hints.length === 0) {

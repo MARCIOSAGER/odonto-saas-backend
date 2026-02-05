@@ -70,10 +70,10 @@ describe('AdminService', () => {
   describe('getStats', () => {
     it('should return platform statistics', async () => {
       prisma.clinic.count
-        .mockResolvedValueOnce(10)  // totalClinics
-        .mockResolvedValueOnce(7);  // activeClinics
+        .mockResolvedValueOnce(10) // totalClinics
+        .mockResolvedValueOnce(7); // activeClinics
       prisma.user.count
-        .mockResolvedValueOnce(50)  // totalUsers
+        .mockResolvedValueOnce(50) // totalUsers
         .mockResolvedValueOnce(40); // activeUsers
 
       const result = await service.getStats();
@@ -91,12 +91,8 @@ describe('AdminService', () => {
     });
 
     it('should call clinic.count with active filter for activeClinics', async () => {
-      prisma.clinic.count
-        .mockResolvedValueOnce(5)
-        .mockResolvedValueOnce(5);
-      prisma.user.count
-        .mockResolvedValueOnce(10)
-        .mockResolvedValueOnce(10);
+      prisma.clinic.count.mockResolvedValueOnce(5).mockResolvedValueOnce(5);
+      prisma.user.count.mockResolvedValueOnce(10).mockResolvedValueOnce(10);
 
       await service.getStats();
 
@@ -107,12 +103,8 @@ describe('AdminService', () => {
     });
 
     it('should return zero inactive_clinics when all clinics are active', async () => {
-      prisma.clinic.count
-        .mockResolvedValueOnce(5)
-        .mockResolvedValueOnce(5);
-      prisma.user.count
-        .mockResolvedValueOnce(10)
-        .mockResolvedValueOnce(10);
+      prisma.clinic.count.mockResolvedValueOnce(5).mockResolvedValueOnce(5);
+      prisma.user.count.mockResolvedValueOnce(10).mockResolvedValueOnce(10);
 
       const result = await service.getStats();
 
@@ -120,12 +112,8 @@ describe('AdminService', () => {
     });
 
     it('should handle zero counts', async () => {
-      prisma.clinic.count
-        .mockResolvedValueOnce(0)
-        .mockResolvedValueOnce(0);
-      prisma.user.count
-        .mockResolvedValueOnce(0)
-        .mockResolvedValueOnce(0);
+      prisma.clinic.count.mockResolvedValueOnce(0).mockResolvedValueOnce(0);
+      prisma.user.count.mockResolvedValueOnce(0).mockResolvedValueOnce(0);
 
       const result = await service.getStats();
 
@@ -245,9 +233,7 @@ describe('AdminService', () => {
       const result = await service.findAllUsers({ limit: 500 });
 
       expect(result.meta.limit).toBe(100);
-      expect(prisma.user.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ take: 100 }),
-      );
+      expect(prisma.user.findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 100 }));
     });
 
     it('should default page to 1 when invalid', async () => {
@@ -257,9 +243,7 @@ describe('AdminService', () => {
       const result = await service.findAllUsers({ page: -1 });
 
       expect(result.meta.page).toBe(1);
-      expect(prisma.user.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ skip: 0 }),
-      );
+      expect(prisma.user.findMany).toHaveBeenCalledWith(expect.objectContaining({ skip: 0 }));
     });
 
     it('should calculate totalPages correctly', async () => {
@@ -323,9 +307,7 @@ describe('AdminService', () => {
     it('should throw NotFoundException when user not found', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
 
-      await expect(service.findOneUser('non-existent-id')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.findOneUser('non-existent-id')).rejects.toThrow(NotFoundException);
     });
 
     it('should throw NotFoundException with correct message', async () => {
@@ -343,7 +325,12 @@ describe('AdminService', () => {
   describe('updateUserStatus', () => {
     it('should update user status and log audit', async () => {
       prisma.user.findUnique.mockResolvedValue(mockUser);
-      const updatedUser = { id: mockUser.id, name: mockUser.name, email: mockUser.email, status: 'inactive' };
+      const updatedUser = {
+        id: mockUser.id,
+        name: mockUser.name,
+        email: mockUser.email,
+        status: 'inactive',
+      };
       prisma.user.update.mockResolvedValue(updatedUser);
 
       const result = await service.updateUserStatus(mockUser.id, 'inactive', adminUserId);
@@ -380,13 +367,13 @@ describe('AdminService', () => {
       const selfUser = { ...mockUser, id: adminUserId };
       prisma.user.findUnique.mockResolvedValue(selfUser);
 
-      await expect(
-        service.updateUserStatus(adminUserId, 'inactive', adminUserId),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.updateUserStatus(adminUserId, 'inactive', adminUserId)).rejects.toThrow(
+        BadRequestException,
+      );
 
-      await expect(
-        service.updateUserStatus(adminUserId, 'inactive', adminUserId),
-      ).rejects.toThrow('Você não pode alterar seu próprio status');
+      await expect(service.updateUserStatus(adminUserId, 'inactive', adminUserId)).rejects.toThrow(
+        'Você não pode alterar seu próprio status',
+      );
 
       expect(prisma.user.update).not.toHaveBeenCalled();
       expect(auditService.log).not.toHaveBeenCalled();
@@ -399,7 +386,12 @@ describe('AdminService', () => {
   describe('updateUserRole', () => {
     it('should update user role and log audit', async () => {
       prisma.user.findUnique.mockResolvedValue(mockUser);
-      const updatedUser = { id: mockUser.id, name: mockUser.name, email: mockUser.email, role: 'superadmin' };
+      const updatedUser = {
+        id: mockUser.id,
+        name: mockUser.name,
+        email: mockUser.email,
+        role: 'superadmin',
+      };
       prisma.user.update.mockResolvedValue(updatedUser);
 
       const result = await service.updateUserRole(mockUser.id, 'superadmin', adminUserId);
@@ -436,13 +428,13 @@ describe('AdminService', () => {
       const selfUser = { ...mockUser, id: adminUserId };
       prisma.user.findUnique.mockResolvedValue(selfUser);
 
-      await expect(
-        service.updateUserRole(adminUserId, 'superadmin', adminUserId),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.updateUserRole(adminUserId, 'superadmin', adminUserId)).rejects.toThrow(
+        BadRequestException,
+      );
 
-      await expect(
-        service.updateUserRole(adminUserId, 'superadmin', adminUserId),
-      ).rejects.toThrow('Você não pode alterar seu próprio role');
+      await expect(service.updateUserRole(adminUserId, 'superadmin', adminUserId)).rejects.toThrow(
+        'Você não pode alterar seu próprio role',
+      );
 
       expect(prisma.user.update).not.toHaveBeenCalled();
       expect(auditService.log).not.toHaveBeenCalled();
@@ -488,9 +480,9 @@ describe('AdminService', () => {
     it('should throw NotFoundException when user not found', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.resetUserPassword('non-existent-id', adminUserId),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.resetUserPassword('non-existent-id', adminUserId)).rejects.toThrow(
+        NotFoundException,
+      );
 
       expect(prisma.user.update).not.toHaveBeenCalled();
       expect(emailService.sendPasswordResetEmail).not.toHaveBeenCalled();
@@ -634,9 +626,7 @@ describe('AdminService', () => {
       const result = await service.findAllClinics({ limit: 200 });
 
       expect(result.meta.limit).toBe(100);
-      expect(prisma.clinic.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ take: 100 }),
-      );
+      expect(prisma.clinic.findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 100 }));
     });
 
     it('should calculate totalPages correctly', async () => {

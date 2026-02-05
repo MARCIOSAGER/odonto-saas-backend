@@ -1,5 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe, VersioningType, Injectable, UnauthorizedException, NotFoundException } from '@nestjs/common';
+import {
+  INestApplication,
+  ValidationPipe,
+  VersioningType,
+  Injectable,
+  UnauthorizedException,
+  NotFoundException,
+} from '@nestjs/common';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { PassportStrategy } from '@nestjs/passport';
@@ -19,9 +26,20 @@ class TestJwtStrategy extends PassportStrategy(Strategy) {
       secretOrKey: 'test-secret',
     });
   }
-  async validate(payload: { sub: string; clinicId: string; role: string; email: string; type: string }) {
+  async validate(payload: {
+    sub: string;
+    clinicId: string;
+    role: string;
+    email: string;
+    type: string;
+  }) {
     if (payload.type !== 'access') throw new UnauthorizedException();
-    return { userId: payload.sub, clinicId: payload.clinicId, role: payload.role, email: payload.email };
+    return {
+      userId: payload.sub,
+      clinicId: payload.clinicId,
+      role: payload.role,
+      email: payload.email,
+    };
   }
 }
 
@@ -71,10 +89,7 @@ describe('PatientsController (e2e)', () => {
         JwtModule.register({ secret: 'test-secret', signOptions: { expiresIn: '1h' } }),
       ],
       controllers: [PatientsController],
-      providers: [
-        { provide: PatientsService, useValue: mockPatientsService },
-        TestJwtStrategy,
-      ],
+      providers: [{ provide: PatientsService, useValue: mockPatientsService }, TestJwtStrategy],
     }).compile();
 
     app = moduleFixture.createNestApplication();
@@ -114,9 +129,7 @@ describe('PatientsController (e2e)', () => {
 
   describe('Authentication', () => {
     it('should return 401 without JWT on GET /patients', () => {
-      return request(app.getHttpServer())
-        .get('/api/v1/patients')
-        .expect(401);
+      return request(app.getHttpServer()).get('/api/v1/patients').expect(401);
     });
 
     it('should return 401 without JWT on POST /patients', () => {
@@ -139,7 +152,10 @@ describe('PatientsController (e2e)', () => {
           expect(res.body.success).toBe(true);
           expect(res.body.data.data).toHaveLength(1);
           expect(res.body.data.meta.total).toBe(1);
-          expect(mockPatientsService.findAll).toHaveBeenCalledWith('clinic-uuid', expect.any(Object));
+          expect(mockPatientsService.findAll).toHaveBeenCalledWith(
+            'clinic-uuid',
+            expect.any(Object),
+          );
         });
     });
 

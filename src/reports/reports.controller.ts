@@ -1,16 +1,5 @@
-import {
-  Controller,
-  Get,
-  Query,
-  Res,
-  UseGuards,
-} from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiBearerAuth,
-  ApiQuery,
-} from '@nestjs/swagger';
+import { Controller, Get, Query, Res, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { Response } from 'express';
 import { ReportsService } from './reports.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -106,7 +95,11 @@ export class ReportsController {
 
   @Get('export')
   @ApiOperation({ summary: 'Export report as CSV' })
-  @ApiQuery({ name: 'type', required: true, enum: ['revenue', 'appointments', 'patients', 'commissions'] })
+  @ApiQuery({
+    name: 'type',
+    required: true,
+    enum: ['revenue', 'appointments', 'patients', 'commissions'],
+  })
   @ApiQuery({ name: 'start', required: false })
   @ApiQuery({ name: 'end', required: false })
   async exportCsv(
@@ -126,7 +119,11 @@ export class ReportsController {
 
   @Get('export-pdf')
   @ApiOperation({ summary: 'Export report as PDF' })
-  @ApiQuery({ name: 'type', required: true, enum: ['revenue', 'appointments', 'patients', 'commissions', 'services'] })
+  @ApiQuery({
+    name: 'type',
+    required: true,
+    enum: ['revenue', 'appointments', 'patients', 'commissions', 'services'],
+  })
   @ApiQuery({ name: 'start', required: false })
   @ApiQuery({ name: 'end', required: false })
   async exportPdf(

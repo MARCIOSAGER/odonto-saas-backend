@@ -33,7 +33,12 @@ export class PatientsController {
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'search', required: false, type: String })
   @ApiQuery({ name: 'status', required: false, type: String })
-  @ApiQuery({ name: 'cursor', required: false, type: String, description: 'Cursor for cursor-based pagination' })
+  @ApiQuery({
+    name: 'cursor',
+    required: false,
+    type: String,
+    description: 'Cursor for cursor-based pagination',
+  })
   @Permissions('patients:read')
   async findAll(
     @CurrentUser() user: { clinicId: string },

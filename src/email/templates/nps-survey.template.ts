@@ -1,4 +1,8 @@
-export function npsSurveyTemplate(patientName: string, clinicName: string, surveyUrl: string): string {
+export function npsSurveyTemplate(
+  patientName: string,
+  clinicName: string,
+  surveyUrl: string,
+): string {
   return `
 <!DOCTYPE html>
 <html lang="pt-BR">

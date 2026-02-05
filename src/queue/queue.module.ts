@@ -36,11 +36,7 @@ import { EmailModule } from '../email/email.module';
         };
       },
     }),
-    BullModule.registerQueue(
-      { name: QUEUE_EMAIL },
-      { name: QUEUE_WHATSAPP },
-      { name: QUEUE_PDF },
-    ),
+    BullModule.registerQueue({ name: QUEUE_EMAIL }, { name: QUEUE_WHATSAPP }, { name: QUEUE_PDF }),
     EmailModule,
   ],
   providers: [QueueService, EmailProcessor],

@@ -117,9 +117,7 @@ describe('DentistsService', () => {
     it('should throw NotFoundException when dentist not found', async () => {
       prisma.dentist.findFirst.mockResolvedValue(null);
 
-      await expect(service.findOne(clinicId, 'non-existent-id')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.findOne(clinicId, 'non-existent-id')).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -182,9 +180,9 @@ describe('DentistsService', () => {
     it('should throw ConflictException on duplicate CRO', async () => {
       prisma.dentist.findFirst.mockResolvedValue(mockDentist); // existing CRO
 
-      await expect(
-        service.create(clinicId, createDto as any, userId),
-      ).rejects.toThrow(ConflictException);
+      await expect(service.create(clinicId, createDto as any, userId)).rejects.toThrow(
+        ConflictException,
+      );
 
       expect(prisma.dentist.create).not.toHaveBeenCalled();
       expect(auditService.log).not.toHaveBeenCalled();
@@ -318,9 +316,9 @@ describe('DentistsService', () => {
     it('should throw NotFoundException if dentist does not exist', async () => {
       prisma.dentist.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.remove(clinicId, 'non-existent-id', userId),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.remove(clinicId, 'non-existent-id', userId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -371,9 +369,9 @@ describe('DentistsService', () => {
     it('should throw NotFoundException when dentist not found or not deleted', async () => {
       prisma.dentist.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.restore(clinicId, 'non-existent-id', userId),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.restore(clinicId, 'non-existent-id', userId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

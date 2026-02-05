@@ -53,7 +53,11 @@ export class SystemConfigService {
     if (key.startsWith('platform_')) {
       category = 'platform_branding';
       isPublic = true;
-    } else if (key.startsWith('stripe_') || key.startsWith('asaas_') || key.startsWith('payment_')) {
+    } else if (
+      key.startsWith('stripe_') ||
+      key.startsWith('asaas_') ||
+      key.startsWith('payment_')
+    ) {
       category = 'payment_gateway';
     } else if (key.startsWith('smtp_')) {
       category = 'smtp';

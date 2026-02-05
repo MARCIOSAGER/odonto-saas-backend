@@ -48,13 +48,17 @@ export class WhatsAppService {
 
       const url = `${this.defaultApiUrl}/instances/${instanceId}/token/${token}/send-text`;
 
-      const response = await axios.post(url, {
-        phone: formattedPhone,
-        message,
-        delayTyping: options.delayTyping || 2,
-      }, {
-        headers: { 'Client-Token': clientToken },
-      });
+      const response = await axios.post(
+        url,
+        {
+          phone: formattedPhone,
+          message,
+          delayTyping: options.delayTyping || 2,
+        },
+        {
+          headers: { 'Client-Token': clientToken },
+        },
+      );
 
       if (response.data?.zaapId || response.data?.messageId) {
         this.logger.log(`Message sent successfully to ${formattedPhone}`);
@@ -153,17 +157,21 @@ export class WhatsAppService {
       const formattedPhone = this.formatPhone(phone);
       const url = `${this.defaultApiUrl}/instances/${config.instanceId}/token/${config.token}/send-option-list`;
 
-      const response = await axios.post(url, {
-        phone: formattedPhone,
-        message: data.message,
-        optionList: {
-          title: data.title,
-          buttonLabel: data.buttonLabel,
-          options: data.sections,
+      const response = await axios.post(
+        url,
+        {
+          phone: formattedPhone,
+          message: data.message,
+          optionList: {
+            title: data.title,
+            buttonLabel: data.buttonLabel,
+            options: data.sections,
+          },
         },
-      }, {
-        headers: { 'Client-Token': config.clientToken },
-      });
+        {
+          headers: { 'Client-Token': config.clientToken },
+        },
+      );
 
       if (response.data?.zaapId || response.data?.messageId) {
         this.logger.log(`List message sent to ${formattedPhone}`);
@@ -191,13 +199,17 @@ export class WhatsAppService {
       const formattedPhone = this.formatPhone(phone);
       const url = `${this.defaultApiUrl}/instances/${config.instanceId}/token/${config.token}/send-button-list`;
 
-      const response = await axios.post(url, {
-        phone: formattedPhone,
-        message: data.message,
-        buttons: data.buttons.map((b) => ({ id: b.id, label: b.label })),
-      }, {
-        headers: { 'Client-Token': config.clientToken },
-      });
+      const response = await axios.post(
+        url,
+        {
+          phone: formattedPhone,
+          message: data.message,
+          buttons: data.buttons.map((b) => ({ id: b.id, label: b.label })),
+        },
+        {
+          headers: { 'Client-Token': config.clientToken },
+        },
+      );
 
       if (response.data?.zaapId || response.data?.messageId) {
         this.logger.log(`Button message sent to ${formattedPhone}`);
@@ -225,16 +237,20 @@ export class WhatsAppService {
       const formattedPhone = this.formatPhone(phone);
       const url = `${this.defaultApiUrl}/instances/${config.instanceId}/token/${config.token}/send-poll`;
 
-      const response = await axios.post(url, {
-        phone: formattedPhone,
-        poll: {
-          name: data.question,
-          options: data.options,
-          allowMultipleAnswers: false,
+      const response = await axios.post(
+        url,
+        {
+          phone: formattedPhone,
+          poll: {
+            name: data.question,
+            options: data.options,
+            allowMultipleAnswers: false,
+          },
         },
-      }, {
-        headers: { 'Client-Token': config.clientToken },
-      });
+        {
+          headers: { 'Client-Token': config.clientToken },
+        },
+      );
 
       if (response.data?.zaapId || response.data?.messageId) {
         this.logger.log(`Poll sent to ${formattedPhone}`);
@@ -264,15 +280,19 @@ export class WhatsAppService {
       const formattedPhone = this.formatPhone(phone);
       const url = `${this.defaultApiUrl}/instances/${config.instanceId}/token/${config.token}/send-location`;
 
-      const response = await axios.post(url, {
-        phone: formattedPhone,
-        latitude: data.latitude,
-        longitude: data.longitude,
-        name: data.name,
-        address: data.address,
-      }, {
-        headers: { 'Client-Token': config.clientToken },
-      });
+      const response = await axios.post(
+        url,
+        {
+          phone: formattedPhone,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          name: data.name,
+          address: data.address,
+        },
+        {
+          headers: { 'Client-Token': config.clientToken },
+        },
+      );
 
       if (response.data?.zaapId || response.data?.messageId) {
         this.logger.log(`Location sent to ${formattedPhone}`);

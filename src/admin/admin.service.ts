@@ -24,12 +24,7 @@ export class AdminService {
     return this.cacheService.getOrSet(
       'admin:stats:global',
       async () => {
-        const [
-          totalClinics,
-          activeClinics,
-          totalUsers,
-          activeUsers,
-        ] = await Promise.all([
+        const [totalClinics, activeClinics, totalUsers, activeUsers] = await Promise.all([
           this.prisma.clinic.count(),
           this.prisma.clinic.count({ where: { status: 'active' } }),
           this.prisma.user.count(),

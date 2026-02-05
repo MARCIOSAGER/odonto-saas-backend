@@ -1,17 +1,5 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Param,
-  UseGuards,
-  ParseUUIDPipe,
-} from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-} from '@nestjs/swagger';
+import { Controller, Get, Post, Param, UseGuards, ParseUUIDPipe } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { PatientPortalService } from './patient-portal.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -20,9 +8,7 @@ import { Public } from '../common/decorators/public.decorator';
 @ApiTags('patient-portal')
 @Controller()
 export class PatientPortalController {
-  constructor(
-    private readonly portalService: PatientPortalService,
-  ) {}
+  constructor(private readonly portalService: PatientPortalService) {}
 
   // === Public endpoints (accessed by patient via token) ===
 

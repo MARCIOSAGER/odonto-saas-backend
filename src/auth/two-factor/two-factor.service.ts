@@ -92,7 +92,12 @@ export class TwoFactorService {
       },
     });
 
-    return this.emailService.sendTwoFactorCode(user.email, user.name, code, user.clinic_id ?? undefined);
+    return this.emailService.sendTwoFactorCode(
+      user.email,
+      user.name,
+      code,
+      user.clinic_id ?? undefined,
+    );
   }
 
   // Verify a 2FA code (WhatsApp or email)

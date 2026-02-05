@@ -3,7 +3,6 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { CreateTreatmentPlanDto } from './dto/create-treatment-plan.dto';
 import { UpdateTreatmentPlanDto } from './dto/update-treatment-plan.dto';
-import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class TreatmentPlansService {
@@ -12,20 +11,14 @@ export class TreatmentPlansService {
     private readonly auditService: AuditService,
   ) {}
 
-  async create(
-    clinicId: string,
-    userId: string,
-    dto: CreateTreatmentPlanDto,
-  ) {
+  async create(clinicId: string, userId: string, dto: CreateTreatmentPlanDto) {
     const plan = await this.prisma.treatmentPlan.create({
       data: {
         clinic_id: clinicId,
         created_by: userId,
         patient_id: dto.patient_id,
         patient_summary: dto.patient_summary,
-        phases: dto.phases
-          ? (dto.phases as Prisma.InputJsonValue)
-          : undefined,
+        phases: dto.phases ? (dto.phases as any) : undefined,
         total_cost: dto.total_cost,
         total_sessions: dto.total_sessions,
         recommendations: dto.recommendations,
@@ -77,12 +70,7 @@ export class TreatmentPlansService {
     return plan;
   }
 
-  async update(
-    clinicId: string,
-    id: string,
-    dto: UpdateTreatmentPlanDto,
-    userId: string,
-  ) {
+  async update(clinicId: string, id: string, dto: UpdateTreatmentPlanDto, userId: string) {
     const existing = await this.findById(clinicId, id);
 
     const plan = await this.prisma.treatmentPlan.update({
@@ -90,9 +78,7 @@ export class TreatmentPlansService {
       data: {
         patient_id: dto.patient_id,
         patient_summary: dto.patient_summary,
-        phases: dto.phases
-          ? (dto.phases as Prisma.InputJsonValue)
-          : undefined,
+        phases: dto.phases ? (dto.phases as any) : undefined,
         total_cost: dto.total_cost,
         total_sessions: dto.total_sessions,
         recommendations: dto.recommendations,
@@ -119,12 +105,7 @@ export class TreatmentPlansService {
     return plan;
   }
 
-  async updateStatus(
-    clinicId: string,
-    id: string,
-    status: string,
-    userId: string,
-  ) {
+  async updateStatus(clinicId: string, id: string, status: string, userId: string) {
     const existing = await this.findById(clinicId, id);
 
     const plan = await this.prisma.treatmentPlan.update({

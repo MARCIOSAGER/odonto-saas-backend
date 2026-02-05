@@ -78,11 +78,7 @@ export class AutomationsService {
     });
   }
 
-  async updateRunStatus(
-    automationId: string,
-    success: boolean,
-    error?: string,
-  ) {
+  async updateRunStatus(automationId: string, success: boolean, error?: string) {
     const data: Prisma.ClinicAutomationUpdateInput = {
       last_run_at: new Date(),
       run_count: { increment: 1 },

@@ -70,9 +70,7 @@ describe('OdontogramService', () => {
     it('should throw NotFoundException when patient does not belong to clinic', async () => {
       prisma.patient.findFirst.mockResolvedValue(null);
 
-      await expect(service.getOrCreate(clinicId, patientId)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.getOrCreate(clinicId, patientId)).rejects.toThrow(NotFoundException);
 
       expect(prisma.patient.findFirst).toHaveBeenCalledWith({
         where: { id: patientId, clinic_id: clinicId },
@@ -122,9 +120,7 @@ describe('OdontogramService', () => {
     it('should throw NotFoundException when patient does not belong to clinic', async () => {
       prisma.patient.findFirst.mockResolvedValue(null);
 
-      await expect(service.getHistory(clinicId, patientId)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.getHistory(clinicId, patientId)).rejects.toThrow(NotFoundException);
     });
 
     it('should return empty result when no odontogram exists', async () => {
@@ -164,9 +160,9 @@ describe('OdontogramService', () => {
     it('should throw NotFoundException when odontogram not found', async () => {
       prisma.odontogram.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.createEntry(clinicId, userId, 'non-existent', dto),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.createEntry(clinicId, userId, 'non-existent', dto)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should create an entry and log audit', async () => {
@@ -227,9 +223,9 @@ describe('OdontogramService', () => {
     it('should throw NotFoundException when entry not found', async () => {
       prisma.odontogramEntry.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.supersedeEntry(clinicId, userId, 'non-existent'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.supersedeEntry(clinicId, userId, 'non-existent')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw NotFoundException when entry belongs to different clinic', async () => {
@@ -238,9 +234,9 @@ describe('OdontogramService', () => {
         odontogram: { ...mockOdontogram, clinic_id: 'other-clinic' },
       });
 
-      await expect(
-        service.supersedeEntry(clinicId, userId, mockEntry.id),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.supersedeEntry(clinicId, userId, mockEntry.id)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw BadRequestException when entry already superseded', async () => {
@@ -249,9 +245,9 @@ describe('OdontogramService', () => {
         superseded_at: new Date(),
       });
 
-      await expect(
-        service.supersedeEntry(clinicId, userId, mockEntry.id),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.supersedeEntry(clinicId, userId, mockEntry.id)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should supersede entry using transaction and log audit', async () => {
@@ -268,7 +264,9 @@ describe('OdontogramService', () => {
         });
       });
 
-      const result = await service.supersedeEntry(clinicId, userId, mockEntry.id, { notes: 'Corrected' });
+      const result = await service.supersedeEntry(clinicId, userId, mockEntry.id, {
+        notes: 'Corrected',
+      });
 
       expect(result.oldEntry).toBeDefined();
       expect(result.newEntry).toBeDefined();
@@ -314,9 +312,9 @@ describe('OdontogramService', () => {
     it('should throw NotFoundException when legend item not found', async () => {
       prisma.odontogramLegendItem.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.deleteLegend(clinicId, 'NON_EXISTENT'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.deleteLegend(clinicId, 'NON_EXISTENT')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should soft delete by setting is_active to false', async () => {

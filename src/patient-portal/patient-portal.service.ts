@@ -104,11 +104,11 @@ export class PatientPortalService {
     }
 
     // Generate new UUID token via raw SQL
-    const updated = await this.prisma.$queryRaw`
+    const updated = (await this.prisma.$queryRaw`
       UPDATE "Patient" SET portal_token = gen_random_uuid()::text
       WHERE id = ${patientId}
       RETURNING portal_token
-    ` as { portal_token: string }[];
+    `) as { portal_token: string }[];
 
     return { portal_token: updated[0]?.portal_token };
   }

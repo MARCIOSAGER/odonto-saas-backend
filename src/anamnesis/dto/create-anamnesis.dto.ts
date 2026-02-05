@@ -1,11 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsString,
-  IsUUID,
-  IsOptional,
-  IsArray,
-  IsObject,
-} from 'class-validator';
+import { IsString, IsUUID, IsOptional, IsArray, IsObject } from 'class-validator';
 
 export class CreateAnamnesisDto {
   @ApiProperty({ description: 'Patient ID' })

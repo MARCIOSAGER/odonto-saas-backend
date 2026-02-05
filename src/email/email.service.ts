@@ -29,10 +29,19 @@ export class EmailService {
     });
   }
 
-  private async getTransporterForClinic(clinicId: string): Promise<{ transporter: nodemailer.Transporter; from: string }> {
+  private async getTransporterForClinic(
+    clinicId: string,
+  ): Promise<{ transporter: nodemailer.Transporter; from: string }> {
     const clinic = await this.prisma.clinic.findUnique({
       where: { id: clinicId },
-      select: { smtp_host: true, smtp_port: true, smtp_user: true, smtp_pass: true, smtp_from: true, smtp_secure: true },
+      select: {
+        smtp_host: true,
+        smtp_port: true,
+        smtp_user: true,
+        smtp_pass: true,
+        smtp_from: true,
+        smtp_secure: true,
+      },
     });
 
     if (clinic?.smtp_host && clinic?.smtp_user && clinic?.smtp_pass) {
@@ -62,7 +71,12 @@ export class EmailService {
     }
   }
 
-  async sendMailForClinic(clinicId: string, to: string, subject: string, html: string): Promise<boolean> {
+  async sendMailForClinic(
+    clinicId: string,
+    to: string,
+    subject: string,
+    html: string,
+  ): Promise<boolean> {
     try {
       const { transporter, from } = await this.getTransporterForClinic(clinicId);
       await transporter.sendMail({ from, to, subject, html });
@@ -74,9 +88,20 @@ export class EmailService {
     }
   }
 
-  async sendPasswordResetEmail(to: string, name: string, resetLink: string, clinicId?: string): Promise<boolean> {
+  async sendPasswordResetEmail(
+    to: string,
+    name: string,
+    resetLink: string,
+    clinicId?: string,
+  ): Promise<boolean> {
     if (this.queueService?.isEnabled) {
-      return this.queueService.addEmailJob({ type: 'password-reset', to, name, resetLink, clinicId });
+      return this.queueService.addEmailJob({
+        type: 'password-reset',
+        to,
+        name,
+        resetLink,
+        clinicId,
+      });
     }
     const html = passwordResetTemplate(name, resetLink);
     if (clinicId) {
@@ -85,7 +110,12 @@ export class EmailService {
     return this.sendMail(to, 'Redefinir sua senha', html);
   }
 
-  async sendWelcomeEmail(to: string, name: string, clinicName: string, clinicId?: string): Promise<boolean> {
+  async sendWelcomeEmail(
+    to: string,
+    name: string,
+    clinicName: string,
+    clinicId?: string,
+  ): Promise<boolean> {
     if (this.queueService?.isEnabled) {
       return this.queueService.addEmailJob({ type: 'welcome', to, name, clinicName, clinicId });
     }
@@ -96,7 +126,12 @@ export class EmailService {
     return this.sendMail(to, 'Bem-vindo ao Odonto SaaS!', html);
   }
 
-  async sendTwoFactorCode(to: string, name: string, code: string, clinicId?: string): Promise<boolean> {
+  async sendTwoFactorCode(
+    to: string,
+    name: string,
+    code: string,
+    clinicId?: string,
+  ): Promise<boolean> {
     if (this.queueService?.isEnabled) {
       return this.queueService.addEmailJob({ type: '2fa-code', to, name, code, clinicId });
     }
@@ -130,7 +165,14 @@ export class EmailService {
         dentistName,
       });
     }
-    const html = appointmentReminderTemplate(patientName, clinicName, date, time, serviceName, dentistName);
+    const html = appointmentReminderTemplate(
+      patientName,
+      clinicName,
+      date,
+      time,
+      serviceName,
+      dentistName,
+    );
     return this.sendMailForClinic(clinicId, to, `Lembrete: Consulta em ${date} às ${time}`, html);
   }
 }

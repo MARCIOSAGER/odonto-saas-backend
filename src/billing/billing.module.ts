@@ -20,6 +20,13 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
     NfseService,
     PlanLimitGuard,
   ],
-  exports: [BillingService, CouponService, NfseService, PlanLimitGuard, StripeGateway, AsaasGateway],
+  exports: [
+    BillingService,
+    CouponService,
+    NfseService,
+    PlanLimitGuard,
+    StripeGateway,
+    AsaasGateway,
+  ],
 })
 export class BillingModule {}

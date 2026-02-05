@@ -9,6 +9,7 @@ import { QueueModule } from './queue/queue.module';
 import { StorageModule } from './storage/storage.module';
 
 import { PrismaModule } from './prisma/prisma.module';
+import { EncryptionModule } from './common/encryption/encryption.module';
 import { AuthModule } from './auth/auth.module';
 import { ClinicsModule } from './clinics/clinics.module';
 import { PatientsModule } from './patients/patients.module';
@@ -75,6 +76,9 @@ import { AnamnesisModule } from './anamnesis/anamnesis.module';
 
     // Object storage (S3/R2 with local disk fallback)
     StorageModule,
+
+    // Encryption (LGPD)
+    EncryptionModule,
 
     // Database
     PrismaModule,

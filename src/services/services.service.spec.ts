@@ -99,9 +99,7 @@ describe('ServicesService', () => {
     it('should throw NotFoundException when service not found', async () => {
       prisma.service.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.findOne(clinicId, 'non-existent-id'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.findOne(clinicId, 'non-existent-id')).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -163,9 +161,9 @@ describe('ServicesService', () => {
     it('should throw ConflictException on duplicate name', async () => {
       prisma.service.findFirst.mockResolvedValue(mockService); // existing service
 
-      await expect(
-        service.create(clinicId, createDto as any, userId),
-      ).rejects.toThrow(ConflictException);
+      await expect(service.create(clinicId, createDto as any, userId)).rejects.toThrow(
+        ConflictException,
+      );
 
       expect(prisma.service.create).not.toHaveBeenCalled();
       expect(auditService.log).not.toHaveBeenCalled();
@@ -195,12 +193,7 @@ describe('ServicesService', () => {
       };
       prisma.service.update.mockResolvedValue(updatedService);
 
-      const result = await service.update(
-        clinicId,
-        mockService.id,
-        updateDto as any,
-        userId,
-      );
+      const result = await service.update(clinicId, mockService.id, updateDto as any, userId);
 
       expect(result).toEqual(updatedService);
       // Verify findOne was called
@@ -259,12 +252,7 @@ describe('ServicesService', () => {
       };
       prisma.service.update.mockResolvedValue(updatedService);
 
-      const result = await service.update(
-        clinicId,
-        mockService.id,
-        sameNameDto as any,
-        userId,
-      );
+      const result = await service.update(clinicId, mockService.id, sameNameDto as any, userId);
 
       expect(result).toEqual(updatedService);
       // findFirst called only once (for findOne), not for name uniqueness
@@ -284,12 +272,7 @@ describe('ServicesService', () => {
       };
       prisma.service.update.mockResolvedValue(updatedService);
 
-      const result = await service.update(
-        clinicId,
-        mockService.id,
-        sameNameDto as any,
-        userId,
-      );
+      const result = await service.update(clinicId, mockService.id, sameNameDto as any, userId);
 
       expect(result).toEqual(updatedService);
       // findFirst called only once (for findOne); name unchanged so no uniqueness check
@@ -339,9 +322,9 @@ describe('ServicesService', () => {
     it('should throw NotFoundException if service does not exist', async () => {
       prisma.service.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.remove(clinicId, 'non-existent-id', userId),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.remove(clinicId, 'non-existent-id', userId)).rejects.toThrow(
+        NotFoundException,
+      );
 
       expect(prisma.service.update).not.toHaveBeenCalled();
       expect(auditService.log).not.toHaveBeenCalled();

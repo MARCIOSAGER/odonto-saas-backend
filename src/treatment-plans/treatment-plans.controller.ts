@@ -9,12 +9,7 @@ import {
   UseGuards,
   ParseUUIDPipe,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { TreatmentPlansService } from './treatment-plans.service';
 import { CreateTreatmentPlanDto } from './dto/create-treatment-plan.dto';
 import { UpdateTreatmentPlanDto } from './dto/update-treatment-plan.dto';
@@ -26,9 +21,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth('JWT-auth')
 export class TreatmentPlansController {
-  constructor(
-    private readonly treatmentPlansService: TreatmentPlansService,
-  ) {}
+  constructor(private readonly treatmentPlansService: TreatmentPlansService) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a treatment plan' })
@@ -37,11 +30,7 @@ export class TreatmentPlansController {
     @CurrentUser() user: { userId: string; clinicId: string },
     @Body() dto: CreateTreatmentPlanDto,
   ) {
-    return this.treatmentPlansService.create(
-      user.clinicId,
-      user.userId,
-      dto,
-    );
+    return this.treatmentPlansService.create(user.clinicId, user.userId, dto);
   }
 
   @Get('patient/:patientId')
@@ -51,10 +40,7 @@ export class TreatmentPlansController {
     @CurrentUser() user: { userId: string; clinicId: string },
     @Param('patientId', ParseUUIDPipe) patientId: string,
   ) {
-    return this.treatmentPlansService.findByPatient(
-      user.clinicId,
-      patientId,
-    );
+    return this.treatmentPlansService.findByPatient(user.clinicId, patientId);
   }
 
   @Get(':id')
@@ -75,12 +61,7 @@ export class TreatmentPlansController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateTreatmentPlanDto,
   ) {
-    return this.treatmentPlansService.update(
-      user.clinicId,
-      id,
-      dto,
-      user.userId,
-    );
+    return this.treatmentPlansService.update(user.clinicId, id, dto, user.userId);
   }
 
   @Patch(':id/status')
@@ -91,11 +72,6 @@ export class TreatmentPlansController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: { status: string },
   ) {
-    return this.treatmentPlansService.updateStatus(
-      user.clinicId,
-      id,
-      body.status,
-      user.userId,
-    );
+    return this.treatmentPlansService.updateStatus(user.clinicId, id, body.status, user.userId);
   }
 }

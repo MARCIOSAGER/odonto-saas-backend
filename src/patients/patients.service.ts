@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { EncryptionService } from '../common/encryption/encryption.service';
 import { CreatePatientDto } from './dto/create-patient.dto';
 import { UpdatePatientDto } from './dto/update-patient.dto';
 
@@ -17,6 +18,7 @@ export class PatientsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
+    private readonly encryption: EncryptionService,
   ) {}
 
   async findAll(clinicId: string, options: FindAllOptions = {}) {
@@ -30,12 +32,23 @@ export class PatientsService {
     }
 
     if (search) {
-      where.OR = [
+      const digitsOnly = search.replace(/\D/g, '');
+      const conditions: Record<string, unknown>[] = [
         { name: { contains: search, mode: 'insensitive' } },
-        { phone: { contains: search } },
-        { email: { contains: search, mode: 'insensitive' } },
-        { cpf: { contains: search } },
       ];
+
+      if (digitsOnly.length >= 4) {
+        const digitsHash = this.encryption.hmac(digitsOnly);
+        conditions.push({ phone_hash: digitsHash });
+        conditions.push({ cpf_hash: digitsHash });
+      }
+
+      if (search.includes('@')) {
+        const emailHash = this.encryption.hmac(search.trim().toLowerCase());
+        conditions.push({ email_hash: emailHash });
+      }
+
+      where.OR = conditions;
     }
 
     // Cursor-based pagination
@@ -113,11 +126,12 @@ export class PatientsService {
 
   async findByPhone(clinicId: string, phone: string) {
     const normalizedPhone = phone.replace(/\D/g, '');
+    const phoneHash = this.encryption.hmac(normalizedPhone);
 
     const patient = await this.prisma.patient.findFirst({
       where: {
         clinic_id: clinicId,
-        phone: { contains: normalizedPhone },
+        phone_hash: phoneHash,
         deleted_at: null,
       },
       include: {
@@ -136,11 +150,12 @@ export class PatientsService {
 
   async findOrCreateByPhone(clinicId: string, phone: string, name?: string) {
     const normalizedPhone = phone.replace(/\D/g, '');
+    const phoneHash = this.encryption.hmac(normalizedPhone);
 
     let patient = await this.prisma.patient.findFirst({
       where: {
         clinic_id: clinicId,
-        phone: normalizedPhone,
+        phone_hash: phoneHash,
         deleted_at: null,
       },
     });
@@ -161,11 +176,12 @@ export class PatientsService {
 
   async create(clinicId: string, createPatientDto: CreatePatientDto, userId: string) {
     const normalizedPhone = createPatientDto.phone.replace(/\D/g, '');
+    const phoneHash = this.encryption.hmac(normalizedPhone);
 
     const existing = await this.prisma.patient.findFirst({
       where: {
         clinic_id: clinicId,
-        phone: normalizedPhone,
+        phone_hash: phoneHash,
         deleted_at: null,
       },
     });
@@ -207,23 +223,22 @@ export class PatientsService {
 
     if (updatePatientDto.phone) {
       const normalizedPhone = updatePatientDto.phone.replace(/\D/g, '');
+      const phoneHash = this.encryption.hmac(normalizedPhone);
 
-      if (normalizedPhone !== patient.phone) {
-        const existing = await this.prisma.patient.findFirst({
-          where: {
-            clinic_id: clinicId,
-            phone: normalizedPhone,
-            id: { not: id },
-            deleted_at: null,
-          },
-        });
+      const existing = await this.prisma.patient.findFirst({
+        where: {
+          clinic_id: clinicId,
+          phone_hash: phoneHash,
+          id: { not: id },
+          deleted_at: null,
+        },
+      });
 
-        if (existing) {
-          throw new ConflictException('Another patient with this phone already exists');
-        }
-
-        updatePatientDto.phone = normalizedPhone;
+      if (existing) {
+        throw new ConflictException('Another patient with this phone already exists');
       }
+
+      updatePatientDto.phone = normalizedPhone;
     }
 
     const updateData: any = { ...updatePatientDto };
@@ -397,63 +412,62 @@ export class PatientsService {
   async getTimeline(clinicId: string, patientId: string) {
     await this.findOne(clinicId, patientId);
 
-    const [appointments, prescriptions, anamneses, treatmentPlans, odontogram] =
-      await Promise.all([
-        this.prisma.appointment.findMany({
-          where: { clinic_id: clinicId, patient_id: patientId },
-          orderBy: { date: 'desc' },
-          include: {
-            service: { select: { name: true, price: true } },
-            dentist: { select: { name: true } },
+    const [appointments, prescriptions, anamneses, treatmentPlans, odontogram] = await Promise.all([
+      this.prisma.appointment.findMany({
+        where: { clinic_id: clinicId, patient_id: patientId },
+        orderBy: { date: 'desc' },
+        include: {
+          service: { select: { name: true, price: true } },
+          dentist: { select: { name: true } },
+        },
+      }),
+      this.prisma.prescription.findMany({
+        where: { clinic_id: clinicId, patient_id: patientId },
+        orderBy: { created_at: 'desc' },
+        select: {
+          id: true,
+          type: true,
+          pdf_url: true,
+          sent_at: true,
+          sent_via: true,
+          created_at: true,
+          dentist: { select: { name: true } },
+        },
+      }),
+      this.prisma.anamnesis.findMany({
+        where: { clinic_id: clinicId, patient_id: patientId },
+        orderBy: { created_at: 'desc' },
+        select: {
+          id: true,
+          risk_classification: true,
+          alerts: true,
+          created_at: true,
+          updated_at: true,
+        },
+      }),
+      this.prisma.treatmentPlan.findMany({
+        where: { clinic_id: clinicId, patient_id: patientId },
+        orderBy: { created_at: 'desc' },
+        select: {
+          id: true,
+          status: true,
+          total_cost: true,
+          total_sessions: true,
+          notes: true,
+          created_at: true,
+        },
+      }),
+      this.prisma.odontogram.findFirst({
+        where: { patient_id: patientId },
+        include: {
+          entries: {
+            where: { superseded_at: null },
+            orderBy: { created_at: 'desc' },
+            take: 20,
           },
-        }),
-        this.prisma.prescription.findMany({
-          where: { clinic_id: clinicId, patient_id: patientId },
-          orderBy: { created_at: 'desc' },
-          select: {
-            id: true,
-            type: true,
-            pdf_url: true,
-            sent_at: true,
-            sent_via: true,
-            created_at: true,
-            dentist: { select: { name: true } },
-          },
-        }),
-        this.prisma.anamnesis.findMany({
-          where: { clinic_id: clinicId, patient_id: patientId },
-          orderBy: { created_at: 'desc' },
-          select: {
-            id: true,
-            risk_classification: true,
-            alerts: true,
-            created_at: true,
-            updated_at: true,
-          },
-        }),
-        this.prisma.treatmentPlan.findMany({
-          where: { clinic_id: clinicId, patient_id: patientId },
-          orderBy: { created_at: 'desc' },
-          select: {
-            id: true,
-            status: true,
-            total_cost: true,
-            total_sessions: true,
-            notes: true,
-            created_at: true,
-          },
-        }),
-        this.prisma.odontogram.findFirst({
-          where: { patient_id: patientId },
-          include: {
-            entries: {
-              where: { superseded_at: null },
-              orderBy: { created_at: 'desc' },
-              take: 20,
-            },
-          },
-        }),
-      ]);
+        },
+      }),
+    ]);
 
     const events: {
       id: string;
@@ -482,8 +496,11 @@ export class PatientsService {
 
     for (const rx of prescriptions) {
       const typeLabel =
-        rx.type === 'prescription' ? 'Receita' :
-        rx.type === 'certificate' ? 'Atestado' : 'Encaminhamento';
+        rx.type === 'prescription'
+          ? 'Receita'
+          : rx.type === 'certificate'
+            ? 'Atestado'
+            : 'Encaminhamento';
       events.push({
         id: rx.id,
         type: 'prescription',
@@ -504,7 +521,7 @@ export class PatientsService {
         type: 'anamnesis',
         date: a.created_at instanceof Date ? a.created_at.toISOString() : String(a.created_at),
         title: 'Anamnese',
-        description: `Classificação: ${a.risk_classification || 'não definida'}${(a.alerts as string[])?.length ? ` — ${(a.alerts as string[]).length} alerta(s)` : ''}`,
+        description: `Classificação: ${a.risk_classification || 'não definida'}${(a.alerts as unknown as string[])?.length ? ` — ${(a.alerts as unknown as string[]).length} alerta(s)` : ''}`,
         meta: {
           risk_classification: a.risk_classification,
           alerts: a.alerts,
@@ -514,9 +531,13 @@ export class PatientsService {
 
     for (const tp of treatmentPlans) {
       const statusLabel =
-        tp.status === 'pending' ? 'Pendente' :
-        tp.status === 'in_progress' ? 'Em andamento' :
-        tp.status === 'completed' ? 'Concluído' : 'Cancelado';
+        tp.status === 'pending'
+          ? 'Pendente'
+          : tp.status === 'in_progress'
+            ? 'Em andamento'
+            : tp.status === 'completed'
+              ? 'Concluído'
+              : 'Cancelado';
       events.push({
         id: tp.id,
         type: 'treatment_plan',
@@ -537,7 +558,10 @@ export class PatientsService {
         events.push({
           id: `entry-${entry.tooth_number}-${entry.created_at}`,
           type: 'odontogram',
-          date: entry.created_at instanceof Date ? entry.created_at.toISOString() : String(entry.created_at),
+          date:
+            entry.created_at instanceof Date
+              ? entry.created_at.toISOString()
+              : String(entry.created_at),
           title: `Dente ${entry.tooth_number}`,
           description: `${entry.entry_type}: ${entry.status_code} [${(entry.surfaces || []).join(',')}]${entry.notes ? ` — ${entry.notes}` : ''}`,
           meta: {

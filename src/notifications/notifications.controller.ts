@@ -8,13 +8,7 @@ import {
   UseGuards,
   ParseUUIDPipe,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-  ApiQuery,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -24,16 +18,19 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth('JWT-auth')
 export class NotificationsController {
-  constructor(
-    private readonly notificationsService: NotificationsService,
-  ) {}
+  constructor(private readonly notificationsService: NotificationsService) {}
 
   @Get()
   @ApiOperation({ summary: 'List notifications' })
   @ApiResponse({ status: 200, description: 'Notifications list' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiQuery({ name: 'cursor', required: false, type: String, description: 'Cursor for cursor-based pagination' })
+  @ApiQuery({
+    name: 'cursor',
+    required: false,
+    type: String,
+    description: 'Cursor for cursor-based pagination',
+  })
   async findAll(
     @CurrentUser() user: { userId: string },
     @Query('page') page?: string,

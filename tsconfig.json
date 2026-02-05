@@ -25,5 +25,6 @@
       "@patients/*": ["src/patients/*"],
       "@appointments/*": ["src/appointments/*"]
     }
-  }
+  },
+  "exclude": ["node_modules", "dist", "odonto-saas-backend"]
 }

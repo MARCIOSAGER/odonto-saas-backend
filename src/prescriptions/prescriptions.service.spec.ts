@@ -42,7 +42,9 @@ describe('PrescriptionsService', () => {
   beforeEach(async () => {
     prisma = createPrismaMock();
     pdfGenerator = {
-      generatePdf: jest.fn().mockResolvedValue('/uploads/prescriptions/clinic-uuid-1/prescription-uuid-1.pdf'),
+      generatePdf: jest
+        .fn()
+        .mockResolvedValue('/uploads/prescriptions/clinic-uuid-1/prescription-uuid-1.pdf'),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -198,10 +200,7 @@ describe('PrescriptionsService', () => {
         },
       });
       // PDF generation is called in background (fire-and-forget)
-      expect(pdfGenerator.generatePdf).toHaveBeenCalledWith(
-        createdPrescription.id,
-        clinicId,
-      );
+      expect(pdfGenerator.generatePdf).toHaveBeenCalledWith(createdPrescription.id, clinicId);
     });
   });
 
@@ -232,9 +231,7 @@ describe('PrescriptionsService', () => {
     it('should throw NotFoundException if prescription not found', async () => {
       prisma.prescription.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.delete(clinicId, 'non-existent-id'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.delete(clinicId, 'non-existent-id')).rejects.toThrow(NotFoundException);
 
       expect(prisma.prescription.update).not.toHaveBeenCalled();
     });
@@ -275,9 +272,7 @@ describe('PrescriptionsService', () => {
     it('should throw NotFoundException when prescription not found or not deleted', async () => {
       prisma.prescription.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.restore(clinicId, 'non-existent-id'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.restore(clinicId, 'non-existent-id')).rejects.toThrow(NotFoundException);
 
       expect(prisma.prescription.update).not.toHaveBeenCalled();
     });

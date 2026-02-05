@@ -162,9 +162,7 @@ describe('ClinicsService', () => {
     it('should throw NotFoundException when clinic not found', async () => {
       prisma.clinic.findUnique.mockResolvedValue(null);
 
-      await expect(service.findOne('non-existent-id')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.findOne('non-existent-id')).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -224,9 +222,7 @@ describe('ClinicsService', () => {
     it('should throw ConflictException if CNPJ already exists', async () => {
       prisma.clinic.findUnique.mockResolvedValue(mockClinic);
 
-      await expect(service.create(createDto as any, userId)).rejects.toThrow(
-        ConflictException,
-      );
+      await expect(service.create(createDto as any, userId)).rejects.toThrow(ConflictException);
 
       expect(prisma.clinic.create).not.toHaveBeenCalled();
     });
@@ -267,9 +263,9 @@ describe('ClinicsService', () => {
     it('should throw NotFoundException if clinic does not exist', async () => {
       prisma.clinic.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.update('non-existent-id', updateDto as any, userId),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.update('non-existent-id', updateDto as any, userId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw ConflictException if new CNPJ already exists on another clinic', async () => {
@@ -278,9 +274,9 @@ describe('ClinicsService', () => {
         .mockResolvedValueOnce(mockClinic) // findOne succeeds
         .mockResolvedValueOnce({ id: 'another-clinic', cnpj: '11111111000111' }); // findByCnpj finds duplicate
 
-      await expect(
-        service.update(mockClinic.id, updateWithCnpj as any, userId),
-      ).rejects.toThrow(ConflictException);
+      await expect(service.update(mockClinic.id, updateWithCnpj as any, userId)).rejects.toThrow(
+        ConflictException,
+      );
 
       expect(prisma.clinic.update).not.toHaveBeenCalled();
     });
@@ -293,7 +289,7 @@ describe('ClinicsService', () => {
     it('should return clinic statistics', async () => {
       prisma.patient.count.mockResolvedValue(50);
       prisma.appointment.count
-        .mockResolvedValueOnce(5)  // appointmentsToday
+        .mockResolvedValueOnce(5) // appointmentsToday
         .mockResolvedValueOnce(12); // appointmentsPending
       prisma.appointment.findMany.mockResolvedValue([
         { service: { price: 150 } },
@@ -316,9 +312,7 @@ describe('ClinicsService', () => {
 
     it('should return zero revenue when no completed appointments', async () => {
       prisma.patient.count.mockResolvedValue(0);
-      prisma.appointment.count
-        .mockResolvedValueOnce(0)
-        .mockResolvedValueOnce(0);
+      prisma.appointment.count.mockResolvedValueOnce(0).mockResolvedValueOnce(0);
       prisma.appointment.findMany.mockResolvedValue([]);
 
       const result = await service.getStats(mockClinic.id);
@@ -329,9 +323,7 @@ describe('ClinicsService', () => {
 
     it('should handle appointments with missing service price gracefully', async () => {
       prisma.patient.count.mockResolvedValue(10);
-      prisma.appointment.count
-        .mockResolvedValueOnce(2)
-        .mockResolvedValueOnce(3);
+      prisma.appointment.count.mockResolvedValueOnce(2).mockResolvedValueOnce(3);
       prisma.appointment.findMany.mockResolvedValue([
         { service: { price: 100 } },
         { service: null },

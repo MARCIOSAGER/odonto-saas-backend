@@ -1,7 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
-import { Prisma } from '@prisma/client';
 import { CreateAnamnesisDto } from './dto/create-anamnesis.dto';
 import { UpdateAnamnesisDto } from './dto/update-anamnesis.dto';
 
@@ -18,12 +17,12 @@ export class AnamnesisService {
         clinic_id: clinicId,
         patient_id: dto.patient_id,
         filled_by_id: userId,
-        allergies: dto.allergies || [],
-        medications: dto.medications || [],
-        conditions: dto.conditions || [],
+        allergies: (dto.allergies || []) as any,
+        medications: (dto.medications || []) as any,
+        conditions: (dto.conditions || []) as any,
         surgeries: dto.surgeries,
-        habits: dto.habits as Prisma.InputJsonValue,
-        raw_answers: dto.raw_answers as Prisma.InputJsonValue,
+        habits: dto.habits as any,
+        raw_answers: dto.raw_answers as any,
       },
       include: {
         patient: { select: { name: true, phone: true, cpf: true } },
@@ -90,22 +89,26 @@ export class AnamnesisService {
   async update(clinicId: string, id: string, dto: UpdateAnamnesisDto, userId: string) {
     const existing = await this.findById(clinicId, id);
 
+    const updateData: any = {
+      ...(dto.allergies !== undefined && { allergies: dto.allergies }),
+      ...(dto.medications !== undefined && { medications: dto.medications }),
+      ...(dto.conditions !== undefined && { conditions: dto.conditions }),
+      ...(dto.surgeries !== undefined && { surgeries: dto.surgeries }),
+      ...(dto.habits !== undefined && { habits: dto.habits }),
+      ...(dto.raw_answers !== undefined && { raw_answers: dto.raw_answers }),
+      ...(dto.risk_classification !== undefined && {
+        risk_classification: dto.risk_classification,
+      }),
+      ...(dto.contraindications !== undefined && { contraindications: dto.contraindications }),
+      ...(dto.alerts !== undefined && { alerts: dto.alerts }),
+      ...(dto.warnings !== undefined && { warnings: dto.warnings }),
+      ...(dto.ai_notes !== undefined && { ai_notes: dto.ai_notes }),
+      ...(dto.ai_recommendations !== undefined && { ai_recommendations: dto.ai_recommendations }),
+    };
+
     const anamnesis = await this.prisma.anamnesis.update({
       where: { id },
-      data: {
-        ...(dto.allergies !== undefined && { allergies: dto.allergies }),
-        ...(dto.medications !== undefined && { medications: dto.medications }),
-        ...(dto.conditions !== undefined && { conditions: dto.conditions }),
-        ...(dto.surgeries !== undefined && { surgeries: dto.surgeries }),
-        ...(dto.habits !== undefined && { habits: dto.habits as Prisma.InputJsonValue }),
-        ...(dto.raw_answers !== undefined && { raw_answers: dto.raw_answers as Prisma.InputJsonValue }),
-        ...(dto.risk_classification !== undefined && { risk_classification: dto.risk_classification }),
-        ...(dto.contraindications !== undefined && { contraindications: dto.contraindications }),
-        ...(dto.alerts !== undefined && { alerts: dto.alerts }),
-        ...(dto.warnings !== undefined && { warnings: dto.warnings }),
-        ...(dto.ai_notes !== undefined && { ai_notes: dto.ai_notes }),
-        ...(dto.ai_recommendations !== undefined && { ai_recommendations: dto.ai_recommendations }),
-      },
+      data: updateData,
       include: {
         patient: { select: { name: true, phone: true, cpf: true } },
       },

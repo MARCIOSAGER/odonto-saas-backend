@@ -1,5 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe, VersioningType, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  INestApplication,
+  ValidationPipe,
+  VersioningType,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { PassportStrategy } from '@nestjs/passport';
@@ -19,9 +25,20 @@ class TestJwtStrategy extends PassportStrategy(Strategy) {
       secretOrKey: 'test-secret',
     });
   }
-  async validate(payload: { sub: string; clinicId: string; role: string; email: string; type: string }) {
+  async validate(payload: {
+    sub: string;
+    clinicId: string;
+    role: string;
+    email: string;
+    type: string;
+  }) {
     if (payload.type !== 'access') throw new UnauthorizedException();
-    return { userId: payload.sub, clinicId: payload.clinicId, role: payload.role, email: payload.email };
+    return {
+      userId: payload.sub,
+      clinicId: payload.clinicId,
+      role: payload.role,
+      email: payload.email,
+    };
   }
 }
 
@@ -117,16 +134,11 @@ describe('AppointmentsController (e2e)', () => {
 
   describe('Authentication', () => {
     it('should return 401 without JWT on GET /appointments', () => {
-      return request(app.getHttpServer())
-        .get('/api/v1/appointments')
-        .expect(401);
+      return request(app.getHttpServer()).get('/api/v1/appointments').expect(401);
     });
 
     it('should return 401 without JWT on POST /appointments', () => {
-      return request(app.getHttpServer())
-        .post('/api/v1/appointments')
-        .send({})
-        .expect(401);
+      return request(app.getHttpServer()).post('/api/v1/appointments').send({}).expect(401);
     });
   });
 
@@ -142,7 +154,10 @@ describe('AppointmentsController (e2e)', () => {
           expect(res.body.success).toBe(true);
           expect(res.body.data.data).toHaveLength(1);
           expect(res.body.data.meta.total).toBe(1);
-          expect(mockAppointmentsService.findAll).toHaveBeenCalledWith('clinic-uuid', expect.any(Object));
+          expect(mockAppointmentsService.findAll).toHaveBeenCalledWith(
+            'clinic-uuid',
+            expect.any(Object),
+          );
         });
     });
 
@@ -152,11 +167,14 @@ describe('AppointmentsController (e2e)', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200)
         .expect(() => {
-          expect(mockAppointmentsService.findAll).toHaveBeenCalledWith('clinic-uuid', expect.objectContaining({
-            date: '2025-06-15',
-            status: 'scheduled',
-            dentistId: 'd-uuid',
-          }));
+          expect(mockAppointmentsService.findAll).toHaveBeenCalledWith(
+            'clinic-uuid',
+            expect.objectContaining({
+              date: '2025-06-15',
+              status: 'scheduled',
+              dentistId: 'd-uuid',
+            }),
+          );
         });
     });
   });

@@ -67,9 +67,7 @@ export interface PaymentGateway {
   /**
    * Create a recurring subscription
    */
-  createSubscription(
-    params: CreateSubscriptionParams,
-  ): Promise<GatewaySubscriptionResult>;
+  createSubscription(params: CreateSubscriptionParams): Promise<GatewaySubscriptionResult>;
 
   /**
    * Cancel a subscription on the gateway

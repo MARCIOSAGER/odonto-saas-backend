@@ -35,8 +35,7 @@ export class StripeGateway implements PaymentGateway {
   async createCheckout(params: CreateCheckoutParams): Promise<CheckoutResult> {
     const stripe = this.ensureConfigured();
 
-    const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
@@ -57,10 +56,8 @@ export class StripeGateway implements PaymentGateway {
           quantity: 1,
         },
       ],
-      success_url:
-        params.success_url || `${frontendUrl}/settings/billing?success=true`,
-      cancel_url:
-        params.cancel_url || `${frontendUrl}/settings/billing?cancelled=true`,
+      success_url: params.success_url || `${frontendUrl}/settings/billing?success=true`,
+      cancel_url: params.cancel_url || `${frontendUrl}/settings/billing?cancelled=true`,
       metadata: {
         clinic_id: params.clinic_id,
         plan_id: params.plan_id,
@@ -75,9 +72,7 @@ export class StripeGateway implements PaymentGateway {
     };
   }
 
-  async createSubscription(
-    params: CreateSubscriptionParams,
-  ): Promise<GatewaySubscriptionResult> {
+  async createSubscription(params: CreateSubscriptionParams): Promise<GatewaySubscriptionResult> {
     const stripe = this.ensureConfigured();
 
     // Find or create customer
@@ -143,20 +138,14 @@ export class StripeGateway implements PaymentGateway {
     headers: Record<string, string>,
   ): Promise<WebhookEvent> {
     const stripe = this.ensureConfigured();
-    const webhookSecret = this.configService.get<string>(
-      'STRIPE_WEBHOOK_SECRET',
-    );
+    const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
 
     if (!webhookSecret) {
       throw new Error('STRIPE_WEBHOOK_SECRET not configured');
     }
 
     const sig = headers['stripe-signature'];
-    const event = stripe.webhooks.constructEvent(
-      body as Buffer,
-      sig,
-      webhookSecret,
-    );
+    const event = stripe.webhooks.constructEvent(body as Buffer, sig, webhookSecret);
 
     const eventMap: Record<string, string> = {
       'checkout.session.completed': 'checkout.completed',

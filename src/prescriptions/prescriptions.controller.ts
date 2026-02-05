@@ -11,13 +11,7 @@ import {
   ParseUUIDPipe,
   NotFoundException,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-  ApiQuery,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { Response } from 'express';
 import { PrescriptionsService } from './prescriptions.service';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
@@ -31,17 +25,12 @@ import * as path from 'path';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth('JWT-auth')
 export class PrescriptionsController {
-  constructor(
-    private readonly prescriptionsService: PrescriptionsService,
-  ) {}
+  constructor(private readonly prescriptionsService: PrescriptionsService) {}
 
   @Post()
   @ApiOperation({ summary: 'Create prescription/certificate/referral' })
   @ApiResponse({ status: 201, description: 'Prescription created' })
-  async create(
-    @CurrentUser() user: { clinicId: string },
-    @Body() dto: CreatePrescriptionDto,
-  ) {
+  async create(@CurrentUser() user: { clinicId: string }, @Body() dto: CreatePrescriptionDto) {
     return this.prescriptionsService.create(user.clinicId, dto);
   }
 
@@ -85,10 +74,7 @@ export class PrescriptionsController {
     @CurrentUser() user: { clinicId: string },
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    const pdfUrl = await this.prescriptionsService.generatePdf(
-      user.clinicId,
-      id,
-    );
+    const pdfUrl = await this.prescriptionsService.generatePdf(user.clinicId, id);
     return { pdf_url: pdfUrl };
   }
 
@@ -99,10 +85,7 @@ export class PrescriptionsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Res() res: Response,
   ) {
-    let prescription = await this.prescriptionsService.findById(
-      user.clinicId,
-      id,
-    );
+    let prescription = await this.prescriptionsService.findById(user.clinicId, id);
 
     if (!prescription.pdf_url) {
       await this.prescriptionsService.generatePdf(user.clinicId, id);
@@ -134,38 +117,26 @@ export class PrescriptionsController {
     const fileName = `${typeName}_${patientName}_${id.slice(0, 8)}.pdf`;
 
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="${fileName}"`,
-    );
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
     fs.createReadStream(filePath).pipe(res);
   }
 
   @Post(':id/send')
   @ApiOperation({ summary: 'Mark prescription as sent' })
-  async markAsSent(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() body: { via: string },
-  ) {
+  async markAsSent(@Param('id', ParseUUIDPipe) id: string, @Body() body: { via: string }) {
     return this.prescriptionsService.markAsSent(id, body.via);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete prescription' })
-  async delete(
-    @CurrentUser() user: { clinicId: string },
-    @Param('id', ParseUUIDPipe) id: string,
-  ) {
+  async delete(@CurrentUser() user: { clinicId: string }, @Param('id', ParseUUIDPipe) id: string) {
     return this.prescriptionsService.delete(user.clinicId, id);
   }
 
   @Post(':id/restore')
   @ApiOperation({ summary: 'Restore soft-deleted prescription' })
   @ApiResponse({ status: 200, description: 'Prescription restored' })
-  async restore(
-    @CurrentUser() user: { clinicId: string },
-    @Param('id', ParseUUIDPipe) id: string,
-  ) {
+  async restore(@CurrentUser() user: { clinicId: string }, @Param('id', ParseUUIDPipe) id: string) {
     return this.prescriptionsService.restore(user.clinicId, id);
   }
 }

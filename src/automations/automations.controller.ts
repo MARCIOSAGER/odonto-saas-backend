@@ -1,18 +1,5 @@
-import {
-  Controller,
-  Get,
-  Put,
-  Patch,
-  Param,
-  Body,
-  UseGuards,
-} from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-} from '@nestjs/swagger';
+import { Controller, Get, Put, Patch, Param, Body, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AutomationsService } from './automations.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -34,10 +21,7 @@ export class AutomationsController {
   @Get(':type')
   @ApiOperation({ summary: 'Get automation by type' })
   @ApiResponse({ status: 200, description: 'Automation details' })
-  async findByType(
-    @CurrentUser() user: { clinicId: string },
-    @Param('type') type: string,
-  ) {
+  async findByType(@CurrentUser() user: { clinicId: string }, @Param('type') type: string) {
     return this.automationsService.findByType(user.clinicId, type);
   }
 

@@ -25,10 +25,15 @@ export class UpdateClinicDto extends PartialType(CreateClinicDto) {
   z_api_client_token?: string;
 
   // White-label
-  @ApiPropertyOptional({ description: 'URL slug for white-label login', example: 'clinica-odonto-saude' })
+  @ApiPropertyOptional({
+    description: 'URL slug for white-label login',
+    example: 'clinica-odonto-saude',
+  })
   @IsString()
   @IsOptional()
-  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, { message: 'slug must be lowercase alphanumeric with hyphens only' })
+  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
+    message: 'slug must be lowercase alphanumeric with hyphens only',
+  })
   slug?: string;
 
   // Branding
@@ -42,7 +47,11 @@ export class UpdateClinicDto extends PartialType(CreateClinicDto) {
   @IsOptional()
   favicon_url?: string;
 
-  @ApiPropertyOptional({ description: 'Logo display mode in sidebar', example: 'logo_name', enum: ['logo_name', 'logo_only', 'name_only'] })
+  @ApiPropertyOptional({
+    description: 'Logo display mode in sidebar',
+    example: 'logo_name',
+    enum: ['logo_name', 'logo_only', 'name_only'],
+  })
   @IsString()
   @IsOptional()
   logo_display_mode?: string;
@@ -50,13 +59,17 @@ export class UpdateClinicDto extends PartialType(CreateClinicDto) {
   @ApiPropertyOptional({ description: 'Primary brand color (hex)', example: '#0EA5E9' })
   @IsString()
   @IsOptional()
-  @Matches(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, { message: 'primary_color must be a valid hex color' })
+  @Matches(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, {
+    message: 'primary_color must be a valid hex color',
+  })
   primary_color?: string;
 
   @ApiPropertyOptional({ description: 'Secondary brand color (hex)', example: '#10B981' })
   @IsString()
   @IsOptional()
-  @Matches(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, { message: 'secondary_color must be a valid hex color' })
+  @Matches(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, {
+    message: 'secondary_color must be a valid hex color',
+  })
   secondary_color?: string;
 
   @ApiPropertyOptional({ description: 'Clinic slogan', example: 'Seu sorriso é nossa prioridade' })
@@ -64,7 +77,10 @@ export class UpdateClinicDto extends PartialType(CreateClinicDto) {
   @IsOptional()
   slogan?: string;
 
-  @ApiPropertyOptional({ description: 'Clinic tagline (short description)', example: 'Cuidando do seu sorriso desde 2010' })
+  @ApiPropertyOptional({
+    description: 'Clinic tagline (short description)',
+    example: 'Cuidando do seu sorriso desde 2010',
+  })
   @IsString()
   @IsOptional()
   tagline?: string;
@@ -75,7 +91,10 @@ export class UpdateClinicDto extends PartialType(CreateClinicDto) {
   @IsOptional()
   instagram?: string;
 
-  @ApiPropertyOptional({ description: 'Facebook page URL', example: 'https://facebook.com/clinicaodonto' })
+  @ApiPropertyOptional({
+    description: 'Facebook page URL',
+    example: 'https://facebook.com/clinicaodonto',
+  })
   @IsString()
   @IsOptional()
   facebook?: string;

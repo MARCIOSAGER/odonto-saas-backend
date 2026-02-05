@@ -183,9 +183,9 @@ describe('TreatmentPlansService', () => {
     it('should throw NotFoundException when plan is not found', async () => {
       prisma.treatmentPlan.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.findById(clinicId, 'non-existent-id'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.findById(clinicId, 'non-existent-id')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -210,12 +210,7 @@ describe('TreatmentPlansService', () => {
       prisma.treatmentPlan.findFirst.mockResolvedValue(mockPlan);
       prisma.treatmentPlan.update.mockResolvedValue(updatedPlan);
 
-      const result = await service.update(
-        clinicId,
-        'plan-uuid-1',
-        updateDto as any,
-        userId,
-      );
+      const result = await service.update(clinicId, 'plan-uuid-1', updateDto as any, userId);
 
       expect(result).toEqual(updatedPlan);
       expect(prisma.treatmentPlan.findFirst).toHaveBeenCalledWith({
@@ -277,12 +272,7 @@ describe('TreatmentPlansService', () => {
       prisma.treatmentPlan.findFirst.mockResolvedValue(mockPlan);
       prisma.treatmentPlan.update.mockResolvedValue(updatedPlan);
 
-      await service.update(
-        clinicId,
-        'plan-uuid-1',
-        dtoWithPhases as any,
-        userId,
-      );
+      await service.update(clinicId, 'plan-uuid-1', dtoWithPhases as any, userId);
 
       expect(prisma.treatmentPlan.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -307,12 +297,7 @@ describe('TreatmentPlansService', () => {
       prisma.treatmentPlan.findFirst.mockResolvedValue(mockPlan);
       prisma.treatmentPlan.update.mockResolvedValue(updatedPlan);
 
-      const result = await service.updateStatus(
-        clinicId,
-        'plan-uuid-1',
-        'in_progress',
-        userId,
-      );
+      const result = await service.updateStatus(clinicId, 'plan-uuid-1', 'in_progress', userId);
 
       expect(result).toEqual(updatedPlan);
       expect(prisma.treatmentPlan.findFirst).toHaveBeenCalledWith({
@@ -360,12 +345,7 @@ describe('TreatmentPlansService', () => {
       prisma.treatmentPlan.findFirst.mockResolvedValue(mockPlan);
       prisma.treatmentPlan.update.mockResolvedValue(completedPlan);
 
-      const result = await service.updateStatus(
-        clinicId,
-        'plan-uuid-1',
-        'completed',
-        userId,
-      );
+      const result = await service.updateStatus(clinicId, 'plan-uuid-1', 'completed', userId);
 
       expect(result.status).toBe('completed');
       expect(auditService.log).toHaveBeenCalledWith(
@@ -384,12 +364,7 @@ describe('TreatmentPlansService', () => {
       prisma.treatmentPlan.findFirst.mockResolvedValue(mockPlan);
       prisma.treatmentPlan.update.mockResolvedValue(cancelledPlan);
 
-      const result = await service.updateStatus(
-        clinicId,
-        'plan-uuid-1',
-        'cancelled',
-        userId,
-      );
+      const result = await service.updateStatus(clinicId, 'plan-uuid-1', 'cancelled', userId);
 
       expect(result.status).toBe('cancelled');
       expect(auditService.log).toHaveBeenCalledWith(

@@ -40,7 +40,12 @@ export class AppointmentsController {
   @ApiQuery({ name: 'status', required: false, type: String })
   @ApiQuery({ name: 'dentist_id', required: false, type: String })
   @ApiQuery({ name: 'patient_id', required: false, type: String })
-  @ApiQuery({ name: 'cursor', required: false, type: String, description: 'Cursor for cursor-based pagination' })
+  @ApiQuery({
+    name: 'cursor',
+    required: false,
+    type: String,
+    description: 'Cursor for cursor-based pagination',
+  })
   @Permissions('appointments:manage')
   async findAll(
     @CurrentUser() user: { clinicId: string },

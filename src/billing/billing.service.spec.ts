@@ -312,9 +312,7 @@ describe('BillingService', () => {
         raw: {},
       });
 
-      expect(subscriptionsService.markPastDue).toHaveBeenCalledWith(
-        mockSubscription.id,
-      );
+      expect(subscriptionsService.markPastDue).toHaveBeenCalledWith(mockSubscription.id);
     });
 
     it('should handle subscription.cancelled event', async () => {
@@ -423,12 +421,12 @@ describe('BillingService', () => {
   describe('getAdminOverview', () => {
     it('should return billing overview with MRR calculation', async () => {
       prisma.subscription.count
-        .mockResolvedValueOnce(10)  // active
-        .mockResolvedValueOnce(3)   // trialing
-        .mockResolvedValueOnce(1);  // past_due
+        .mockResolvedValueOnce(10) // active
+        .mockResolvedValueOnce(3) // trialing
+        .mockResolvedValueOnce(1); // past_due
 
       prisma.invoice.aggregate
-        .mockResolvedValueOnce({ _sum: { total: 5000 } })  // total revenue
+        .mockResolvedValueOnce({ _sum: { total: 5000 } }) // total revenue
         .mockResolvedValueOnce({ _sum: { total: 1200 } }); // monthly revenue
 
       prisma.subscription.findMany.mockResolvedValue([

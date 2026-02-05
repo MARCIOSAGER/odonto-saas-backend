@@ -42,10 +42,7 @@ export class ConversationsController {
   @Post(':phone/read')
   @ApiOperation({ summary: 'Mark all messages in a conversation as read' })
   @ApiResponse({ status: 200, description: 'Messages marked as read' })
-  async markAsRead(
-    @Param('phone') phone: string,
-    @CurrentUser() user: { clinicId: string },
-  ) {
+  async markAsRead(@Param('phone') phone: string, @CurrentUser() user: { clinicId: string }) {
     return this.conversationsService.markAsRead(user.clinicId, phone);
   }
 
