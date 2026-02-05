@@ -50,11 +50,9 @@ async function bootstrap() {
     }),
   );
   // CORS — origins configurable via env (comma-separated), with safe defaults
-  const corsOrigins = configService.get<string>('CORS_ORIGINS')
-    ? configService
-        .get<string>('CORS_ORIGINS')
-        .split(',')
-        .map((o) => o.trim())
+  const corsOriginsEnv = configService.get<string>('CORS_ORIGINS');
+  const corsOrigins = corsOriginsEnv
+    ? corsOriginsEnv.split(',').map((o) => o.trim())
     : ['https://odonto.marciosager.com', 'http://localhost:3000', 'http://localhost:3001'];
 
   app.enableCors({
