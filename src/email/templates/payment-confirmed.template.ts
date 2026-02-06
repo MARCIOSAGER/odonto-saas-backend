@@ -23,10 +23,10 @@ export function paymentConfirmedTemplate(name: string, planName: string, amount:
               <td style="padding:12px;border-bottom:1px solid #e2e8f0;color:#333;font-size:14px;font-weight:600;text-align:right;">R$ ${amount}</td>
             </tr>
           </table>
-          <p style="color:#555;font-size:15px;line-height:1.6;">Obrigado por confiar no Odonto SaaS!</p>
+          <p style="color:#555;font-size:15px;line-height:1.6;">Obrigado por confiar na INTER-IA!</p>
         </td></tr>
         <tr><td style="background-color:#f8fafc;padding:20px 30px;text-align:center;border-top:1px solid #e2e8f0;">
-          <p style="color:#94a3b8;font-size:12px;margin:0;">Odonto SaaS - Gest&atilde;o inteligente para cl&iacute;nicas odontol&oacute;gicas</p>
+          <p style="color:#94a3b8;font-size:12px;margin:0;">INTER-IA - Gest&atilde;o inteligente para cl&iacute;nicas odontol&oacute;gicas</p>
         </td></tr>
       </table>
     </td></tr>

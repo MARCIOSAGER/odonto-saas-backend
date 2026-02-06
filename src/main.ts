@@ -114,7 +114,7 @@ async function bootstrap() {
   // Swagger documentation — disabled in production to avoid exposing API schema
   if (!isProduction) {
     const swaggerConfig = new DocumentBuilder()
-      .setTitle('OdontoSaaS API')
+      .setTitle('INTER-IA API')
       .setDescription('API para sistema SaaS de clínicas odontológicas multi-tenant')
       .setVersion('1.0')
       .addBearerAuth(
