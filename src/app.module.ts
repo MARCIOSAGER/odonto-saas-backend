@@ -41,6 +41,7 @@ import { SystemConfigModule } from './system-config/system-config.module';
 import { TreatmentPlansModule } from './treatment-plans/treatment-plans.module';
 import { AnamnesisModule } from './anamnesis/anamnesis.module';
 import { MetricsModule } from './metrics/metrics.module';
+import { PublicBookingModule } from './public-booking/public-booking.module';
 
 @Module({
   imports: [
@@ -123,6 +124,7 @@ import { MetricsModule } from './metrics/metrics.module';
     SystemConfigModule,
     TreatmentPlansModule,
     AnamnesisModule,
+    PublicBookingModule,
   ],
   controllers: [HealthController],
   providers: [

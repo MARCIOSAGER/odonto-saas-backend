@@ -99,6 +99,9 @@ model Clinic {
   latitude  String?
   longitude String?
 
+  // Public Booking
+  public_booking_enabled Boolean @default(false)
+
   created_at       DateTime                @default(now()) @db.Timestamp(6)
   updated_at       DateTime                @default(now()) @updatedAt @db.Timestamp(6)
   users            User[]

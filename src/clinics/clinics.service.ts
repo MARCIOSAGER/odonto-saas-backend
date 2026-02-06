@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, ConflictException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
@@ -57,6 +63,7 @@ const CLINIC_SAFE_SELECT = {
   facebook: true,
   website: true,
   business_hours: true,
+  public_booking_enabled: true,
   latitude: true,
   longitude: true,
   created_at: true,
@@ -1127,5 +1134,63 @@ export class ClinicsService {
 
       return { success: false, message: `Erro: ${error.message}` };
     }
+  }
+
+  /**
+   * Get public booking settings for a clinic
+   */
+  async getPublicBookingSettings(clinicId: string) {
+    const clinic = await this.prisma.clinic.findUnique({
+      where: { id: clinicId },
+      select: {
+        slug: true,
+        public_booking_enabled: true,
+      },
+    });
+
+    if (!clinic) {
+      throw new NotFoundException('Clinic not found');
+    }
+
+    const frontendUrl = this.configService.get('FRONTEND_URL', 'http://localhost:3000');
+    const link =
+      clinic.slug && clinic.public_booking_enabled ? `${frontendUrl}/agendar/${clinic.slug}` : null;
+
+    return {
+      enabled: clinic.public_booking_enabled,
+      slug: clinic.slug,
+      link,
+    };
+  }
+
+  /**
+   * Update public booking settings
+   */
+  async updatePublicBookingSettings(clinicId: string, enabled: boolean, userId: string) {
+    const clinic = await this.findOne(clinicId);
+
+    // Require slug to be set before enabling
+    if (enabled && !clinic.slug) {
+      throw new BadRequestException(
+        'Configure um slug para a clínica antes de ativar o agendamento público',
+      );
+    }
+
+    await this.prisma.clinic.update({
+      where: { id: clinicId },
+      data: { public_booking_enabled: enabled },
+    });
+
+    await this.auditService.log({
+      action: 'UPDATE',
+      entity: 'Clinic',
+      entityId: clinicId,
+      clinicId,
+      userId,
+      oldValues: { public_booking_enabled: clinic.public_booking_enabled },
+      newValues: { public_booking_enabled: enabled },
+    });
+
+    return this.getPublicBookingSettings(clinicId);
   }
 }

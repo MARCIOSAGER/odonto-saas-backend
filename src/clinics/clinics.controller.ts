@@ -263,6 +263,27 @@ export class ClinicsController {
     return this.clinicsService.testEmailConnection(user.clinicId, user.userId);
   }
 
+  @Get('my/public-booking-settings')
+  @ApiOperation({ summary: 'Get public booking settings' })
+  @ApiResponse({ status: 200, description: 'Public booking settings' })
+  async getPublicBookingSettings(@CurrentUser() user: { clinicId: string }) {
+    return this.clinicsService.getPublicBookingSettings(user.clinicId);
+  }
+
+  @Put('my/public-booking-settings')
+  @ApiOperation({ summary: 'Update public booking settings' })
+  @ApiResponse({ status: 200, description: 'Settings updated' })
+  async updatePublicBookingSettings(
+    @Body() body: { enabled: boolean },
+    @CurrentUser() user: { userId: string; clinicId: string },
+  ) {
+    return this.clinicsService.updatePublicBookingSettings(
+      user.clinicId,
+      body.enabled,
+      user.userId,
+    );
+  }
+
   @Get('public/branding/:slug')
   @Public()
   @ApiOperation({ summary: 'Get clinic public branding by slug (no auth required)' })
