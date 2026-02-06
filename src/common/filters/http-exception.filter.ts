@@ -43,12 +43,15 @@ export class HttpExceptionFilter implements ExceptionFilter {
         error = responseObj.error as string;
       }
     } else if (exception instanceof Error) {
-      message = exception.message;
-      // Log stack trace only in development; in production, Sentry captures the full trace
+      // Log full error internally
       if (process.env.NODE_ENV !== 'production') {
         this.logger.error(`Unhandled error: ${exception.message}`, exception.stack);
+        // In development, show detailed error for debugging
+        message = exception.message;
       } else {
+        // In production, hide internal error details from response
         this.logger.error(`Unhandled error: ${exception.message}`);
+        message = 'Internal server error';
       }
     }
 
