@@ -49,8 +49,8 @@ cp .env.example .env
 # Gerar Prisma Client
 npx prisma generate
 
-# Sincronizar schema com o banco
-npx prisma db push
+# Rodar migrations (desenvolvimento)
+npx prisma migrate dev
 
 # Iniciar em modo desenvolvimento
 npm run start:dev
@@ -286,7 +286,10 @@ npm run test:cov
 npm run test:e2e
 ```
 
-**Cobertura atual**: 284 testes unitários passando (16 suites)
+**Cobertura atual**:
+- 284 testes unitários (16 suites)
+- 54 testes E2E (3 suites)
+- CI/CD automático via GitHub Actions
 
 ## Deploy
 
@@ -307,12 +310,14 @@ Push para `main` → Coolify detecta via GitHub App → Build + Deploy automáti
 # Gerar Prisma Client
 npx prisma generate
 
-# Sincronizar schema (zero-downtime)
-npx prisma db push
+# Aplicar migrations (versionadas, rastreáveis)
+npx prisma migrate deploy
 
 # Iniciar API
 npm run start:prod
 ```
+
+**Nota:** O comando `start:prod` já executa `prisma migrate deploy` automaticamente antes de iniciar a API.
 
 ## Monitoramento
 

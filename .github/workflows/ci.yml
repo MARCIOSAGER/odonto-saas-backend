@@ -27,8 +27,11 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Run tests
+      - name: Run unit tests
         run: npm test -- --passWithNoTests --forceExit
+
+      - name: Run E2E tests
+        run: npm run test:e2e -- --forceExit
 
       - name: Build
         run: npm run build
