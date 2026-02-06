@@ -139,7 +139,7 @@ export class FaceogramService {
     // Log audit
     await this.auditService.log({
       action: 'CREATE',
-      entityType: 'FaceogramEntry',
+      entity: 'FaceogramEntry',
       entityId: entry.id,
       userId,
       clinicId,
@@ -202,7 +202,7 @@ export class FaceogramService {
     // Log audit
     await this.auditService.log({
       action: 'UPDATE',
-      entityType: 'FaceogramEntry',
+      entity: 'FaceogramEntry',
       entityId: entryId,
       userId,
       clinicId,
@@ -343,7 +343,7 @@ export class FaceogramService {
     // Log audit
     await this.auditService.log({
       action: 'DELETE',
-      entityType: 'FaceogramEntry',
+      entity: 'FaceogramEntry',
       entityId: entryId,
       userId,
       clinicId,

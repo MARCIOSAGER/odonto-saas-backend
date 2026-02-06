@@ -106,7 +106,7 @@ export class HofAnamnesisService {
 
     await this.auditService.log({
       action: 'CREATE',
-      entityType: 'HofAnamnesis',
+      entity: 'HofAnamnesis',
       entityId: anamnesis.id,
       userId,
       clinicId,
@@ -170,7 +170,7 @@ export class HofAnamnesisService {
 
     await this.auditService.log({
       action: 'UPDATE',
-      entityType: 'HofAnamnesis',
+      entity: 'HofAnamnesis',
       entityId: anamnesisId,
       userId,
       clinicId,

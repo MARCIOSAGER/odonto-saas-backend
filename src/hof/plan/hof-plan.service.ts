@@ -80,7 +80,7 @@ export class HofPlanService {
 
     await this.auditService.log({
       action: 'CREATE',
-      entityType: 'HofPlanItem',
+      entity: 'HofPlanItem',
       entityId: item.id,
       userId,
       clinicId,
@@ -118,7 +118,7 @@ export class HofPlanService {
 
     await this.auditService.log({
       action: 'UPDATE',
-      entityType: 'HofPlanItem',
+      entity: 'HofPlanItem',
       entityId: itemId,
       userId,
       clinicId,
@@ -163,7 +163,7 @@ export class HofPlanService {
 
     await this.auditService.log({
       action: 'UPDATE',
-      entityType: 'HofPlanItem',
+      entity: 'HofPlanItem',
       entityId: itemId,
       userId,
       clinicId,
@@ -192,7 +192,7 @@ export class HofPlanService {
 
     await this.auditService.log({
       action: 'DELETE',
-      entityType: 'HofPlanItem',
+      entity: 'HofPlanItem',
       entityId: itemId,
       userId,
       clinicId,

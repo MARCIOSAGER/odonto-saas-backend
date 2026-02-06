@@ -98,7 +98,7 @@ export class HofPhotosService {
 
     await this.auditService.log({
       action: 'CREATE',
-      entityType: 'HofPhoto',
+      entity: 'HofPhoto',
       entityId: photo.id,
       userId,
       clinicId,
@@ -130,7 +130,7 @@ export class HofPhotosService {
 
     await this.auditService.log({
       action: 'UPDATE',
-      entityType: 'HofPhoto',
+      entity: 'HofPhoto',
       entityId: photoId,
       userId,
       clinicId,
@@ -159,7 +159,7 @@ export class HofPhotosService {
 
     await this.auditService.log({
       action: 'DELETE',
-      entityType: 'HofPhoto',
+      entity: 'HofPhoto',
       entityId: photoId,
       userId,
       clinicId,

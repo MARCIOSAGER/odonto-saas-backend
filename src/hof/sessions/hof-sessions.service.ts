@@ -153,7 +153,7 @@ export class HofSessionsService {
 
     await this.auditService.log({
       action: 'CREATE',
-      entityType: 'HofSession',
+      entity: 'HofSession',
       entityId: session.id,
       userId,
       clinicId,
@@ -162,10 +162,11 @@ export class HofSessionsService {
 
     // Send notification
     await this.notificationsService.create({
-      clinicId,
+      user_id: userId,
+      clinic_id: clinicId,
       type: 'hof_session_created',
       title: 'Nova sessão HOF',
-      message: `Sessão HOF criada para ${session.patient.name}`,
+      body: `Sessão HOF criada para ${session.patient.name}`,
       data: { sessionId: session.id, patientId },
     });
 
@@ -208,7 +209,7 @@ export class HofSessionsService {
 
     await this.auditService.log({
       action: 'UPDATE',
-      entityType: 'HofSession',
+      entity: 'HofSession',
       entityId: sessionId,
       userId,
       clinicId,
@@ -237,7 +238,7 @@ export class HofSessionsService {
 
     await this.auditService.log({
       action: 'DELETE',
-      entityType: 'HofSession',
+      entity: 'HofSession',
       entityId: sessionId,
       userId,
       clinicId,

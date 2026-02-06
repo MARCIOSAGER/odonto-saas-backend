@@ -147,7 +147,7 @@ export class HofConsentService {
 
     await this.auditService.log({
       action: 'CREATE',
-      entityType: 'HofConsent',
+      entity: 'HofConsent',
       entityId: consent.id,
       userId,
       clinicId,
@@ -184,7 +184,7 @@ export class HofConsentService {
 
     await this.auditService.log({
       action: 'UPDATE',
-      entityType: 'HofConsent',
+      entity: 'HofConsent',
       entityId: consentId,
       userId,
       clinicId,
