@@ -38,6 +38,7 @@ import { AdminModule } from './admin/admin.module';
 import { SystemConfigModule } from './system-config/system-config.module';
 import { TreatmentPlansModule } from './treatment-plans/treatment-plans.module';
 import { AnamnesisModule } from './anamnesis/anamnesis.module';
+import { MetricsModule } from './metrics/metrics.module';
 
 @Module({
   imports: [
@@ -68,6 +69,9 @@ import { AnamnesisModule } from './anamnesis/anamnesis.module';
 
     // Health check
     TerminusModule,
+
+    // Metrics (Prometheus)
+    MetricsModule,
 
     // Cache (Redis in production, in-memory fallback)
     RedisCacheModule,

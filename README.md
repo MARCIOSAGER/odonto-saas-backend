@@ -230,10 +230,25 @@ Consulte a documentacao Swagger em `/api/docs` para a lista completa de endpoint
 - **GET /health/ping**: Uptime, memory usage, Node.js version, environment
 - **Process metrics**: Heap used/total, RSS, uptime formatado
 
+### Prometheus Metrics
+- **GET /metrics**: Endpoint Prometheus para scraping
+- **HTTP Metrics**: Contador de requests, histogram de latência (P50, P95, P99)
+- **Cache Metrics**: Cache hits/misses por chave
+- **Database Metrics**: Contador de queries, slow queries (>1s)
+- **WebSocket Metrics**: Gauge de conexões ativas
+- **Default Metrics**: CPU, memória, event loop, GC (automático)
+
+### Audit Log API
+- **GET /api/v1/audit**: Consulta de logs de auditoria (admin only)
+- **Filtros**: userId, action, entity, entityId, startDate, endDate
+- **Paginação**: page, limit (até 100 itens/página)
+- **Segurança**: Dados sensíveis redacted automaticamente
+
 ### Real-time Monitoring
 - Logs estruturados compatíveis com ELK, Datadog, CloudWatch
 - Alertas automáticos para slow queries e requests
 - Métricas de sistema em tempo real via health endpoint
+- Dashboards Grafana via Prometheus metrics
 
 ## Seguranca
 

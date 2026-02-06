@@ -1,14 +1,17 @@
-import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger } from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger, Optional } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { Request } from 'express';
 import { throwError } from 'rxjs';
+import { MetricsService } from '../../metrics/metrics.service';
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
   private readonly logger = new Logger('HTTP');
   private readonly SLOW_REQUEST_THRESHOLD = 1000; // 1 second
   private readonly VERY_SLOW_REQUEST_THRESHOLD = 3000; // 3 seconds
+
+  constructor(@Optional() private readonly metricsService?: MetricsService) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const request = context.switchToHttp().getRequest<Request>();
@@ -35,6 +38,11 @@ export class LoggingInterceptor implements NestInterceptor {
           clinicId: user?.clinicId,
           userAgent: userAgent.substring(0, 50),
         };
+
+        // Track metrics (if MetricsService is available)
+        if (this.metricsService) {
+          this.metricsService.trackHttpRequest(method, url, statusCode, duration);
+        }
 
         // Log level based on status code and duration
         if (statusCode >= 500) {
