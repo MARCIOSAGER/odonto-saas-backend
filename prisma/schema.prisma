@@ -12,11 +12,11 @@ datasource db {
 // ============================================
 
 model User {
-  id        String  @id @default(dbgenerated("(gen_random_uuid())::text"))
-  clinic_id String?
-  name      String
-  email     String  @unique
-  password  String
+  id          String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  clinic_id   String?
+  name        String
+  email       String   @unique
+  password    String
   role        String   @default("user")
   status      String   @default("active")
   permissions String[] @default([])
@@ -124,23 +124,23 @@ model Clinic {
 }
 
 model Dentist {
-  id            String            @id @default(dbgenerated("(gen_random_uuid())::text"))
-  clinic_id     String
-  name          String
-  cro           String
-  specialty     String?
-  phone         String?
-  email         String?
-  phone_hash    String?
-  commission_rate Decimal?        @default(0) @db.Decimal(5, 2)
-  status          String          @default("active")
-  created_at      DateTime        @default(now()) @db.Timestamp(6)
-  updated_at      DateTime        @default(now()) @updatedAt @db.Timestamp(6)
-  clinic          Clinic          @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+  id              String            @id @default(dbgenerated("(gen_random_uuid())::text"))
+  clinic_id       String
+  name            String
+  cro             String
+  specialty       String?
+  phone           String?
+  email           String?
+  phone_hash      String?
+  commission_rate Decimal?          @default(0) @db.Decimal(5, 2)
+  status          String            @default("active")
+  created_at      DateTime          @default(now()) @db.Timestamp(6)
+  updated_at      DateTime          @default(now()) @updatedAt @db.Timestamp(6)
+  clinic          Clinic            @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
   appointments    Appointment[]
   schedules       DentistSchedule[]
   prescriptions   Prescription[]
-  deleted_at      DateTime?       @db.Timestamp(6)
+  deleted_at      DateTime?         @db.Timestamp(6)
 
   @@unique([clinic_id, cro])
   @@index([clinic_id])
@@ -149,35 +149,43 @@ model Dentist {
 }
 
 model Patient {
-  id               String            @id @default(dbgenerated("(gen_random_uuid())::text"))
-  clinic_id        String
-  name             String
-  phone            String
-  cpf              String?
-  email            String?
-  birth_date       DateTime?         @db.Date
-  address          String?
-  notes            String?
-  status           String            @default("active")
+  id                   String            @id @default(dbgenerated("(gen_random_uuid())::text"))
+  clinic_id            String
+  name                 String
+  phone                String
+  cpf                  String?
+  email                String?
+  birth_date           DateTime?         @db.Date
+  address              String?
+  notes                String?
+  status               String            @default("active")
   portal_token         String?           @unique @default(dbgenerated("(gen_random_uuid())::text"))
   portal_token_expires DateTime?         @db.Timestamp(6)
   last_visit           DateTime?         @db.Timestamp(6)
-  phone_hash       String?
-  cpf_hash         String?
-  email_hash       String?
-  created_at       DateTime          @default(now()) @db.Timestamp(6)
-  updated_at       DateTime          @default(now()) @updatedAt @db.Timestamp(6)
-  clinic           Clinic            @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
-  appointments     Appointment[]
-  conversations    Conversation[]
-  conversationLogs ConversationLog[]
-  whatsappMessages WhatsAppMessage[]
-  odontograms      Odontogram[]
-  prescriptions    Prescription[]
-  npsSurveys       NpsSurvey[]
-  anamneses        Anamnesis[]
-  treatmentPlans   TreatmentPlan[]
-  deleted_at       DateTime?         @db.Timestamp(6)
+  phone_hash           String?
+  cpf_hash             String?
+  email_hash           String?
+  created_at           DateTime          @default(now()) @db.Timestamp(6)
+  updated_at           DateTime          @default(now()) @updatedAt @db.Timestamp(6)
+  clinic               Clinic            @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
+  appointments         Appointment[]
+  conversations        Conversation[]
+  conversationLogs     ConversationLog[]
+  whatsappMessages     WhatsAppMessage[]
+  odontograms          Odontogram[]
+  prescriptions        Prescription[]
+  npsSurveys           NpsSurvey[]
+  anamneses            Anamnesis[]
+  treatmentPlans       TreatmentPlan[]
+  deleted_at           DateTime?         @db.Timestamp(6)
+
+  // HOF (Harmonizacao Orofacial) relations
+  hofAnamneses HofAnamnesis[]
+  faceograms   Faceogram[]
+  hofSessions  HofSession[]
+  hofPhotos    HofPhoto[]
+  hofPlanItems HofPlanItem[]
+  hofConsents  HofConsent[]
 
   @@unique([clinic_id, phone], map: "unique_clinic_phone")
   @@index([clinic_id], map: "idx_patient_clinic")
@@ -198,6 +206,7 @@ model Service {
   description  String?
   price        Decimal       @db.Decimal(10, 2)
   duration     Int
+  category     String        @default("odontologia") // "odontologia" | "hof"
   status       String        @default("active")
   created_at   DateTime      @default(now()) @db.Timestamp(6)
   updated_at   DateTime      @default(now()) @updatedAt @db.Timestamp(6)
@@ -206,26 +215,27 @@ model Service {
 
   @@unique([clinic_id, name])
   @@index([clinic_id])
+  @@index([category])
 }
 
 model Appointment {
-  id               String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  id               String      @id @default(dbgenerated("(gen_random_uuid())::text"))
   clinic_id        String
   patient_id       String
   dentist_id       String?
   service_id       String
-  date             DateTime  @db.Date
+  date             DateTime    @db.Date
   time             String
-  duration         Int       @default(30)
-  status           String    @default("scheduled")
+  duration         Int         @default(30)
+  status           String      @default("scheduled")
   notes            String?
   cancel_reason    String?
-  cancelled_at     DateTime? @db.Timestamp(6)
-  confirmed_at     DateTime? @db.Timestamp(6)
-  reminder_sent    Boolean   @default(false)
-  reminder_1h_sent Boolean   @default(false)
-  created_at       DateTime  @default(now()) @db.Timestamp(6)
-  updated_at       DateTime  @default(now()) @updatedAt @db.Timestamp(6)
+  cancelled_at     DateTime?   @db.Timestamp(6)
+  confirmed_at     DateTime?   @db.Timestamp(6)
+  reminder_sent    Boolean     @default(false)
+  reminder_1h_sent Boolean     @default(false)
+  created_at       DateTime    @default(now()) @db.Timestamp(6)
+  updated_at       DateTime    @default(now()) @updatedAt @db.Timestamp(6)
   clinic           Clinic      @relation(fields: [clinic_id], references: [id], onDelete: Cascade)
   patient          Patient     @relation(fields: [patient_id], references: [id], onDelete: Cascade)
   dentist          Dentist?    @relation(fields: [dentist_id], references: [id])
@@ -653,8 +663,8 @@ enum DentitionType {
 
 enum ToothSurface {
   WHOLE
-  M  // Mesial
-  D  // Distal
+  M // Mesial
+  D // Distal
   OI // Oclusal/Incisal
   VB // Vestibular/Bucal
   LP // Lingual/Palatal
@@ -674,39 +684,39 @@ enum TreatmentPlanItemStatus {
 }
 
 model Odontogram {
-  id              String            @id @default(dbgenerated("(gen_random_uuid())::text"))
-  patient_id      String
-  clinic_id       String
-  dentition_type  DentitionType     @default(PERMANENT)
-  created_by      String?
-  notes           String?
-  created_at      DateTime          @default(now()) @db.Timestamp(6)
-  updated_at      DateTime          @default(now()) @updatedAt @db.Timestamp(6)
-  patient         Patient           @relation(fields: [patient_id], references: [id], onDelete: Cascade)
-  entries         OdontogramEntry[]
-  treatmentPlans  TreatmentPlan[]
+  id             String            @id @default(dbgenerated("(gen_random_uuid())::text"))
+  patient_id     String
+  clinic_id      String
+  dentition_type DentitionType     @default(PERMANENT)
+  created_by     String?
+  notes          String?
+  created_at     DateTime          @default(now()) @db.Timestamp(6)
+  updated_at     DateTime          @default(now()) @updatedAt @db.Timestamp(6)
+  patient        Patient           @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  entries        OdontogramEntry[]
+  treatmentPlans TreatmentPlan[]
 
   @@index([patient_id])
   @@index([clinic_id])
 }
 
 model OdontogramEntry {
-  id                     String               @id @default(dbgenerated("(gen_random_uuid())::text"))
+  id                     String              @id @default(dbgenerated("(gen_random_uuid())::text"))
   odontogram_id          String
   tooth_number           Int // 11-48 permanent (FDI), 51-85 deciduous
   entry_type             OdontogramEntryType
   status_code            String // Generic codes: CARIES_SUSPECTED, RESTORATION_COMPOSITE, EXTRACTION, etc.
-  surfaces               ToothSurface[]       @default([WHOLE])
+  surfaces               ToothSurface[]      @default([WHOLE])
   notes                  String?
   created_by             String?
   superseded_by          String? // FK to new entry that corrects this one
-  superseded_at          DateTime?            @db.Timestamp(6)
+  superseded_at          DateTime?           @db.Timestamp(6)
   treatment_plan_item_id String?
-  created_at             DateTime             @default(now()) @db.Timestamp(6)
-  odontogram             Odontogram           @relation(fields: [odontogram_id], references: [id], onDelete: Cascade)
-  treatmentPlanItem      TreatmentPlanItem?   @relation(fields: [treatment_plan_item_id], references: [id], onDelete: SetNull)
-  supersededByEntry      OdontogramEntry?     @relation("EntrySupersede", fields: [superseded_by], references: [id])
-  supersedes             OdontogramEntry[]    @relation("EntrySupersede")
+  created_at             DateTime            @default(now()) @db.Timestamp(6)
+  odontogram             Odontogram          @relation(fields: [odontogram_id], references: [id], onDelete: Cascade)
+  treatmentPlanItem      TreatmentPlanItem?  @relation(fields: [treatment_plan_item_id], references: [id], onDelete: SetNull)
+  supersededByEntry      OdontogramEntry?    @relation("EntrySupersede", fields: [superseded_by], references: [id])
+  supersedes             OdontogramEntry[]   @relation("EntrySupersede")
 
   @@index([odontogram_id])
   @@index([tooth_number])
@@ -742,7 +752,7 @@ model Prescription {
   dentist_id String
   clinic_id  String
   type       String // prescription, certificate, referral
-  content    String  @db.Text // encrypted JSON: { medications: [...] } ou { text: "..." }
+  content    String    @db.Text // encrypted JSON: { medications: [...] } ou { text: "..." }
   pdf_url    String?
   sent_at    DateTime? @db.Timestamp(6)
   sent_via   String? // whatsapp, email
@@ -761,14 +771,14 @@ model Prescription {
 // ============================================
 
 model NpsSurvey {
-  id             String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  id             String       @id @default(dbgenerated("(gen_random_uuid())::text"))
   patient_id     String
   clinic_id      String
   appointment_id String?
   score          Int? // 0-10
   feedback       String?
-  sent_at        DateTime  @default(now()) @db.Timestamp(6)
-  answered_at    DateTime? @db.Timestamp(6)
+  sent_at        DateTime     @default(now()) @db.Timestamp(6)
+  answered_at    DateTime?    @db.Timestamp(6)
   patient        Patient      @relation(fields: [patient_id], references: [id], onDelete: Cascade)
   appointment    Appointment? @relation(fields: [appointment_id], references: [id], onDelete: SetNull)
 
@@ -787,15 +797,15 @@ model Anamnesis {
   patient_id          String
   clinic_id           String
   filled_by_id        String?
-  allergies           String?  @db.Text @default("[]")
-  medications         String?  @db.Text @default("[]")
-  conditions          String?  @db.Text @default("[]")
+  allergies           String?  @default("[]") @db.Text
+  medications         String?  @default("[]") @db.Text
+  conditions          String?  @default("[]") @db.Text
   surgeries           String?  @db.Text
   habits              String?  @db.Text
   risk_classification String?
-  contraindications   String?  @db.Text @default("[]")
-  alerts              String?  @db.Text @default("[]")
-  warnings            String?  @db.Text @default("[]")
+  contraindications   String?  @default("[]") @db.Text
+  alerts              String?  @default("[]") @db.Text
+  warnings            String?  @default("[]") @db.Text
   ai_notes            String?  @db.Text
   ai_recommendations  String?  @db.Text
   raw_answers         String?  @db.Text
@@ -818,7 +828,7 @@ model TreatmentPlan {
   created_by      String?
   status          String              @default("pending") // pending, in_progress, completed, cancelled
   patient_summary String?
-  phases          String?  @db.Text
+  phases          String?             @db.Text
   total_cost      Decimal?            @db.Decimal(10, 2)
   total_sessions  Int?
   recommendations String?
@@ -836,23 +846,241 @@ model TreatmentPlan {
 }
 
 model TreatmentPlanItem {
-  id                   String                  @id @default(dbgenerated("(gen_random_uuid())::text"))
-  treatment_plan_id    String
-  tooth_number         Int?
-  procedure_code       String
-  description          String?
-  status               TreatmentPlanItemStatus @default(PLANNED)
-  estimated_cost       Decimal?                @db.Decimal(10, 2)
-  actual_cost          Decimal?                @db.Decimal(10, 2)
-  notes                String?
-  sort_order           Int                     @default(0)
-  completed_at         DateTime?               @db.Timestamp(6)
-  completed_by         String?
-  created_at           DateTime                @default(now()) @db.Timestamp(6)
-  updated_at           DateTime                @default(now()) @updatedAt @db.Timestamp(6)
-  treatmentPlan        TreatmentPlan           @relation(fields: [treatment_plan_id], references: [id], onDelete: Cascade)
-  odontogramEntries    OdontogramEntry[]
+  id                String                  @id @default(dbgenerated("(gen_random_uuid())::text"))
+  treatment_plan_id String
+  tooth_number      Int?
+  procedure_code    String
+  description       String?
+  status            TreatmentPlanItemStatus @default(PLANNED)
+  estimated_cost    Decimal?                @db.Decimal(10, 2)
+  actual_cost       Decimal?                @db.Decimal(10, 2)
+  notes             String?
+  sort_order        Int                     @default(0)
+  completed_at      DateTime?               @db.Timestamp(6)
+  completed_by      String?
+  created_at        DateTime                @default(now()) @db.Timestamp(6)
+  updated_at        DateTime                @default(now()) @updatedAt @db.Timestamp(6)
+  treatmentPlan     TreatmentPlan           @relation(fields: [treatment_plan_id], references: [id], onDelete: Cascade)
+  odontogramEntries OdontogramEntry[]
 
   @@index([treatment_plan_id])
+  @@index([status])
+}
+
+// ============================================
+// HOF (HARMONIZAÇÃO OROFACIAL) TABLES
+// ============================================
+
+enum HofProcedureType {
+  TOXINA_BOTULINICA
+  PREENCHIMENTO_HA
+  BIOESTIMULADOR_COLAGENO
+  FIOS_PDO
+  SKINBOOSTER
+  OUTRO
+}
+
+enum FacialRegion {
+  TESTA
+  GLABELA
+  PERIORBICULAR
+  NARIZ
+  SULCO_NASOGENIANO
+  LABIO_SUPERIOR
+  LABIO_INFERIOR
+  MENTO
+  MANDIBULA
+  MALAR
+  TEMPORAL
+}
+
+enum FitzpatrickType {
+  I
+  II
+  III
+  IV
+  V
+  VI
+}
+
+model HofAnamnesis {
+  id           String  @id @default(dbgenerated("(gen_random_uuid())::text"))
+  patient_id   String
+  clinic_id    String
+  filled_by_id String?
+
+  // Alergias
+  allergy_anesthetics     Boolean @default(false)
+  allergy_ha              Boolean @default(false)
+  allergy_botulinum_toxin Boolean @default(false)
+  allergy_other           String?
+
+  // Medicamentos
+  uses_anticoagulants Boolean @default(false)
+  uses_nsaids         Boolean @default(false)
+  medications_details String? @db.Text
+
+  // Historico medico
+  previous_procedures   String?          @db.Text // JSON array
+  autoimmune_diseases   Boolean          @default(false)
+  autoimmune_details    String?
+  is_pregnant_lactating Boolean          @default(false)
+  keloid_history        Boolean          @default(false)
+  fitzpatrick_type      FitzpatrickType?
+
+  // Expectativas
+  patient_expectations String? @db.Text
+  reference_photos     String? @db.Text // JSON array of URLs
+
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamp(6)
+  patient    Patient  @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+
+  @@index([patient_id])
+  @@index([clinic_id])
+}
+
+model Faceogram {
+  id         String           @id @default(dbgenerated("(gen_random_uuid())::text"))
+  patient_id String
+  clinic_id  String
+  created_by String?
+  notes      String?
+  created_at DateTime         @default(now()) @db.Timestamp(6)
+  updated_at DateTime         @default(now()) @updatedAt @db.Timestamp(6)
+  patient    Patient          @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  entries    FaceogramEntry[]
+  sessions   HofSession[]
+
+  @@index([patient_id])
+  @@index([clinic_id])
+}
+
+model FaceogramEntry {
+  id             String           @id @default(dbgenerated("(gen_random_uuid())::text"))
+  faceogram_id   String
+  session_id     String?
+  facial_region  FacialRegion
+  procedure_type HofProcedureType
+  product_name   String?
+  product_lot    String?
+  quantity       String? // e.g., "2ml", "20UI"
+  notes          String?
+  created_by     String?
+  superseded_by  String? // FK to new entry that corrects this one
+  superseded_at  DateTime?        @db.Timestamp(6)
+  created_at     DateTime         @default(now()) @db.Timestamp(6)
+  faceogram      Faceogram        @relation(fields: [faceogram_id], references: [id], onDelete: Cascade)
+  session        HofSession?      @relation(fields: [session_id], references: [id], onDelete: SetNull)
+
+  @@index([faceogram_id])
+  @@index([session_id])
+  @@index([facial_region])
+  @@index([faceogram_id, created_at(sort: Desc)])
+}
+
+model FaceogramLegendItem {
+  id             String           @id @default(dbgenerated("(gen_random_uuid())::text"))
+  clinic_id      String
+  procedure_type HofProcedureType
+  label          String
+  color          String // Hex color
+  icon           String?
+  sort_order     Int              @default(0)
+  is_active      Boolean          @default(true)
+  created_at     DateTime         @default(now()) @db.Timestamp(6)
+  updated_at     DateTime         @default(now()) @updatedAt @db.Timestamp(6)
+
+  @@unique([clinic_id, procedure_type])
+  @@index([clinic_id])
+}
+
+model HofSession {
+  id                   String           @id @default(dbgenerated("(gen_random_uuid())::text"))
+  patient_id           String
+  clinic_id            String
+  faceogram_id         String?
+  dentist_id           String?
+  session_date         DateTime         @db.Date
+  post_procedure_notes String?          @db.Text
+  follow_up_status     String?          @default("pending") // pending, scheduled, completed
+  follow_up_date       DateTime?        @db.Date
+  total_value          Decimal?         @db.Decimal(10, 2)
+  status               String           @default("completed") // scheduled, completed, cancelled
+  created_at           DateTime         @default(now()) @db.Timestamp(6)
+  updated_at           DateTime         @default(now()) @updatedAt @db.Timestamp(6)
+  patient              Patient          @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  faceogram            Faceogram?       @relation(fields: [faceogram_id], references: [id], onDelete: SetNull)
+  entries              FaceogramEntry[]
+  photos               HofPhoto[]
+  consent              HofConsent?
+  planItems            HofPlanItem[]
+
+  @@index([patient_id])
+  @@index([clinic_id])
+  @@index([session_date])
+  @@index([clinic_id, session_date])
+}
+
+model HofPhoto {
+  id          String      @id @default(dbgenerated("(gen_random_uuid())::text"))
+  patient_id  String
+  clinic_id   String
+  session_id  String?
+  photo_type  String // "before" | "after"
+  file_url    String
+  annotations String?     @db.Text // JSON for overlay annotations
+  notes       String?
+  created_at  DateTime    @default(now()) @db.Timestamp(6)
+  patient     Patient     @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  session     HofSession? @relation(fields: [session_id], references: [id], onDelete: SetNull)
+
+  @@index([patient_id])
+  @@index([session_id])
+  @@index([photo_type])
+}
+
+model HofPlanItem {
+  id              String           @id @default(dbgenerated("(gen_random_uuid())::text"))
+  patient_id      String
+  clinic_id       String
+  session_id      String?
+  facial_region   FacialRegion
+  procedure_type  HofProcedureType
+  product_name    String?
+  quantity        String?
+  estimated_value Decimal?         @db.Decimal(10, 2)
+  actual_value    Decimal?         @db.Decimal(10, 2)
+  status          String           @default("planned") // planned, done, cancelled
+  notes           String?
+  sort_order      Int              @default(0)
+  completed_at    DateTime?        @db.Timestamp(6)
+  created_at      DateTime         @default(now()) @db.Timestamp(6)
+  updated_at      DateTime         @default(now()) @updatedAt @db.Timestamp(6)
+  patient         Patient          @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  session         HofSession?      @relation(fields: [session_id], references: [id], onDelete: SetNull)
+
+  @@index([patient_id])
+  @@index([clinic_id])
+  @@index([status])
+}
+
+model HofConsent {
+  id               String     @id @default(dbgenerated("(gen_random_uuid())::text"))
+  patient_id       String
+  clinic_id        String
+  session_id       String     @unique
+  template_content String     @db.Text // HTML/Markdown with placeholders filled
+  signature_data   String?    @db.Text // Base64 canvas or file URL
+  signed_at        DateTime?  @db.Timestamp(6)
+  pdf_url          String?
+  status           String     @default("pending") // pending, signed
+  created_at       DateTime   @default(now()) @db.Timestamp(6)
+  updated_at       DateTime   @default(now()) @updatedAt @db.Timestamp(6)
+  patient          Patient    @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  session          HofSession @relation(fields: [session_id], references: [id], onDelete: Cascade)
+
+  @@index([patient_id])
+  @@index([clinic_id])
   @@index([status])
 }

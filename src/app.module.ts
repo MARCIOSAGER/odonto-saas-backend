@@ -42,6 +42,7 @@ import { TreatmentPlansModule } from './treatment-plans/treatment-plans.module';
 import { AnamnesisModule } from './anamnesis/anamnesis.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { PublicBookingModule } from './public-booking/public-booking.module';
+import { HofModule } from './hof/hof.module';
 
 @Module({
   imports: [
@@ -125,6 +126,7 @@ import { PublicBookingModule } from './public-booking/public-booking.module';
     TreatmentPlansModule,
     AnamnesisModule,
     PublicBookingModule,
+    HofModule,
   ],
   controllers: [HealthController],
   providers: [
