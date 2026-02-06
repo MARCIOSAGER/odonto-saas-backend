@@ -47,22 +47,19 @@ export class ClinicsController {
   ) {}
 
   @Get()
-  @Roles('admin', 'superadmin')
-  @ApiOperation({ summary: 'List all clinics (superadmin) or own clinic (admin)' })
+  @Roles('superadmin')
+  @ApiOperation({ summary: 'List all clinics (superadmin only)' })
   @ApiResponse({ status: 200, description: 'Clinics list' })
+  @ApiResponse({ status: 403, description: 'Forbidden - superadmin role required' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'status', required: false, type: String })
   async findAll(
-    @CurrentUser() user: { userId: string; clinicId: string; role: string },
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('status') status?: string,
   ) {
-    if (user.role === 'superadmin') {
-      return this.clinicsService.findAll({ page, limit, status });
-    }
-    return this.clinicsService.findOne(user.clinicId);
+    return this.clinicsService.findAll({ page, limit, status });
   }
 
   @Post()
@@ -184,6 +181,13 @@ export class ClinicsController {
   @ApiResponse({ status: 200, description: 'AI connection test result' })
   async testAiConnection(@CurrentUser() user: { clinicId: string }) {
     return this.clinicsService.testAiConnection(user.clinicId);
+  }
+
+  @Get('my/whatsapp-settings')
+  @ApiOperation({ summary: 'Get WhatsApp/Z-API settings for current clinic' })
+  @ApiResponse({ status: 200, description: 'WhatsApp settings retrieved' })
+  async getMyWhatsAppSettings(@CurrentUser() user: { clinicId: string }) {
+    return this.clinicsService.getWhatsAppSettings(user.clinicId);
   }
 
   @Post('my/test-whatsapp')

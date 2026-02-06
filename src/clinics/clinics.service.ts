@@ -32,7 +32,7 @@ const CLINIC_SAFE_SELECT = {
   city: true,
   state: true,
   cep: true,
-  z_api_instance: true, // Instance ID is safe (not a secret)
+  // z_api_instance: EXCLUDED - Z-API credential, should not be exposed
   // z_api_token: EXCLUDED - sensitive credential
   // z_api_client_token: EXCLUDED - sensitive credential
   smtp_host: true,
@@ -961,6 +961,30 @@ export class ClinicsService {
   // ==========================================
   // Email / SMTP Settings
   // ==========================================
+
+  async getWhatsAppSettings(clinicId: string) {
+    const clinic = await this.prisma.clinic.findUnique({
+      where: { id: clinicId },
+      select: {
+        z_api_instance: true,
+        z_api_token: true,
+        z_api_client_token: true,
+      },
+    });
+
+    if (!clinic) {
+      throw new NotFoundException('Clinic not found');
+    }
+
+    // Return instance ID and masked tokens
+    return {
+      z_api_instance: clinic.z_api_instance,
+      z_api_token_set: !!clinic.z_api_token,
+      z_api_token_masked: clinic.z_api_token ? '********' : null,
+      z_api_client_token_set: !!clinic.z_api_client_token,
+      z_api_client_token_masked: clinic.z_api_client_token ? '********' : null,
+    };
+  }
 
   async getEmailSettings(clinicId: string) {
     const clinic = await this.prisma.clinic.findUnique({
