@@ -6,6 +6,29 @@ import { EmailService } from '../email/email.service';
 import { ConfigService } from '@nestjs/config';
 import { RedisCacheService } from '../cache/cache.service';
 
+/**
+ * Safe clinic fields for admin API responses.
+ * SECURITY: NEVER include z_api_token, z_api_client_token, smtp_pass
+ */
+const ADMIN_CLINIC_SAFE_SELECT = {
+  id: true,
+  name: true,
+  cnpj: true,
+  phone: true,
+  email: true,
+  address: true,
+  city: true,
+  state: true,
+  plan: true,
+  status: true,
+  onboarding_completed: true,
+  slug: true,
+  logo_url: true,
+  created_at: true,
+  updated_at: true,
+  // EXCLUDED: z_api_token, z_api_client_token, smtp_pass
+} as const;
+
 @Injectable()
 export class AdminService {
   constructor(
@@ -253,7 +276,8 @@ export class AdminService {
         skip,
         take: limit,
         orderBy: { created_at: 'desc' },
-        include: {
+        select: {
+          ...ADMIN_CLINIC_SAFE_SELECT,
           _count: {
             select: {
               patients: true,

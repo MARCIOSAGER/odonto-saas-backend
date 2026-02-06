@@ -18,6 +18,51 @@ interface FindAllOptions {
 
 const FIVE_MINUTES = 5 * 60 * 1000;
 
+/**
+ * Safe fields to return in public API responses.
+ * SECURITY: NEVER include z_api_token, z_api_client_token, smtp_pass
+ */
+const CLINIC_SAFE_SELECT = {
+  id: true,
+  name: true,
+  cnpj: true,
+  phone: true,
+  email: true,
+  address: true,
+  city: true,
+  state: true,
+  cep: true,
+  z_api_instance: true, // Instance ID is safe (not a secret)
+  // z_api_token: EXCLUDED - sensitive credential
+  // z_api_client_token: EXCLUDED - sensitive credential
+  smtp_host: true,
+  smtp_port: true,
+  smtp_user: true,
+  // smtp_pass: EXCLUDED - sensitive credential
+  smtp_from: true,
+  smtp_secure: true,
+  plan: true,
+  status: true,
+  onboarding_completed: true,
+  two_factor_policy: true,
+  slug: true,
+  logo_url: true,
+  favicon_url: true,
+  logo_display_mode: true,
+  primary_color: true,
+  secondary_color: true,
+  slogan: true,
+  tagline: true,
+  instagram: true,
+  facebook: true,
+  website: true,
+  business_hours: true,
+  latitude: true,
+  longitude: true,
+  created_at: true,
+  updated_at: true,
+} as const;
+
 @Injectable()
 export class ClinicsService {
   private readonly logger = new Logger(ClinicsService.name);
@@ -46,7 +91,8 @@ export class ClinicsService {
         skip,
         take: limit,
         orderBy: { created_at: 'desc' },
-        include: {
+        select: {
+          ...CLINIC_SAFE_SELECT,
           _count: {
             select: {
               patients: true,
@@ -103,7 +149,8 @@ export class ClinicsService {
   async findOne(id: string) {
     const clinic = await this.prisma.clinic.findUnique({
       where: { id },
-      include: {
+      select: {
+        ...CLINIC_SAFE_SELECT,
         _count: {
           select: {
             patients: true,
@@ -113,6 +160,23 @@ export class ClinicsService {
           },
         },
       },
+    });
+
+    if (!clinic) {
+      throw new NotFoundException('Clinic not found');
+    }
+
+    return clinic;
+  }
+
+  /**
+   * Internal method to get clinic with sensitive fields.
+   * SECURITY: Only use internally for operations that need credentials.
+   * NEVER expose this to API responses.
+   */
+  async findOneInternal(id: string) {
+    const clinic = await this.prisma.clinic.findUnique({
+      where: { id },
     });
 
     if (!clinic) {
