@@ -22,6 +22,10 @@ export class MetricsService {
   // WebSocket Metrics
   public readonly wsConnectionsActive: Gauge<string>;
 
+  // Rate Limiting Metrics
+  public readonly rateLimitHitsTotal: Counter<string>;
+  public readonly rateLimitBlockedTotal: Counter<string>;
+
   constructor() {
     // HTTP request counter
     this.httpRequestsTotal = new Counter({
@@ -78,6 +82,22 @@ export class MetricsService {
       help: 'Number of active WebSocket connections',
       registers: [register],
     });
+
+    // Rate limit hits counter
+    this.rateLimitHitsTotal = new Counter({
+      name: 'odonto_rate_limit_hits_total',
+      help: 'Total number of rate limit hits',
+      labelNames: ['clinic_id', 'plan'],
+      registers: [register],
+    });
+
+    // Rate limit blocked requests counter
+    this.rateLimitBlockedTotal = new Counter({
+      name: 'odonto_rate_limit_blocked_total',
+      help: 'Total number of blocked requests due to rate limiting',
+      labelNames: ['clinic_id', 'plan'],
+      registers: [register],
+    });
   }
 
   /**
@@ -131,6 +151,20 @@ export class MetricsService {
    */
   decrementWsConnections() {
     this.wsConnectionsActive.dec();
+  }
+
+  /**
+   * Track rate limit hit
+   */
+  trackRateLimitHit(clinicId: string, plan: string) {
+    this.rateLimitHitsTotal.labels(clinicId, plan).inc();
+  }
+
+  /**
+   * Track rate limit block
+   */
+  trackRateLimitBlocked(clinicId: string, plan: string) {
+    this.rateLimitBlockedTotal.labels(clinicId, plan).inc();
   }
 
   /**

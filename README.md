@@ -250,6 +250,47 @@ Consulte a documentacao Swagger em `/api/docs` para a lista completa de endpoint
 - Métricas de sistema em tempo real via health endpoint
 - Dashboards Grafana via Prometheus metrics
 
+## Rate Limiting Multi-tenant
+
+### Isolamento por Clínica
+- **Limites por clinicId**: Cada clínica tem seu próprio contador de rate limit
+- **Previne "noisy neighbor"**: Uma clínica com alto volume não afeta outras
+- **Fallback para IP**: Requisições não autenticadas são limitadas por IP
+- **Redis-based**: Storage distribuído para ambientes multi-instância
+- **Graceful degradation**: Funciona sem Redis (fallback para in-memory)
+
+### Configuração de Limites
+
+Três níveis de throttling globais:
+
+| Tier | TTL | Limite | Uso |
+|------|-----|--------|-----|
+| **short** | 1s | 3 requests | Anti-spam imediato |
+| **medium** | 10s | 20 requests | Tráfego moderado |
+| **long** | 60s | 100 requests | Limite geral |
+
+### Métricas de Rate Limiting
+
+Via `/metrics` endpoint:
+- `odonto_rate_limit_hits_total`: Total de requests por clínica
+- `odonto_rate_limit_blocked_total`: Requests bloqueados por rate limit
+- Labels: `clinic_id`, `plan` (basic/pro/enterprise)
+
+### Implementação
+
+O `ClinicThrottlerGuard` customizado:
+- Extrai `clinicId` do JWT do usuário
+- Usa formato de chave `clinic:${clinicId}` para isolamento
+- Integrado globalmente via `APP_GUARD`
+- Compatible com ThrottlerModule do NestJS
+
+### Monitoramento
+
+Alertas recomendados:
+- Taxa de bloqueio > 5%: Revisar limites ou investigar abuso
+- Spike de hits de uma clínica: Possível ataque ou bot
+- Fallback para in-memory: Redis indisponível (verificar conectividade)
+
 ## Seguranca
 
 ### LGPD Compliance

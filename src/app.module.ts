@@ -1,12 +1,14 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { TerminusModule } from '@nestjs/terminus';
 import { CorrelationIdMiddleware } from './logger/correlation-id.middleware';
 import { RedisCacheModule } from './cache/cache.module';
 import { QueueModule } from './queue/queue.module';
 import { StorageModule } from './storage/storage.module';
+import { ClinicThrottlerGuard } from './common/guards/clinic-throttler.guard';
+import { ThrottlerStorageRedisService } from './common/throttler/throttler-storage-redis.service';
 
 import { PrismaModule } from './prisma/prisma.module';
 import { EncryptionModule } from './common/encryption/encryption.module';
@@ -48,24 +50,27 @@ import { MetricsModule } from './metrics/metrics.module';
       envFilePath: ['.env.local', '.env'],
     }),
 
-    // Rate limiting (multi-tier)
-    ThrottlerModule.forRoot([
-      {
-        name: 'short',
-        ttl: 1000,
-        limit: 3,
-      },
-      {
-        name: 'medium',
-        ttl: 10000,
-        limit: 20,
-      },
-      {
-        name: 'long',
-        ttl: 60000,
-        limit: 100,
-      },
-    ]),
+    // Rate limiting (multi-tenant, Redis-based)
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          name: 'short',
+          ttl: 1000,
+          limit: 3,
+        },
+        {
+          name: 'medium',
+          ttl: 10000,
+          limit: 20,
+        },
+        {
+          name: 'long',
+          ttl: 60000,
+          limit: 100,
+        },
+      ],
+      storage: new ThrottlerStorageRedisService(),
+    }),
 
     // Health check
     TerminusModule,
@@ -123,7 +128,7 @@ import { MetricsModule } from './metrics/metrics.module';
   providers: [
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      useClass: ClinicThrottlerGuard,
     },
   ],
 })
