@@ -37,7 +37,7 @@ export class ClinicThrottlerGuard extends ThrottlerGuard {
    */
   protected throwThrottlingException(context: any): Promise<void> {
     try {
-      const req = context.switchToHttp().getRequest<Request>();
+      const req = context.switchToHttp().getRequest() as Request;
       const ip = req.ip || req.socket.remoteAddress || 'unknown';
       const user = (req as any).user;
       const clinicId = user?.clinicId;
