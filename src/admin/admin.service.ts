@@ -5,6 +5,7 @@ import { AuditService } from '../audit/audit.service';
 import { EmailService } from '../email/email.service';
 import { ConfigService } from '@nestjs/config';
 import { RedisCacheService } from '../cache/cache.service';
+import { SecurityAlertsService } from '../security-alerts/security-alerts.service';
 
 /**
  * Safe clinic fields for admin API responses.
@@ -37,6 +38,7 @@ export class AdminService {
     private readonly emailService: EmailService,
     private readonly configService: ConfigService,
     private readonly cacheService: RedisCacheService,
+    private readonly securityAlertsService: SecurityAlertsService,
   ) {}
 
   // =====================
@@ -180,6 +182,17 @@ export class AdminService {
       newValues: { status },
     });
 
+    if (status === 'locked' || status === 'inactive') {
+      this.securityAlertsService
+        .onSuspiciousActivity(
+          'USER_STATUS_CHANGE',
+          `Status do usuário ${user.email} alterado de "${user.status}" para "${status}"`,
+          adminUserId,
+          user.clinic_id,
+        )
+        .catch(() => {});
+    }
+
     return updated;
   }
 
@@ -206,6 +219,10 @@ export class AdminService {
       oldValues: { role: user.role },
       newValues: { role },
     });
+
+    this.securityAlertsService
+      .onRoleChanged(id, user.role, role, adminUserId, user.clinic_id)
+      .catch(() => {});
 
     return updated;
   }

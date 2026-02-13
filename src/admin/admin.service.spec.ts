@@ -6,6 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { EmailService } from '../email/email.service';
 import { RedisCacheService } from '../cache/cache.service';
+import { SecurityAlertsService } from '../security-alerts/security-alerts.service';
 import { createPrismaMock } from '../test/prisma-mock';
 
 describe('AdminService', () => {
@@ -54,6 +55,15 @@ describe('AdminService', () => {
         { provide: EmailService, useValue: emailService },
         { provide: ConfigService, useValue: configService },
         { provide: RedisCacheService, useValue: cacheService },
+        {
+          provide: SecurityAlertsService,
+          useValue: {
+            onLoginFailed: jest.fn().mockResolvedValue(undefined),
+            onRoleChanged: jest.fn().mockResolvedValue(undefined),
+            onSuspiciousActivity: jest.fn().mockResolvedValue(undefined),
+            onRateLimitExceeded: jest.fn().mockResolvedValue(undefined),
+          },
+        },
       ],
     }).compile();
 

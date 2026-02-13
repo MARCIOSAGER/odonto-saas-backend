@@ -43,6 +43,7 @@ import { AnamnesisModule } from './anamnesis/anamnesis.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { PublicBookingModule } from './public-booking/public-booking.module';
 import { HofModule } from './hof/hof.module';
+import { SecurityAlertsModule } from './security-alerts/security-alerts.module';
 
 @Module({
   imports: [
@@ -127,6 +128,7 @@ import { HofModule } from './hof/hof.module';
     AnamnesisModule,
     PublicBookingModule,
     HofModule,
+    SecurityAlertsModule,
   ],
   controllers: [HealthController],
   providers: [

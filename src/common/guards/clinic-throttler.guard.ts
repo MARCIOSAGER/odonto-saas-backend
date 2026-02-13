@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerGuard, ThrottlerException } from '@nestjs/throttler';
 import { Request } from 'express';
+import { SecurityAlertsService } from '../../security-alerts/security-alerts.service';
 
 /**
  * Custom Throttler Guard for multi-tenant rate limiting.
@@ -12,6 +13,7 @@ import { Request } from 'express';
  * - Rate limits by clinicId (from JWT token)
  * - Falls back to IP for unauthenticated requests
  * - Redis-based for distributed systems
+ * - Triggers security alert on rate limit breach
  */
 @Injectable()
 export class ClinicThrottlerGuard extends ThrottlerGuard {
@@ -28,5 +30,31 @@ export class ClinicThrottlerGuard extends ThrottlerGuard {
 
     // For unauthenticated requests, fall back to IP
     return req.ip || req.socket.remoteAddress || 'unknown';
+  }
+
+  /**
+   * Override to trigger security alert when rate limit is exceeded.
+   */
+  protected throwThrottlingException(context: any): Promise<void> {
+    try {
+      const req = context.switchToHttp().getRequest<Request>();
+      const ip = req.ip || req.socket.remoteAddress || 'unknown';
+      const user = (req as any).user;
+      const clinicId = user?.clinicId;
+
+      // Fire-and-forget: inject SecurityAlertsService from app context
+      const alertsService = (context as any)
+        .switchToHttp()
+        .getRequest()
+        ?.app?.get?.(SecurityAlertsService);
+
+      if (alertsService) {
+        alertsService.onRateLimitExceeded(ip, clinicId).catch(() => {});
+      }
+    } catch {
+      // Don't let alert failure block the throttle response
+    }
+
+    throw new ThrottlerException();
   }
 }

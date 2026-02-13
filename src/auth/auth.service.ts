@@ -16,6 +16,7 @@ import { AuditService } from '../audit/audit.service';
 import { EmailService } from '../email/email.service';
 import { TwoFactorService } from './two-factor/two-factor.service';
 import { RedisCacheService } from '../cache/cache.service';
+import { SecurityAlertsService } from '../security-alerts/security-alerts.service';
 
 interface RequestMeta {
   ip?: string;
@@ -34,6 +35,7 @@ export class AuthService {
     private readonly emailService: EmailService,
     private readonly twoFactorService: TwoFactorService,
     private readonly cacheService: RedisCacheService,
+    private readonly securityAlertsService: SecurityAlertsService,
   ) {}
 
   async register(registerDto: RegisterDto, meta?: RequestMeta) {
@@ -152,6 +154,9 @@ export class AuthService {
           ipAddress: meta?.ip,
           newValues: { reason: 'invalid_password' },
         })
+        .catch(() => {});
+      this.securityAlertsService
+        .onLoginFailed(user.id, user.clinic_id, meta?.ip, user.email)
         .catch(() => {});
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -678,6 +683,12 @@ export class AuthService {
       // Check if refresh token is blacklisted
       const isBlacklisted = await this.isTokenBlacklisted(refreshToken);
       if (isBlacklisted) {
+        this.securityAlertsService
+          .onSuspiciousActivity(
+            'REFRESH_TOKEN_REUSE',
+            'Tentativa de reutilização de refresh token revogado (possível roubo de token)',
+          )
+          .catch(() => {});
         throw new UnauthorizedException('Token has been revoked');
       }
 
