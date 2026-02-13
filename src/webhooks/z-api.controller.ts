@@ -1,6 +1,15 @@
-import { Controller, Post, Body, Headers, HttpCode, HttpStatus, Logger } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Headers,
+  HttpCode,
+  HttpStatus,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiHeader } from '@nestjs/swagger';
-import { SkipThrottle } from '@nestjs/throttler';
+import { Throttle } from '@nestjs/throttler';
 import { ZApiService } from './z-api.service';
 
 interface ZApiWebhookPayload {
@@ -44,16 +53,17 @@ interface ZApiWebhookPayload {
 
 @ApiTags('webhooks')
 @Controller('webhooks')
-@SkipThrottle()
 export class ZApiController {
   private readonly logger = new Logger(ZApiController.name);
 
   constructor(private readonly zApiService: ZApiService) {}
 
   @Post('zapi')
+  @Throttle({ default: { limit: 60, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Z-API WhatsApp webhook receiver' })
   @ApiResponse({ status: 200, description: 'Webhook processed' })
+  @ApiResponse({ status: 401, description: 'Invalid webhook token' })
   @ApiHeader({ name: 'x-instance-id', required: false, description: 'Z-API instance ID' })
   @ApiHeader({ name: 'client-token', required: false, description: 'Z-API client token' })
   async handleZApiWebhook(
@@ -71,7 +81,7 @@ export class ZApiController {
         this.logger.warn(
           `Z-API webhook rejected: invalid token for instance ${effectiveInstanceId}`,
         );
-        return { status: 'rejected', reason: 'Invalid webhook token' };
+        throw new UnauthorizedException('Invalid webhook token');
       }
 
       if (payload.fromMe) {
@@ -145,11 +155,27 @@ export class ZApiController {
   }
 
   @Post('zapi/status')
+  @Throttle({ default: { limit: 60, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Z-API status webhook' })
   @ApiResponse({ status: 200, description: 'Status received' })
-  async handleStatusWebhook(@Body() payload: Record<string, unknown>) {
-    this.logger.log(`Status webhook received: ${JSON.stringify(payload)}`);
+  @ApiHeader({ name: 'client-token', required: false, description: 'Z-API client token' })
+  async handleStatusWebhook(
+    @Body() payload: Record<string, unknown>,
+    @Headers('client-token') clientToken?: string,
+    @Headers('x-instance-id') instanceId?: string,
+  ) {
+    // Verify token if instance ID is available
+    const effectiveInstanceId = (payload.instanceId as string) || instanceId;
+    if (effectiveInstanceId) {
+      const isValid = await this.zApiService.verifyWebhookToken(effectiveInstanceId, clientToken);
+      if (!isValid) {
+        this.logger.warn(`Z-API status webhook rejected: invalid token for ${effectiveInstanceId}`);
+        throw new UnauthorizedException('Invalid webhook token');
+      }
+    }
+
+    this.logger.log(`Status webhook received for instance: ${effectiveInstanceId || 'unknown'}`);
     return { status: 'received' };
   }
 }

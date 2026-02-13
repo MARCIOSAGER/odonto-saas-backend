@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import * as fs from 'fs';
@@ -50,6 +50,10 @@ export class StorageService {
    * Upload a file. Returns the URL (S3 public URL or local /uploads/... path).
    */
   async upload(file: Buffer, key: string, contentType: string): Promise<string> {
+    // Prevent null byte injection
+    if (key.includes('\0')) {
+      throw new BadRequestException('Invalid file key');
+    }
     if (this.s3Client) {
       return this.uploadToS3(file, key, contentType);
     }
@@ -73,6 +77,9 @@ export class StorageService {
    * Delete a file by key.
    */
   async delete(key: string): Promise<void> {
+    if (key.includes('\0')) {
+      throw new BadRequestException('Invalid file key');
+    }
     if (this.s3Client) {
       await this.deleteFromS3(key);
     } else {
@@ -102,9 +109,15 @@ export class StorageService {
 
   private async uploadToDisk(file: Buffer, key: string): Promise<string> {
     const normalizedKey = key.startsWith('/') ? key.slice(1) : key;
-    const filePath = path.join(process.cwd(), 'uploads', normalizedKey);
-    const dir = path.dirname(filePath);
+    const uploadsDir = path.resolve(process.cwd(), 'uploads');
+    const filePath = path.resolve(uploadsDir, normalizedKey);
 
+    // Prevent path traversal attacks
+    if (!filePath.startsWith(uploadsDir + path.sep) && filePath !== uploadsDir) {
+      throw new BadRequestException('Invalid file path');
+    }
+
+    const dir = path.dirname(filePath);
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(filePath, file);
 
@@ -127,7 +140,14 @@ export class StorageService {
 
   private deleteFromDisk(key: string): void {
     const normalizedKey = key.startsWith('/') ? key.slice(1) : key;
-    const filePath = path.join(process.cwd(), 'uploads', normalizedKey);
+    const uploadsDir = path.resolve(process.cwd(), 'uploads');
+    const filePath = path.resolve(uploadsDir, normalizedKey);
+
+    // Prevent path traversal attacks
+    if (!filePath.startsWith(uploadsDir + path.sep) && filePath !== uploadsDir) {
+      this.logger.warn(`Path traversal attempt blocked: ${key}`);
+      return;
+    }
 
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);

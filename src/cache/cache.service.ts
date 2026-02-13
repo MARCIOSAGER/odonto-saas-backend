@@ -19,6 +19,30 @@ export class RedisCacheService {
   constructor(@Inject(CACHE_MANAGER) private readonly cache: Cache) {}
 
   /**
+   * Get a cached value by key. Returns null if not found.
+   */
+  async get<T>(key: string): Promise<T | null> {
+    try {
+      const cached = await this.cache.get<T>(key);
+      return cached ?? null;
+    } catch (error) {
+      this.logger.warn(`Cache get error for key "${key}": ${error}`);
+      return null;
+    }
+  }
+
+  /**
+   * Set a cache value with TTL.
+   */
+  async set(key: string, value: unknown, ttlMs: number): Promise<void> {
+    try {
+      await this.cache.set(key, value, ttlMs);
+    } catch (error) {
+      this.logger.warn(`Cache set error for key "${key}": ${error}`);
+    }
+  }
+
+  /**
    * Get a cached value, or execute the factory and cache the result.
    */
   async getOrSet<T>(key: string, factory: () => Promise<T>, ttlMs: number): Promise<T> {

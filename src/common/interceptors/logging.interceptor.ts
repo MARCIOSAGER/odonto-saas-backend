@@ -1,4 +1,11 @@
-import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger, Optional } from '@nestjs/common';
+import {
+  Injectable,
+  NestInterceptor,
+  ExecutionContext,
+  CallHandler,
+  Logger,
+  Optional,
+} from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { Request } from 'express';
@@ -59,7 +66,8 @@ export class LoggingInterceptor implements NestInterceptor {
       }),
       catchError((error) => {
         const duration = Date.now() - startTime;
-        const errorContext = {
+        const isProduction = process.env.NODE_ENV === 'production';
+        const errorContext: Record<string, unknown> = {
           method,
           url,
           duration: `${duration}ms`,
@@ -68,8 +76,12 @@ export class LoggingInterceptor implements NestInterceptor {
           userId: user?.sub,
           clinicId: user?.clinicId,
           error: error.message,
-          stack: error.stack?.split('\n').slice(0, 3).join(' | '),
         };
+
+        // Only include stack traces in non-production environments
+        if (!isProduction && error.stack) {
+          errorContext.stack = error.stack.split('\n').slice(0, 3).join(' | ');
+        }
 
         this.logger.error(`Request Failed: ${JSON.stringify(errorContext)}`);
         return throwError(() => error);

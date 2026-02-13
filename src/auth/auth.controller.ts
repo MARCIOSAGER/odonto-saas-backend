@@ -10,6 +10,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { GoogleLoginDto } from './dto/google-login.dto';
 import { Verify2faDto, Send2faCodeDto } from './dto/verify-2fa.dto';
 import { SetupWhatsApp2faDto, VerifyTotpSetupDto, Disable2faDto } from './dto/setup-2fa.dto';
+import { LogoutDto } from './dto/logout.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Request } from 'express';
@@ -68,11 +69,11 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Logout user' })
+  @ApiOperation({ summary: 'Logout user (invalidates tokens)' })
   @ApiResponse({ status: 200, description: 'Logout successful' })
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async logout(@CurrentUser() user: { userId: string }) {
-    return { message: 'Logout successful' };
+  async logout(@Req() req: Request, @Body() body: LogoutDto) {
+    const accessToken = req.headers.authorization?.replace('Bearer ', '') || '';
+    return this.authService.logout(accessToken, body.refresh_token);
   }
 
   // ============================================

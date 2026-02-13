@@ -59,10 +59,22 @@ export class EmailService {
     return { transporter: this.transporter, from };
   }
 
+  /**
+   * Sanitize email header values to prevent CRLF injection.
+   */
+  private sanitizeHeader(value: string): string {
+    return value.replace(/[\r\n]/g, '');
+  }
+
   async sendMail(to: string, subject: string, html: string): Promise<boolean> {
     try {
       const from = this.configService.get('SMTP_FROM', this.configService.get('SMTP_USER'));
-      await this.transporter.sendMail({ from, to, subject, html });
+      await this.transporter.sendMail({
+        from,
+        to: this.sanitizeHeader(to),
+        subject: this.sanitizeHeader(subject),
+        html,
+      });
       this.logger.log(`Email sent to ${to}: ${subject}`);
       return true;
     } catch (error) {
@@ -79,7 +91,12 @@ export class EmailService {
   ): Promise<boolean> {
     try {
       const { transporter, from } = await this.getTransporterForClinic(clinicId);
-      await transporter.sendMail({ from, to, subject, html });
+      await transporter.sendMail({
+        from,
+        to: this.sanitizeHeader(to),
+        subject: this.sanitizeHeader(subject),
+        html,
+      });
       this.logger.log(`Email sent to ${to} (clinic ${clinicId}): ${subject}`);
       return true;
     } catch (error) {

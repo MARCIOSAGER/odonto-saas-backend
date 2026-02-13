@@ -20,6 +20,12 @@ export class StripeGateway implements PaymentGateway {
     const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
     if (secretKey) {
       this.stripe = new Stripe(secretKey);
+      const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
+      if (!webhookSecret && this.configService.get('NODE_ENV') === 'production') {
+        this.logger.warn(
+          'STRIPE_WEBHOOK_SECRET not configured in production — webhook signature verification will fail',
+        );
+      }
     } else {
       this.logger.warn('STRIPE_SECRET_KEY not configured — Stripe gateway disabled');
     }

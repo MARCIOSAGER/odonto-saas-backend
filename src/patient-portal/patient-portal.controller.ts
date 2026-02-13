@@ -18,7 +18,7 @@ export class PatientPortalController {
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Get patient portal data by token' })
   @ApiResponse({ status: 200, description: 'Patient portal data' })
-  async getPortalData(@Param('token') token: string) {
+  async getPortalData(@Param('token', ParseUUIDPipe) token: string) {
     return this.portalService.getByToken(token);
   }
 
@@ -26,7 +26,7 @@ export class PatientPortalController {
   @Public()
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Get patient appointments via portal' })
-  async getPortalAppointments(@Param('token') token: string) {
+  async getPortalAppointments(@Param('token', ParseUUIDPipe) token: string) {
     return this.portalService.getAppointments(token);
   }
 
@@ -34,7 +34,7 @@ export class PatientPortalController {
   @Public()
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Get patient prescriptions via portal' })
-  async getPortalPrescriptions(@Param('token') token: string) {
+  async getPortalPrescriptions(@Param('token', ParseUUIDPipe) token: string) {
     return this.portalService.getPrescriptions(token);
   }
 

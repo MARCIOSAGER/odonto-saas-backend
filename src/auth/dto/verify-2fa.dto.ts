@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsIn } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class Verify2faDto {
@@ -12,8 +12,12 @@ export class Verify2faDto {
   @IsNotEmpty({ message: 'Código é obrigatório' })
   code: string;
 
-  @ApiProperty({ description: 'Método 2FA: whatsapp ou totp', required: false })
-  @IsString()
+  @ApiProperty({
+    description: 'Método 2FA: whatsapp, email ou totp',
+    required: false,
+    enum: ['totp', 'whatsapp', 'email'],
+  })
+  @IsIn(['totp', 'whatsapp', 'email'], { message: 'Método 2FA inválido' })
   @IsOptional()
   method?: string;
 }

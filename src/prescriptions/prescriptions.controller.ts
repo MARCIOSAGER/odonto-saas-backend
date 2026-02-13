@@ -94,14 +94,26 @@ export class PrescriptionsController {
 
     const pdfUrl = prescription.pdf_url || '';
 
-    // S3/R2 URLs — redirect to the public URL
-    if (pdfUrl.startsWith('http')) {
+    // S3/R2 URLs — redirect only to trusted domains
+    if (pdfUrl.startsWith('https://')) {
+      try {
+        const urlObj = new URL(pdfUrl);
+        const trustedPatterns = ['.s3.amazonaws.com', '.r2.cloudflarestorage.com', '.r2.dev'];
+        const isTrusted = trustedPatterns.some((p) => urlObj.hostname.endsWith(p));
+        if (!isTrusted) {
+          throw new NotFoundException('URL de PDF inválida');
+        }
+      } catch (e) {
+        if (e instanceof NotFoundException) throw e;
+        throw new NotFoundException('URL de PDF inválida');
+      }
       return res.redirect(302, pdfUrl);
     }
 
-    // Local file
-    const filePath = path.join(process.cwd(), pdfUrl);
-    if (!fs.existsSync(filePath)) {
+    // Local file — validate path to prevent traversal
+    const uploadsDir = path.resolve(process.cwd(), 'uploads');
+    const filePath = path.resolve(process.cwd(), pdfUrl);
+    if (!filePath.startsWith(uploadsDir) || !fs.existsSync(filePath)) {
       throw new NotFoundException('Arquivo PDF não encontrado');
     }
 

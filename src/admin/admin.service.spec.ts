@@ -559,7 +559,7 @@ describe('AdminService', () => {
           skip: 0,
           take: 20,
           orderBy: { created_at: 'desc' },
-          include: {
+          select: expect.objectContaining({
             _count: {
               select: {
                 patients: true,
@@ -568,7 +568,7 @@ describe('AdminService', () => {
                 users: true,
               },
             },
-          },
+          }),
         }),
       );
     });

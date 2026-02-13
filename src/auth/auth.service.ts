@@ -15,11 +15,14 @@ import { LoginDto } from './dto/login.dto';
 import { AuditService } from '../audit/audit.service';
 import { EmailService } from '../email/email.service';
 import { TwoFactorService } from './two-factor/two-factor.service';
+import { RedisCacheService } from '../cache/cache.service';
 
 interface RequestMeta {
   ip?: string;
   userAgent?: string;
 }
+
+const TOKEN_BLACKLIST_PREFIX = 'token:blacklist:';
 
 @Injectable()
 export class AuthService {
@@ -30,6 +33,7 @@ export class AuthService {
     private readonly auditService: AuditService,
     private readonly emailService: EmailService,
     private readonly twoFactorService: TwoFactorService,
+    private readonly cacheService: RedisCacheService,
   ) {}
 
   async register(registerDto: RegisterDto, meta?: RequestMeta) {
@@ -138,6 +142,17 @@ export class AuthService {
     const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
 
     if (!isPasswordValid) {
+      this.auditService
+        .log({
+          action: 'LOGIN_FAILED',
+          entity: 'User',
+          entityId: user.id,
+          userId: user.id,
+          clinicId: user.clinic_id,
+          ipAddress: meta?.ip,
+          newValues: { reason: 'invalid_password' },
+        })
+        .catch(() => {});
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -391,6 +406,10 @@ export class AuthService {
       throw new UnauthorizedException('Email não disponível no token Google');
     }
 
+    if (!payload.email_verified) {
+      throw new UnauthorizedException('Email Google não verificado');
+    }
+
     // Find user by email
     const user = await this.prisma.user.findUnique({
       where: { email: payload.email },
@@ -524,10 +543,18 @@ export class AuthService {
   }
 
   async setupTotp(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (user?.two_factor_enabled) {
+      throw new BadRequestException('2FA já está ativado. Desative primeiro para reconfigurar.');
+    }
     return this.twoFactorService.generateTotpSecret(userId);
   }
 
   async verifyTotpSetup(userId: string, code: string, secret: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (user?.two_factor_enabled) {
+      throw new BadRequestException('2FA já está ativado. Desative primeiro para reconfigurar.');
+    }
     const isValid = this.twoFactorService.verifyTotp(secret, code);
 
     if (!isValid) {
@@ -595,11 +622,65 @@ export class AuthService {
   }
 
   // ============================================
+  // LOGOUT & TOKEN BLACKLIST
+  // ============================================
+
+  async logout(accessToken: string, refreshToken?: string) {
+    // Blacklist the access token
+    try {
+      const accessPayload = this.jwtService.decode(accessToken) as { exp?: number };
+      if (accessPayload?.exp) {
+        const ttlMs = Math.max(0, accessPayload.exp * 1000 - Date.now());
+        if (ttlMs > 0) {
+          const tokenHash = crypto.createHash('sha256').update(accessToken).digest('hex');
+          await this.cacheService.set(`${TOKEN_BLACKLIST_PREFIX}${tokenHash}`, true, ttlMs);
+        }
+      }
+    } catch {
+      // Best-effort blacklist — token might already be expired
+    }
+
+    // Blacklist the refresh token if provided
+    if (refreshToken) {
+      try {
+        const refreshPayload = this.jwtService.decode(refreshToken) as { exp?: number };
+        if (refreshPayload?.exp) {
+          const ttlMs = Math.max(0, refreshPayload.exp * 1000 - Date.now());
+          if (ttlMs > 0) {
+            const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+            await this.cacheService.set(`${TOKEN_BLACKLIST_PREFIX}${tokenHash}`, true, ttlMs);
+          }
+        }
+      } catch {
+        // Best-effort blacklist
+      }
+    }
+
+    return { message: 'Logout successful' };
+  }
+
+  async isTokenBlacklisted(token: string): Promise<boolean> {
+    try {
+      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+      const result = await this.cacheService.get<boolean>(`${TOKEN_BLACKLIST_PREFIX}${tokenHash}`);
+      return result === true;
+    } catch {
+      return false;
+    }
+  }
+
+  // ============================================
   // EXISTING METHODS
   // ============================================
 
   async refreshToken(refreshToken: string) {
     try {
+      // Check if refresh token is blacklisted
+      const isBlacklisted = await this.isTokenBlacklisted(refreshToken);
+      if (isBlacklisted) {
+        throw new UnauthorizedException('Token has been revoked');
+      }
+
       const payload = this.jwtService.verify(refreshToken, {
         secret: this.configService.get('JWT_SECRET'),
       });
@@ -617,7 +698,8 @@ export class AuthService {
       }
 
       return this.generateTokens(user.id, user.clinic_id, user.role, user.permissions || []);
-    } catch {
+    } catch (error) {
+      if (error instanceof UnauthorizedException) throw error;
       throw new UnauthorizedException('Invalid refresh token');
     }
   }
@@ -702,7 +784,7 @@ export class AuthService {
           type: 'refresh',
         },
         {
-          expiresIn: '30d',
+          expiresIn: '7d',
         },
       ),
     ]);

@@ -7,7 +7,10 @@ import Redis from 'ioredis';
  * Enables distributed rate limiting across multiple instances.
  */
 @Injectable()
-export class ThrottlerStorageRedisService extends ThrottlerStorageService implements OnModuleDestroy {
+export class ThrottlerStorageRedisService
+  extends ThrottlerStorageService
+  implements OnModuleDestroy
+{
   private redis: Redis | null = null;
   private readonly fallback = new Map<string, number[]>();
 

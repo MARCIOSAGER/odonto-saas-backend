@@ -18,6 +18,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { EmailService } from '../email/email.service';
 import { TwoFactorService } from './two-factor/two-factor.service';
+import { RedisCacheService } from '../cache/cache.service';
 import { createPrismaMock } from '../test/prisma-mock';
 
 describe('AuthService', () => {
@@ -116,6 +117,16 @@ describe('AuthService', () => {
         { provide: AuditService, useValue: auditService },
         { provide: EmailService, useValue: emailService },
         { provide: TwoFactorService, useValue: twoFactorService },
+        {
+          provide: RedisCacheService,
+          useValue: {
+            get: jest.fn().mockResolvedValue(null),
+            set: jest.fn().mockResolvedValue(undefined),
+            getOrSet: jest.fn(),
+            invalidate: jest.fn(),
+            invalidateMany: jest.fn(),
+          },
+        },
       ],
     }).compile();
 

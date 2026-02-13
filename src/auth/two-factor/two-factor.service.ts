@@ -2,6 +2,7 @@ import { Injectable, Logger, UnauthorizedException, BadRequestException } from '
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
+import * as crypto from 'crypto';
 import { TOTP, Secret } from 'otpauth';
 import * as QRCode from 'qrcode';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -20,13 +21,29 @@ export class TwoFactorService {
     private readonly emailService: EmailService,
   ) {}
 
-  // Generate a 6-digit code
+  // Generate a cryptographically secure 6-digit code
   private generateCode(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+    return crypto.randomInt(100000, 999999).toString();
+  }
+
+  // Check if user has sent too many codes recently (max 5 per 15 min)
+  private async checkResendLimit(userId: string): Promise<void> {
+    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+    const recentCodes = await this.prisma.twoFactorCode.count({
+      where: {
+        user_id: userId,
+        created_at: { gt: fifteenMinutesAgo },
+      },
+    });
+    if (recentCodes >= 5) {
+      throw new BadRequestException('Muitas tentativas. Aguarde 15 minutos.');
+    }
   }
 
   // Send 2FA code via WhatsApp
   async sendWhatsAppCode(userId: string): Promise<boolean> {
+    await this.checkResendLimit(userId);
+
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: { clinic: true },
@@ -69,6 +86,8 @@ export class TwoFactorService {
 
   // Send 2FA code via Email (backup method)
   async sendEmailCode(userId: string): Promise<boolean> {
+    await this.checkResendLimit(userId);
+
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });

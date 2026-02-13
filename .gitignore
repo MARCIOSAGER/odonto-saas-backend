@@ -6,14 +6,21 @@ node_modules/
 # Build
 dist/
 build/
+.next/
 
 # Testing
 coverage/
 
 # Env files
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+
+# Certificates and keys
+*.pem
+*.key
+*.p12
+*.pfx
 
 # IDE
 .idea/
@@ -42,6 +49,12 @@ docker-compose.override.yml
 
 # Deploy
 .coolify-token
+
+# Uploads (user-generated content)
+uploads/
+
+# Claude Code local settings
+.claude/settings.local.json
 
 # Misc
 *.tsbuildinfo

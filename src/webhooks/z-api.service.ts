@@ -5,6 +5,7 @@ import { WhatsAppService } from '../integrations/whatsapp.service';
 import { EncryptionService } from '../common/encryption/encryption.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
+import * as crypto from 'crypto';
 
 interface MessageContext {
   messageId?: string;
@@ -61,8 +62,17 @@ export class ZApiService {
     if (!clinic) return false;
     // If clinic has no client token configured, allow (backwards compatible)
     if (!clinic.z_api_client_token) return true;
+    if (!clientToken) return false;
 
-    return clinic.z_api_client_token === clientToken;
+    // Timing-safe comparison to prevent timing attacks
+    try {
+      const expected = Buffer.from(clinic.z_api_client_token, 'utf8');
+      const received = Buffer.from(clientToken, 'utf8');
+      if (expected.length !== received.length) return false;
+      return crypto.timingSafeEqual(expected, received);
+    } catch {
+      return false;
+    }
   }
 
   async processMessage(

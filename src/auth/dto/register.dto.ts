@@ -14,11 +14,19 @@ export class RegisterDto {
   @IsNotEmpty()
   email: string;
 
-  @ApiProperty({ example: 'Senha@123', description: 'User password (min 8 chars)' })
+  @ApiProperty({
+    example: 'Senha@123',
+    description:
+      'User password (min 8 chars, must include uppercase, lowercase, number, and special char)',
+  })
   @IsString()
   @IsNotEmpty()
   @MinLength(8)
   @MaxLength(50)
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])/, {
+    message:
+      'Senha deve conter pelo menos uma letra maiúscula, uma minúscula, um número e um caractere especial',
+  })
   password: string;
 
   @ApiProperty({ example: 'Clínica Odontológica Silva', description: 'Clinic name' })

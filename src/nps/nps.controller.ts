@@ -9,7 +9,9 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { NpsService } from './nps.service';
+import { RespondNpsDto } from './dto/respond-nps.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
@@ -23,19 +25,18 @@ export class NpsController {
 
   @Public()
   @Get('survey/:surveyId')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Get NPS survey details (public)' })
-  async getSurvey(@Param('surveyId') surveyId: string) {
+  async getSurvey(@Param('surveyId', ParseUUIDPipe) surveyId: string) {
     return this.npsService.getSurveyById(surveyId);
   }
 
   @Public()
   @Post('respond/:surveyId')
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
   @ApiOperation({ summary: 'Submit NPS survey response (public)' })
   @ApiResponse({ status: 200, description: 'Response recorded' })
-  async respond(
-    @Param('surveyId') surveyId: string,
-    @Body() body: { score: number; feedback?: string },
-  ) {
+  async respond(@Param('surveyId', ParseUUIDPipe) surveyId: string, @Body() body: RespondNpsDto) {
     return this.npsService.respond(surveyId, body.score, body.feedback);
   }
 

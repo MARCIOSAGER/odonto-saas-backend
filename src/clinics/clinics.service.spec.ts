@@ -97,7 +97,7 @@ describe('ClinicsService', () => {
           skip: 0,
           take: 10,
           orderBy: { created_at: 'desc' },
-          include: {
+          select: expect.objectContaining({
             _count: {
               select: {
                 patients: true,
@@ -105,7 +105,7 @@ describe('ClinicsService', () => {
                 dentists: true,
               },
             },
-          },
+          }),
         }),
       );
     });
@@ -146,7 +146,7 @@ describe('ClinicsService', () => {
       expect(result).toEqual(mockClinic);
       expect(prisma.clinic.findUnique).toHaveBeenCalledWith({
         where: { id: mockClinic.id },
-        include: {
+        select: expect.objectContaining({
           _count: {
             select: {
               patients: true,
@@ -155,7 +155,7 @@ describe('ClinicsService', () => {
               services: true,
             },
           },
-        },
+        }),
       });
     });
 

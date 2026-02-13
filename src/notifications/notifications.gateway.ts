@@ -14,7 +14,16 @@ import Redis from 'ioredis';
 
 @WebSocketGateway({
   cors: {
-    origin: ['https://odonto.marciosager.com', 'http://localhost:3000', 'http://localhost:3001'],
+    origin: (origin: string, callback: (err: Error | null, allow?: boolean) => void) => {
+      // Allow requests without origin (server-to-server, mobile apps)
+      if (!origin) return callback(null, true);
+      const envOrigins = process.env.CORS_ORIGINS;
+      const allowed = envOrigins
+        ? envOrigins.split(',').map((o) => o.trim())
+        : ['https://odonto.marciosager.com', 'http://localhost:3000', 'http://localhost:3001'];
+      if (allowed.includes(origin)) return callback(null, true);
+      callback(new Error('CORS not allowed'), false);
+    },
     credentials: true,
   },
   namespace: '/notifications',
@@ -59,8 +68,8 @@ export class NotificationsGateway
 
   handleConnection(client: Socket) {
     try {
+      // Only accept token from auth object or Authorization header (not query params — they leak in logs)
       const token =
-        (client.handshake.query.token as string) ||
         client.handshake.auth?.token ||
         client.handshake.headers.authorization?.replace('Bearer ', '');
 
