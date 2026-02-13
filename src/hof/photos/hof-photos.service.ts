@@ -4,10 +4,18 @@ import { AuditService } from '../../audit/audit.service';
 
 export interface CreateHofPhotoDto {
   sessionId?: string;
-  photoType: 'before' | 'after';
+  photoType: string;
   fileUrl: string;
   annotations?: string;
   notes?: string;
+}
+
+function mapPhoto(photo: any) {
+  return {
+    ...photo,
+    url: photo.file_url,
+    photo_type: (photo.photo_type || '').toUpperCase(),
+  };
 }
 
 export interface UpdateHofPhotoDto {
@@ -25,7 +33,7 @@ export class HofPhotosService {
   ) {}
 
   async findByPatient(clinicId: string, patientId: string) {
-    return this.prisma.hofPhoto.findMany({
+    const photos = await this.prisma.hofPhoto.findMany({
       where: {
         patient_id: patientId,
         clinic_id: clinicId,
@@ -42,10 +50,11 @@ export class HofPhotosService {
         created_at: 'desc',
       },
     });
+    return photos.map(mapPhoto);
   }
 
   async findBySession(clinicId: string, sessionId: string) {
-    return this.prisma.hofPhoto.findMany({
+    const photos = await this.prisma.hofPhoto.findMany({
       where: {
         session_id: sessionId,
         session: {
@@ -56,6 +65,7 @@ export class HofPhotosService {
         photo_type: 'asc',
       },
     });
+    return photos.map(mapPhoto);
   }
 
   async create(clinicId: string, patientId: string, userId: string, dto: CreateHofPhotoDto) {
@@ -89,7 +99,7 @@ export class HofPhotosService {
         patient_id: patientId,
         clinic_id: clinicId,
         session_id: dto.sessionId,
-        photo_type: dto.photoType,
+        photo_type: dto.photoType.toUpperCase(),
         file_url: dto.fileUrl,
         annotations: dto.annotations,
         notes: dto.notes,
@@ -105,7 +115,7 @@ export class HofPhotosService {
       newValues: { photoType: dto.photoType, sessionId: dto.sessionId },
     });
 
-    return photo;
+    return mapPhoto(photo);
   }
 
   async update(clinicId: string, photoId: string, userId: string, dto: UpdateHofPhotoDto) {
