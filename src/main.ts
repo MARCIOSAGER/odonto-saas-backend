@@ -6,6 +6,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { WinstonModule } from 'nest-winston';
 import helmet from 'helmet';
+import { json, urlencoded } from 'express';
 import { join } from 'path';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -39,6 +40,12 @@ async function bootstrap() {
       process.exit(1);
     }
   }
+
+  // ── Request body size limits ────────────────────────────────────────
+  // Prevent large payload abuse. Default Express limit is 100KB; make it explicit.
+  // rawBody for Stripe webhook verification is preserved via NestFactory option above.
+  app.use(json({ limit: '1mb' }));
+  app.use(urlencoded({ extended: true, limit: '1mb' }));
 
   // Security headers
   app.use(
@@ -82,6 +89,10 @@ async function bootstrap() {
   app.useStaticAssets(join(process.cwd(), 'uploads'), {
     prefix: '/uploads',
     index: false,
+    setHeaders: (res) => {
+      res.setHeader('Cache-Control', 'private, no-cache');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+    },
   });
 
   // Global prefix
